@@ -1,0 +1,24 @@
+---
+- name: "Create home directory for {{ user }}"
+  file:
+    path: "/home/{{ user }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0750
+    state: directory
+
+- name: "Create .ssh directory"
+  file:
+    path: "/home/{{ user }}/.ssh"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0700
+    state: directory
+
+- name: "Install authorized_keys for {{ user }}"
+  copy:
+    dest: "/home/{{ user }}/.ssh/authorized_keys"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0600
+    content: "{{ ssh_pub_key[user] }}\n"

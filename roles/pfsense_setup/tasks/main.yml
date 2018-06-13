@@ -1,0 +1,60 @@
+---
+# Configures pfsense for LDAP authentication against Active Directory
+- block:
+  - name: "Load private data"
+    include_vars: keys.yml
+
+  - name: "Install nss-pam-ldap"
+  #  package:
+  #    name: http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.9.txz
+  #    state: present
+    command: /usr/sbin/pkg add http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.9.txz
+
+  - name: "Install sudo"
+    package:
+      name: pfSense-pkg-sudo
+      state: present
+
+  - name: "Configure nslcd"
+    template:
+      src: nslcd.conf.j2
+      dest: /usr/local/etc/nslcd.conf
+      mode: 0600
+
+  - name: "Install AD cert"
+    copy:
+      src: ad.crt
+      dest: /root/ad.crt
+
+  - name: "Configure /etc/nsswitch.conf"
+    lineinfile:
+      path: /etc/nsswitch.conf
+      regexp: "^({{ item }}):"
+      backrefs: yes
+      line: '\1: files ldap'
+    with_items:
+    - group
+    - passwd
+    
+  - name: "Enable and start nslcd"
+    service:
+      name: nslcd
+      enabled: true
+      state: started
+
+  - name: "Setup admin users"
+    include_tasks: setup_user.yml user="{{ item }}"
+    with_items:
+    - "{{ admin_users }}"
+
+  # Need to include sudoers.d in the GUI
+  - name: "Give Domain Admins sudo rights"
+    copy:
+      dest: /usr/local/etc/sudoers.d/admin
+      owner: root
+      group: wheel
+      mode: 0440
+      content: |
+        %Domain\ Admins             ALL=(ALL) NOPASSWD: ALL
+
+  tags: pfsense_setup

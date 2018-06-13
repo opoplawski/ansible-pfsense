@@ -1,0 +1,64 @@
+---
+- block:
+  - name: "Add aliases"
+    pfsense_alias:
+      name: "{{ item.name }}"
+      type: "{{ item.type }}"
+      address: "{{ item.address }}"
+      descr: "{{ item.descr }}"
+      detail: "{{ item.detail }}"
+      state: present
+    with_items:
+    - { name: adservers,
+        type: host,
+        address: "172.16.10.10 172.16.10.11"
+        descr: "Active Directory Servers",
+        detail: "ad1||ad2" }
+    - "{{ pfsense_aliases }}"
+
+  - name: "Set local network"
+    set_fact:
+      localnet: "{{ (ansible_igb0.ipv4[0].network ~ '/' ~  ansible_igb0.ipv4[0].netmask) | ipaddr('net') }}"
+
+  - name: "Add Internal traffic rules"
+    pfsense_rule:
+      name: "Allow Internal traffic to {{ item }}"
+      action: pass
+      interface: lan
+      ipprotocol: inet
+      protocol: any
+      source: "{{ localnet }}"
+      destination: "{{ item }}"
+      after: 'top'
+      state: present
+    with_items:
+    - 10.0.0.0/8
+    - 192.168.0.0/16
+
+  - name: "Add Allow proxies out rule"
+    pfsense_rule:
+      name: 'Allow proxies out'
+      action: pass
+      interface: lan
+      ipprotocol: inet
+      protocol: tcp
+      source: webfilters
+      destination: any
+      after: 'Allow Internal traffic to 192.168.0.0/16'
+      state: present
+
+  - name: "Add Internal DNS out rule"
+    pfsense_rule:
+      name: 'Allow Internal DNS traffic out'
+      action: pass
+      interface: lan
+      ipprotocol: inet
+      protocol: udp
+      source: dns_int
+      destination: any:53
+      after: 'Allow proxies out'
+      state: present
+
+  - import_tasks: fail2ban.yml
+
+  tags: pfsense

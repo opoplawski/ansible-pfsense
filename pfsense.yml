@@ -1,0 +1,4 @@
+---
+- hosts: pfsense
+  roles:
+  - pfsense

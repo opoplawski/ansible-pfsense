@@ -1,0 +1,6 @@
+---
+- hosts: pfsense
+  # For initial password connection use paramiko to handle BSD prompts
+  connection: paramiko
+  roles:
+  - pfsense_setup
