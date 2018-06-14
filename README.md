@@ -8,7 +8,7 @@ firewalls with ansible.  There are currently two modules:
 * pfsense_rule for managing rules
 
 # pfsense_alias
-
+```
 > PFSENSE_ALIAS    (/export/home/orion/src/ansible-pfsense/library/pfsense_alias.py)
 
         Manage pfSense aliases
@@ -62,9 +62,9 @@ EXAMPLES:
   pfsense_rule:
     name: adservers
     state: absent
-
+```
 #pfsense-rule
-
+```
 > PFSENSE_RULE    (/export/home/orion/src/ansible-pfsense/library/pfsense_rule.py)
 
         Manage pfSense rules
@@ -151,7 +151,7 @@ EXAMPLES:
     destination: any:53
     after: 'Allow proxies out'
     state: present
-
+```
 # operation
 
 It works by editing /cf/conf/config.xml using xml.etree.ElementTree, then
