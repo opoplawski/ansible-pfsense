@@ -104,7 +104,7 @@ OPTIONS (= is mandatory):
         (Choices: yes, no)[Default: (null)]
 
 = interface
-        The iterface for the rule
+        The interface for the rule
 
 
 - ipprotocol

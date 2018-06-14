@@ -36,7 +36,7 @@ options:
     description: Is the rule disabled
     default: false 
   interface:
-    description: The iterface for the rule
+    description: The interface for the rule
     required: true
   floating:
     description: Is the rule floating
