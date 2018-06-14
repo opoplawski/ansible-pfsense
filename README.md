@@ -63,7 +63,7 @@ EXAMPLES:
     name: adservers
     state: absent
 ```
-#pfsense-rule
+# pfsense-rule
 ```
 > PFSENSE_RULE    (/export/home/orion/src/ansible-pfsense/library/pfsense_rule.py)
 
