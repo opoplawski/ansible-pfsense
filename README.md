@@ -2,7 +2,7 @@
 WIP ansible module for managing pfsense firewalls.
 
 This is the very early stages of a module to allow you to configure pfsense
-firewalls with ansible.  There are currently two modules:
+firewalls with ansible.  There are currently the following modules:
 
 * pfsense_alias for managing aliases
 * pfsense_authserver_ldap for managing LDAP authentication servers
