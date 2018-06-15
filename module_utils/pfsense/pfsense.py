@@ -20,6 +20,12 @@ class pfSenseModule(object):
     def get_element(self, node):
         return self.root.find(node)
 
+    def get_elements(self, node):
+        return self.root.findall(node)
+
+    def get_index(self, el):
+        return list(self.root).index(el)
+
     def new_element(self, tag):
         el = ET.Element(tag)
         # Attempt to preserve some of the formatting of pfSense's config.xml
@@ -33,24 +39,47 @@ class pfSenseModule(object):
             self.debug.write('changed=%s key=%s value=%s\n' % (changed, key, value))
             thisEl = topEl.find(key)
             if thisEl is None:
-                # Create a new element
-                newEl = ET.Element(key)
                 changed = True
                 if isinstance(value,dict):
                     self.debug.write('calling copy_dict_to_element()\n')
+                    # Create a new element
+                    newEl = ET.Element(key)
                     newEl.text = '\n%s' % ('\t' * (sub + 4))
                     newEl.tail = '\n%s' % ('\t' * (sub + 3))
                     self.copy_dict_to_element(value, newEl, sub=sub+1)
+                    topEl.append(newEl)
+                elif isinstance(value,list):
+                    for item in value:
+                        newEl = self.new_element(key)
+                        newEl.text = item
+                        topEl.append(newEl)
                 else:
+                    # Create a new element
+                    newEl = ET.Element(key)
                     newEl.text = value
                     newEl.tail = '\n%s' % ('\t' * (sub + 3))
-                topEl.append(newEl)
+                    topEl.append(newEl)
                 self.debug.write('changed=%s added key=%s value=%s tag=%s\n' % (changed, key, value, topEl.tag))
             else:
                 if isinstance(value,dict):
                     self.debug.write('calling copy_dict_to_element()\n')
                     subchanged = self.copy_dict_to_element(value, thisEl, sub=sub+1)
                     if subchanged:
+                        changed = True
+                elif isinstance(value,list):
+                    thisList = value
+                    # Remove existing items not in the new list
+                    for listEl in topEl.findall(key):
+                        if listEl.text in thisList:
+                            thisList.remove(listEl.text)
+                        else:
+                            topEl.remove(listEl)
+                            changed = True
+                    # Add any remaining items in the new list
+                    for item in thisList:
+                        newEl = self.new_element(key)
+                        newEl.text = item
+                        topEl.append(newEl)
                         changed = True
                 elif thisEl.text != value:
                         thisEl.text = value
@@ -66,6 +95,15 @@ class pfSenseModule(object):
 
         return changed
 
+    def get_caref(self, name):
+        caref = None
+        cas = self.get_elements('ca')
+        for ca in cas:
+            if ca.find('descr').text == name:
+                caref = ca.find('refid').text
+                break
+        return caref
+
     def get_username(self):
         username = pwd.getpwuid(os.getuid()).pw_name
         if os.environ.get('SUDO_USER'):
@@ -75,6 +113,9 @@ class pfSenseModule(object):
         if sshclient:
              username = username + '@' + sshclient
         return username
+
+    def uniqid(self, prefix = ''):
+        return prefix + hex(int(time.time()))[2:10] + hex(int(time.time()*1000000) % 0x100000)[2:7]
 
     # Run a command in the php developer shell
     def phpshell(self, command):
@@ -96,4 +137,11 @@ class pfSenseModule(object):
         # xml_declaration does not appear to be working
         self.tree.write('/tmp/config.xml', xml_declaration=True, method='html')
         shutil.move('/tmp/config.xml', '/cf/conf/config.xml')
-        os.remove('/tmp/config.cache')
+        try:
+            os.remove('/tmp/config.cache')
+        except OSError, e:
+            if e.errno == 2:
+                # suppress "No such file or directory error
+                pass
+            else:
+                raise
