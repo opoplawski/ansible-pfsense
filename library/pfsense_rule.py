@@ -323,6 +323,6 @@ def main():
 
 
 # import module snippets
-from module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule
 
 main()
