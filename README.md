@@ -5,6 +5,9 @@ This is the very early stages of a module to allow you to configure pfsense
 firewalls with ansible.  There are currently two modules:
 
 * pfsense_alias for managing aliases
+* pfsense_authserver_ldap for managing LDAP authentication servers
+* pfsense_ca for managing Certificate Authorities
+* pfsense_group for managing groups
 * pfsense_rule for managing rules
 
 # pfsense_alias
@@ -61,6 +64,212 @@ EXAMPLES:
 - name: Remove adservers alias
   pfsense_rule:
     name: adservers
+    state: absent
+```
+# pfsense_authserver_ldap
+```
+> PFSENSE_AUTHSERVER_LDAP    (/export/home/orion/src/ansible-pfsense/library/pfsense_authserver_ldap.py)
+
+        Manage pfSense LDAP authentication servers
+
+OPTIONS (= is mandatory):
+
+- attr_group
+        LDAP Group naming attribute
+        [Default: cn]
+
+- attr_groupobj
+        LDAP Group objectClass naming attribute
+        [Default: posixGroup]
+
+- attr_member
+        LDAP Group member naming attribute
+        [Default: member]
+
+- attr_user
+        LDAP User naming attribute
+        [Default: cn]
+
+- authcn
+        Authentication containers added to basedn
+        [Default: (null)]
+
+- basedn
+        Search base DN
+        [Default: (null)]
+
+- binddn
+        Search bind DN
+        [Default: (null)]
+
+- bindpw
+        Search bind password
+        [Default: (null)]
+
+- ca
+        Certificat Authority
+        [Default: (null)]
+
+= host
+        The hostname or IP address of the authentication server
+
+
+= name
+        The name of the authentication server
+
+
+- port
+        Port to connect to
+        [Default: 389]
+
+- protver
+        LDAP protocol version
+        (Choices: 2, 3)[Default: 3]
+
+- scope
+        Search scope
+        (Choices: one, subtree)[Default: (null)]
+
+= state
+        State in which to leave the authentication server
+        (Choices: present, absent)
+
+- timeout
+        Server timeout in seconds
+        [Default: 25]
+
+- transport
+        Transport to use
+        (Choices: tcp, starttls, ssl)[Default: (null)]
+
+
+AUTHOR: Orion Poplawski (@opoplawski)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+        
+
+EXAMPLES:
+- name: Add adservers authentication server
+  pfsense_authserver_ldap:
+    name: AD
+    hostname: adserver.example.com
+    port: 636
+    transport: ssl
+    scope: subtree
+    basedn: dc=example,dc=com
+    binddb: cn=bind,ou=Service Accounts,dc=example,dc=com
+    bindpw: "{{ vaulted_bindpw }}"
+    attr_user: samAccountName
+    attr_member: memberOf
+    attr_groupobj: group
+    state: present
+
+- name: Remove LDAP authentication server
+  pfsense_authserver_ldap:
+    name: AD
+    state: absent
+```
+# pfsense_ca
+```
+> PFSENSE_CA    (/export/home/orion/src/ansible-pfsense/library/pfsense_ca.py)
+
+        Manage pfSense LDAP Certificate Authorities
+
+OPTIONS (= is mandatory):
+
+= certificate
+        The certificate for the Certificate Authority
+
+
+= name
+        The name of the Certificate Authority
+
+
+= state
+        State in which to leave the Certificate Authority
+        (Choices: present, absent)
+
+
+AUTHOR: Orion Poplawski (@opoplawski)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+        
+
+EXAMPLES:
+- name: Add AD Certificate Authority
+  pfsense_ca:
+    name: AD CA
+    certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dBd0lCQWdJUVBreXdY
+dWRkZnFOR2h2aWExVDVYZ3pBTkJna3Foa2lHOXcwQkFRMEZBREJjDQpNUk13RVFZS0NaSW1pWlB5TEdRQkdSWURZMjl0T
+VJRd0VnWUtDWkltaVpQeUxHUUJHUllFYm5keVlURVNNQkFHDQpDZ21TSm9tVDhpeGtBUmtXQW1Ga01Sc3dHUVlEVlFRRE
+V4SmhaQzFCUkMxVFJVRlVWRXhGTURFdFEwRXdIaGNODQpNVFl3TkRBM01UWTBOVEE0V2hjTk1qWXdOREEzTVRZMU5UQTN
+XakJjTVJNd0VRWUtDWkltaVpQeUxHUUJHUllEDQpZMjl0TVJRd0VnWUtDWkltaVpQeUxHUUJHUllFYm5keVlURVNNQkFH
+Q2dtU0pvbVQ4aXhrQVJrV0FtRmtNUnN3DQpHUVlEVlFRREV4SmhaQzFCUkMxVFJVRlVWRXhGTURFdFEwRXdnZ0lpTUEwR
+0NTcUdTSWIzRFFFQkFRVUFBNElDDQpEd0F3Z2dJS0FvSUNBUUNWdGM0dzBnY0h5aFkzRkVpUENVMmZLYXAyWnFHb0ROL1
+VuRkVRRVBqZ1R4NmE4UEF5DQpqWjRMS2o2N1AybkRLTFA0ZVFQSFFzQmRkTVNneVl1RzdCQTlycmNCaFIzY0VlZ1RmNm9
+CSjdKUG1zZTJTS3dtDQp6QnhT....
+    state: present
+
+- name: Remove AD Certificate Authority
+  pfsense_ca:
+    name: AD CA
+    state: absent
+```
+# pfsense_group
+```
+> PFSENSE_GROUP    (/export/home/orion/src/ansible-pfsense/library/pfsense_group.py)
+
+        Manage pfSense groups
+
+OPTIONS (= is mandatory):
+
+- descr
+        Description of the group
+        [Default: (null)]
+
+- gid
+        GID of the group
+        [Default: next available GID]
+
+= name
+        The name of the group
+
+
+- priv
+        Priveleges to assign
+        (Choices: page-all, user-shell-access)[Default: (null)]
+
+- scope
+        Scope of the group ('system' is 'Local')
+        (Choices: system, remote)[Default: system]
+
+= state
+        State in which to leave the group
+        (Choices: present, absent)
+
+
+AUTHOR: Orion Poplawski (@opoplawski)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+        
+
+EXAMPLES:
+- name: Add adservers group
+  pfsense_group:
+    name: Domain Admins
+    description: Remote Admins
+    scope: remote
+    priv: [ 'page-all, 'user-shell-access' ]
+
+- name: Remove group
+  pfsense_group:
+    name: Domain Admins
     state: absent
 ```
 # pfsense-rule
