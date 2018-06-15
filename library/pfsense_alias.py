@@ -53,7 +53,7 @@ EXAMPLES = """
     state: present
 
 - name: Remove adservers alias
-  pfsense_rule:
+  pfsense_alias:
     name: adservers
     state: absent
 """
@@ -162,6 +162,6 @@ def main():
 
 
 # import module snippets
-from module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule
 
 main()
