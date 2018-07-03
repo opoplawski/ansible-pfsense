@@ -53,16 +53,17 @@ options:
     default: any
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp" ]
   source:
-    description: The source address
+    description: The source address, in {IP,HOST,ALIAS}[:port] or NET:INTERFACE format
     required: true
     default: null
   destination:
-    description: The destination address
+    description: The destination address, in {IP,HOST,ALIAS}[:port] or NET:INTERFACE format
     required: true
     default: null
-  descr:
-    description: Description
-    default: null
+  log:
+    description: Log packets matched by rule
+    default: no
+    choices: [ "no", "yes" ]
   after:
     description: Rule to go after, or "top"
   before:
@@ -87,6 +88,7 @@ EXAMPLES = """
 """
 
 from ansible.module_utils.pfsense.pfsense import pfSenseModule
+import time
 import re
 
 class pfSenseRule(object):
@@ -149,15 +151,15 @@ class pfSenseRule(object):
             if found:
                 self.rules.insert(i+1, el)
             else:
-                self.module.fail_json(msg='Failed to file after rule=%s interface=%x' % (after, interface))
+                self.module.fail_json(msg='Failed to insert after rule=%s interface=%s' % (after, interface))
         elif before is not None:
             found, i = self._find_rule_by_descr(before, interface)
             if found:
                 self.rules.insert(i, el)
             else:
-                self.module.fail_json(msg='Failed to file before rule=%s interface=%x' % (before, interface))
+                self.module.fail_json(msg='Failed to insert before rule=%s interface=%s' % (before, interface))
         else:
-            self.module.fail_json(msg='Failed to add rule, after=%s before=%s' % (after, before))
+            self.module.fail_json(msg='Failed to add rule')
         
     def _update(self):
         return self.pfsense.phpshell('''require_once("filter.inc");
@@ -218,6 +220,9 @@ def parse_address(s):
     d = dict()
     if address == 'any':
         d['any'] = None
+    elif address == 'NET':
+        d['network'] = port
+        return d
     else:
         d['address'] = address
     if port is not None:
@@ -271,6 +276,10 @@ def main():
                 'required': True,
                 'type': 'str'
             },
+            'log': {
+                'required': False,
+                'choices': [ "no", "yes" ]
+            },
             'after': {
                 'required': False,
                 'type': 'str'
@@ -306,6 +315,8 @@ def main():
     rule['source'] = dict()
     rule['source'] = parse_address(module.params['source'])
     rule['destination'] = parse_address(module.params['destination'])
+    if module.params['log'] == 'yes':
+        rule['log'] == ''
     rule['statetype'] = module.params['statetype']
 
     state = module.params['state']
