@@ -6,14 +6,18 @@
 
   - name: "Install nss-pam-ldap"
   #  package:
-  #    name: http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.9.txz
+  #    name: http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.10_1.txz
   #    state: present
-    command: /usr/sbin/pkg add http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.9.txz
+    command: /usr/sbin/pkg add http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.10_1.txz
 
-  - name: "Install sudo"
+  - name: "Install packages"
     package:
-      name: pfSense-pkg-sudo
+      name: "{{ item }}"
       state: present
+    with_items:
+    - pfSense-pkg-sudo
+    # For pfsense ansible tasks
+    - py27-ipaddress
 
   - name: "Configure nslcd"
     template:
@@ -35,7 +39,15 @@
     with_items:
     - group
     - passwd
-    
+
+  # Work around https://github.com/ansible/ansible/issues/41970
+  - name: "Enable nslcd in /etc/rc.conf.local"
+    lineinfile:
+      path: /etc/rc.conf.local
+      regexp: "^nslcd_enable=.*"
+      line: 'nslcd_enable="YES"'
+      create: yes
+
   - name: "Enable and start nslcd"
     service:
       name: nslcd
@@ -43,9 +55,12 @@
       state: started
 
   - name: "Setup admin users"
-    include_tasks: setup_user.yml user="{{ item }}"
+    include_tasks: setup_user.yml user="{{ user }}"
     with_items:
     - "{{ admin_users }}"
+    loop_control:
+      loop_var: user
+    tags: users
 
   # Need to include sudoers.d in the GUI
   - name: "Give Domain Admins sudo rights"
