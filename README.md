@@ -272,7 +272,7 @@ EXAMPLES:
     name: Domain Admins
     state: absent
 ```
-# pfsense-rule
+# pfsense_rule
 ```
 > PFSENSE_RULE    (/export/home/orion/src/ansible-pfsense/library/pfsense_rule.py)
 
