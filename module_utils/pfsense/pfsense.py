@@ -3,6 +3,7 @@
 # Copyright: (c) 2018, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+import ipaddress
 import shutil
 import os
 import pwd
@@ -15,6 +16,7 @@ class pfSenseModule(object):
         self.module = module
         self.tree = ET.parse('/cf/conf/config.xml')
         self.root = self.tree.getroot()
+        self.aliases = self.get_element('aliases')
         self.debug = open('/tmp/pfsense.debug','w')
 
     def get_element(self, node):
@@ -113,6 +115,47 @@ class pfSenseModule(object):
         if sshclient:
              username = username + '@' + sshclient
         return username
+
+    def find_alias(self, name, aliastype):
+        found = None
+        for alias in self.aliases:
+            if alias.find('name').text == name and alias.find('type').text == aliastype:
+                found = alias
+                break
+        return found
+
+    def is_ip_or_alias(self, address):
+        # Is it an alias?
+        if self.find_alias(address, 'host'):
+            return True
+        if self.find_alias(address, 'urltable'):
+            return True
+        # Is it an IP address?
+        try:
+            dummy_address = ipaddress.ip_address(unicode(address))
+        except ValueError:
+            dummy_address = None
+        if dummy_address is not None:
+            return True
+        # Is it an IP network?
+        try:
+            dummy_network = ipaddress.ip_network(unicode(address))
+        except ValueError:
+            dummy_network = None
+        if dummy_network is not None:
+            return True
+        # None of the above
+        return False
+
+    def is_port_or_alias(self, port):
+        if self.find_alias(port, 'port'):
+            return True
+        try:
+            if int(port) > 0 and int(port) < 65536:
+                return True
+        except:
+            return False
+        return False
 
     def uniqid(self, prefix = ''):
         return prefix + hex(int(time.time()))[2:10] + hex(int(time.time()*1000000) % 0x100000)[2:7]

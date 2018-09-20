@@ -67,20 +67,12 @@ class pfSenseAlias(object):
         self.pfsense = pfSenseModule(module)
         self.aliases = self.pfsense.get_element('aliases')
 
-    def _find_alias(self, name, aliastype):
-        found = None
-        for alias in self.aliases:
-            if alias.find('name').text == name and alias.find('type').text == aliastype:
-                found = alias
-                break
-        return found
-
     def _update(self):
         return self.pfsense.phpshell('''require_once("filter.inc");
 if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
 
     def add(self, alias):
-        aliasEl = self._find_alias(alias['name'], alias['type'])
+        aliasEl = self.pfsense.find_alias(alias['name'], alias['type'])
         changed = False
         rc = 0
         stdout = ''
@@ -104,7 +96,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed)
 
     def remove(self, alias):
-        aliasEl = self._find_alias(alias['name'], alias['type'])
+        aliasEl = self.pfsense.find_alias(alias['name'], alias['type'])
         changed = False
         rc = 0
         stdout = ''
