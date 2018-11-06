@@ -34,7 +34,7 @@ options:
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
-    default: false 
+    default: false
   interface:
     description: The interface for the rule
     required: true
@@ -47,17 +47,19 @@ options:
   ipprotocol:
     description: The IP protocol
     default: inet
-    choices: [ "inet" ]
+    choices: [ "inet", "inet46" ]
   protocol:
     description: The protocol
     default: any
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp" ]
   source:
-    description: The source address, in {IP,HOST,ALIAS}[:port] or NET:INTERFACE format
+    description: The source address, in {IP,HOST,ALIAS,INTERFACE,firewall}[:port] or NET:INTERFACE format (remove ?)
+                 or invert the rule with '!', {IP,HOST,ALIAS,INTERFACE,firewall}[:port][:!]
     required: true
     default: null
   destination:
-    description: The destination address, in {IP,HOST,ALIAS}[:port] or NET:INTERFACE format
+    description: The destination address, in {IP,HOST,ALIAS,INTERFACE}[:port] or NET:INTERFACE format
+                 or invert the rule with '!', {IP,HOST,ALIAS,INTERFACE,firewall}[:port][:!]
     required: true
     default: null
   log:
@@ -85,6 +87,17 @@ EXAMPLES = """
     destination: any:53
     after: 'Allow proxies out'
     state: present
+
+- name: 'Block every tcp connection except for NAT interface'
+  pfsense_rule:
+    name: 'Block every tcp connection except for NAT interface'
+    action: block
+    interface: lan
+    ipprotocol: inet
+    protocol: tcp
+    source: NAT:any:!
+    destination: LAN
+    state: present
 """
 
 from ansible.module_utils.pfsense.pfsense import pfSenseModule
@@ -97,6 +110,7 @@ class pfSenseRule(object):
         self.module = module
         self.pfsense = pfSenseModule(module)
         self.rules = self.pfsense.get_element('filter')
+        self.interfaces = self.pfsense.get_element('interfaces')
 
     def _find_rule_by_descr(self, descr, interface):
         found = None
@@ -160,26 +174,57 @@ class pfSenseRule(object):
                 self.module.fail_json(msg='Failed to insert before rule=%s interface=%s' % (before, interface))
         else:
             self.module.fail_json(msg='Failed to add rule')
-        
+
     def _update(self):
         return self.pfsense.phpshell('''require_once("filter.inc");
 if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
 
+    # @madgics validate interface
+    def parse_interface(self, interface):
+        if self.pfsense.is_interface_name(interface):
+            interface = self.pfsense.get_interface_pfsense_by_name(interface)
+            return interface
+        elif self.pfsense.is_interface_pfsense(interface):
+            return interface
+        else:
+            self.module.fail_json(msg='%s is not a valid interface' % (interface))
+
     def parse_address(self, s):
-        m = re.match('([^:]+):?([^:]+)?', s)
+        # @madgics add one more regex for invert rule (maybe better solution!)
+        # TODO find a regex that match all cases
+        invert = None
+        if s.count(':') > 1:
+            m = re.match('([^:]+):?([^:]+):?([^:]+)?', s)
+            invert = m.group(3)
+        else:
+            m = re.match('([^:]+):?([^:]+)?', s)
         address = m.group(1)
         port = m.group(2)
+
         d = dict()
+        # @madgics: invert the rule
+        if invert == '!':
+            d['not'] = None
         if address == 'any':
             d['any'] = None
         elif address == 'NET':
             d['network'] = port
             return d
+        # @madgics: rule with this firewall
+        elif address == 'firewall':
+            d['network'] = '(self)'
+        # @madgics: rule with interface name (LAN, WAN...)
+        elif self.pfsense.is_interface_name(address):
+            interface = self.pfsense.get_interface_pfsense_by_name(address)
+            d['network'] = interface
         else:
             if not self.pfsense.is_ip_or_alias(address):
                 self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
             d['address'] = address
-        if port is not None:
+        # @madgics: rule with any port
+        if port == 'any':
+            d['port'] = None
+        elif port is not None:
             if not self.pfsense.is_port_or_alias(port):
                 self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port))
             d['port'] = port
@@ -240,7 +285,7 @@ def main():
                 'default': 'pass',
                 'required': False,
                 'choices': ['pass', "block", 'reject']
-            },    
+            },
             'state': {
                 'required': True,
                 'choices': ['present', 'absent']
@@ -264,7 +309,7 @@ def main():
             'ipprotocol': {
                 'required': False,
                 'default': 'inet',
-                'choices': [ 'inet' ]
+                'choices': [ 'inet', 'inet46' ]
             },
             'protocol': {
                 'default': 'any',
@@ -307,7 +352,9 @@ def main():
     rule = dict()
     rule['descr'] = module.params['name']
     rule['type'] = module.params['action']
-    rule['interface'] = module.params['interface']
+    #rule['interface'] = module.params['interface']
+    # @madgics parse interface
+    rule['interface'] = pfrule.parse_interface(module.params['interface'])
     if module.params['floating'] == 'yes':
         rule['floating'] = module.params['floating']
     if module.params['direction'] is not None:

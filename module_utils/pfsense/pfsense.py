@@ -8,16 +8,24 @@ import shutil
 import os
 import pwd
 import time
-import xml.etree.ElementTree as ET 
+import xml.etree.ElementTree as ET
 
 class pfSenseModule(object):
 
     def __init__(self, module):
         self.module = module
-        self.tree = ET.parse('/cf/conf/config.xml')
+        # @madgics set config file
+        self.config = '/cf/conf/config.xml'
+        self.tree = ET.parse(self.config)
         self.root = self.tree.getroot()
         self.aliases = self.get_element('aliases')
+        self.interfaces = self.get_element('interfaces')
         self.debug = open('/tmp/pfsense.debug','w')
+        # @madgics add descr on lan and wan interfaces if no descr
+        if not self.is_interface_descr('lan'):
+            self.add_interface_descr('lan', 'LAN')
+        if not self.is_interface_descr('wan'):
+            self.add_interface_descr('wan', 'WAN')
 
     def get_element(self, node):
         return self.root.find(node)
@@ -147,6 +155,24 @@ class pfSenseModule(object):
         # None of the above
         return False
 
+    def is_ip(self, address):
+        # Is it an IP address?
+        try:
+            dummy_address = ipaddress.ip_address(unicode(address))
+        except ValueError:
+            dummy_address = None
+        if dummy_address is not None:
+            return True
+        # Is it an IP network?
+        try:
+            dummy_network = ipaddress.ip_network(unicode(address))
+        except ValueError:
+            dummy_network = None
+        if dummy_network is not None:
+            return True
+        # None of the above
+        return False
+
     def is_port_or_alias(self, port):
         if self.find_alias(port, 'port'):
             return True
@@ -166,6 +192,73 @@ class pfSenseModule(object):
         # Dummy argument suppresses displaying help message
         return self.module.run_command('/usr/local/sbin/pfSsh.php dummy', data=command)
 
+    # @madgics add an interface description
+    def add_interface_descr(self, name, descr):
+        interfaceEl = self.interfaces.find(name)
+        descrEl = ET.Element('descr')
+        interfaceEl.append(descrEl)
+        descrEl.text = descr
+        self.write_config(descr='ansible pfsense added %s descr interface' % (descr))
+
+    # @madgics determines if arg interface have a descr or not
+    def is_interface_descr(self, name):
+        interfaceEl = self.interfaces.find(name)
+        descr = interfaceEl.find('descr')
+        if descr != None:
+            return True
+        return False
+
+    # @madgics determines if arg is an interface name or not
+    def is_interface_name(self, name):
+        for interface in self.interfaces:
+            descrEl = interface.find('descr')
+            if descrEl != None:
+                if descrEl.text.strip() == name:
+                    return True
+        return False
+
+    # @madgics determines if arg is a system interface or not
+    def is_interface_system(self, name):
+        for interface in self.interfaces:
+            interfaceEl = interface.find('if').text.strip()
+            if interfaceEl == name:
+                return True
+        return False
+
+    # @madgics determines if arg is a pfsense interface or not
+    def is_interface_pfsense(self, name):
+        for interface in self.interfaces:
+            interfaceEl = interface.tag.strip()
+            if interfaceEl == name:
+                return True
+        return False
+
+    # @madgics return pfsense interface by name
+    def get_interface_pfsense_by_name(self, name):
+        for interface in self.interfaces:
+            interface_name = interface.find('descr').text
+            if interface_name.strip() == name:
+                return interface.tag
+        return None
+
+    # @madgics return system interface by name
+    def get_interface_system_by_name(self, name):
+        for interface in self.interfaces:
+            interfaceEl = interface.find('descr').text.strip()
+            if interfaceEl == name:
+                return interface.find('if').text.strip()
+        return None
+
+    # @madgics return broadcast address with ipaddr and short mask
+    def get_broadcast_addr(self, ip, mask):
+        net = ipaddress.IPv4Network(unicode(ip) + '/' + unicode(mask), False)
+        return net.broadcast_address
+
+    # @madgics return cidr netmask with ipaddr and short mask
+    def get_cidr_netmask(self, ip, mask):
+        net = ipaddress.IPv4Network(unicode(ip) + '/' + unicode(mask), False)
+        return net.netmask
+
     def write_config(self, descr='Updated by ansible pfsense module'):
         revision = self.get_element('revision')
         revision.find('time').text = '%d' % time.time()
@@ -179,7 +272,8 @@ class pfSenseModule(object):
         # Use 'html' to have explicit close tags - 3.4 has short_empty_elements
         # xml_declaration does not appear to be working
         self.tree.write('/tmp/config.xml', xml_declaration=True, method='html')
-        shutil.move('/tmp/config.xml', '/cf/conf/config.xml')
+        #shutil.move('/tmp/config.xml', '/cf/conf/config.xml')
+        shutil.move('/tmp/config.xml', self.config)
         try:
             os.remove('/tmp/config.cache')
         except OSError, e:
