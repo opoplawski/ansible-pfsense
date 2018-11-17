@@ -19,6 +19,7 @@ There are currently the following modules:
 * pfsense_ca for managing Certificate Authorities
 * pfsense_group for managing groups
 * pfsense_rule for managing rules
+* pfsense_interface for managing interfaces
 
 # pfsense_alias
 ```
@@ -62,7 +63,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add adservers alias
@@ -158,7 +159,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add adservers authentication server
@@ -207,7 +208,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add AD Certificate Authority
@@ -267,7 +268,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add adservers group
@@ -356,7 +357,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: "Add Internal DNS out rule"
@@ -371,6 +372,66 @@ EXAMPLES:
     after: 'Allow proxies out'
     state: present
 ```
+# pfsense_interface
+```
+> PFSENSE_INTERFACE
+
+        Manage static IPV4 pfSense interfaces
+
+OPTIONS (= is mandatory):
+
+= if
+        The system interface
+        [Default: (null)]
+
+= ipaddr
+        The interface IP address
+        [Default: (null)]
+
+- enable
+        Enable the interface or not
+        (Choices: yes, no)[Default: yes]
+
+= descr
+        The interface description
+        [Default: (null)]
+
+= subnet
+        The interface subnet mask
+        [Default: (null)]
+
+- gateway
+        The interface gateway IP
+        [Default: (null)]
+
+= sate
+        Add or delete the interface
+        (Choices: present, absent)[Default: present]
+
+AUTHOR: Benjamin Boukhers (@madgics)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+
+EXAMPLES:
+- name: "Add NAT interface"
+    pfsense_interface:
+      if: 'vmx1'
+      ipaddr: '192.168.1.1'
+      descr: 'NAT'
+      subnet: '24'
+      state: present
+
+- name: "Del NAT interface"
+    pfsense_interface:
+      if: 'vmx1'
+      ipaddr: '192.168.1.1'
+      descr: 'NAT'
+      subnet: '24'
+      state: absent
+```
+
 # operation
 
 It works by editing /cf/conf/config.xml using xml.etree.ElementTree, then
