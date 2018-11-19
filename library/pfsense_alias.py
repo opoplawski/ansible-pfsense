@@ -40,7 +40,7 @@ options:
     default: null
   detail:
     description: Details for items
-    default: null
+    default: ""
   updatefreq:
     description: Update frequency in days for urltable
 """
@@ -77,23 +77,24 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         rc = 0
         stdout = ''
         stderr = ''
+        diff = {} 
+        diff['after'] = alias
         if aliasEl is None:
+            diff['before'] = ''
             changed = True
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
             aliasEl = self.pfsense.new_element('alias')
             self.pfsense.copy_dict_to_element(alias, aliasEl)
-            self.aliases.append(aliasEl)
-            self.pfsense.write_config(descr='ansible pfsense_alias added %s type %s' % (alias['name'], alias['type']))
-            (rc, stdout, stderr) = self._update()
+            descr='ansible pfsense_alias added %s type %s' % (alias['name'], alias['type'])
+            if not self.module.check_mode:
+                self.aliases.append(aliasEl)
         else:
+            diff['before'] = self.pfsense.element_to_dict(aliasEl)
             changed = self.pfsense.copy_dict_to_element(alias, aliasEl)
-            if self.module.check_mode:
-                self.module.exit_json(changed=changed)
-            if changed:
-                self.pfsense.write_config(descr='ansible pfsense_alias updated "%s" type %s' % (alias['name'], alias['type']))
-                (rc, stdout, stderr) = self._update()
-        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed)
+            descr='ansible pfsense_alias updated "%s" type %s' % (alias['name'], alias['type'])
+        if changed and not self.module.check_mode:
+            self.pfsense.write_config(descr=descr)
+            (rc, stdout, stderr) = self._update()
+        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed, diff=diff)
 
     def remove(self, alias):
         aliasEl = self.pfsense.find_alias(alias['name'], alias['type'])
@@ -101,14 +102,17 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         rc = 0
         stdout = ''
         stderr = ''
+        diff = {} 
+        diff['after'] = ''
+        diff['before'] = ''
         if aliasEl is not None:
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
-            self.aliases.remove(aliasEl)
+            diff['before'] = self.pfsense.element_to_dict(aliasEl)
             changed = True
-            self.pfsense.write_config(descr='ansible pfsense_alias removed "%s"' % (alias['name']))
-            (rc, stdout, stderr) = self._update()
-        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed)
+            if not self.module.check_mode:
+                self.aliases.remove(aliasEl)
+                self.pfsense.write_config(descr='ansible pfsense_alias removed "%s"' % (alias['name']))
+                (rc, stdout, stderr) = self._update()
+        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed, diff=diff)
 
 
 def main():
@@ -126,7 +130,7 @@ def main():
             },
             'address': {'default': None, 'required': False, 'type': 'str'},
             'descr': {'default': None, 'required': False, 'type': 'str'},
-            'detail': {'default': None, 'required': False, 'type': 'str'},
+            'detail': {'default': '', 'required': False, 'type': 'str'},
             'updatefreq': {'default': None, 'required': False, 'type': 'str'},
         },
         required_if = [
