@@ -83,6 +83,8 @@ class pfSenseModule(object):
                         newEl.text = item
                         topEl.append(newEl)
                         changed = True
+                elif thisEl.text == None and value == '':
+                        pass
                 elif thisEl.text != value:
                         thisEl.text = value
                         changed = True
@@ -96,6 +98,12 @@ class pfSenseModule(object):
                     topEl.remove(childEl)
 
         return changed
+
+    def element_to_dict(self, t):
+        d = {}
+        for el in list(t):
+            d[el.tag] = el.text if el.text is not None else ''
+        return d
 
     def get_caref(self, name):
         caref = None
