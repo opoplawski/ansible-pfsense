@@ -34,7 +34,7 @@ options:
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
-    default: false 
+    default: false
   interface:
     description: The interface for the rule
     required: true
@@ -160,16 +160,27 @@ class pfSenseRule(object):
                 self.module.fail_json(msg='Failed to insert before rule=%s interface=%s' % (before, interface))
         else:
             self.module.fail_json(msg='Failed to add rule')
-        
+
     def _update(self):
         return self.pfsense.phpshell('''require_once("filter.inc");
 if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
 
     def parse_address(self, s):
-        m = re.match('([^:]+):?([^:]+)?', s)
+        # add one more regex for invert rule (maybe better solution!)
+        # TODO find a regex that match all cases
+        invert = None
+        if s.count(':') > 1:
+            m = re.match('([^:]+):?([^:]+):?([^:]+)?', s)
+            invert = m.group(3)
+        else:
+            m = re.match('([^:]+):?([^:]+)?', s)
         address = m.group(1)
         port = m.group(2)
+	address = m.group(1)
+        port = m.group(2)
         d = dict()
+        if invert == '!':
+            d['not'] = None
         if address == 'any':
             d['any'] = None
         elif address == 'NET':
@@ -179,7 +190,10 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             if not self.pfsense.is_ip_or_alias(address):
                 self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
             d['address'] = address
-        if port is not None:
+        # rule with any port
+        if port == 'any':
+            d['port'] = None
+        elif port is not None:
             if not self.pfsense.is_port_or_alias(port):
                 self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port))
             d['port'] = port
@@ -240,7 +254,7 @@ def main():
                 'default': 'pass',
                 'required': False,
                 'choices': ['pass', "block", 'reject']
-            },    
+            },
             'state': {
                 'required': True,
                 'choices': ['present', 'absent']
