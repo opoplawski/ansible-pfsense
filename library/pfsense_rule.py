@@ -34,7 +34,7 @@ options:
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
-    default: false 
+    default: false
   interface:
     description: The interface for the rule
     required: true
@@ -47,7 +47,7 @@ options:
   ipprotocol:
     description: The IP protocol
     default: inet
-    choices: [ "inet" ]
+    choices: [ "inet", 'inet46' ]
   protocol:
     description: The protocol
     default: any
@@ -160,10 +160,20 @@ class pfSenseRule(object):
                 self.module.fail_json(msg='Failed to insert before rule=%s interface=%s' % (before, interface))
         else:
             self.module.fail_json(msg='Failed to add rule')
-        
+
     def _update(self):
         return self.pfsense.phpshell('''require_once("filter.inc");
 if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
+
+    # validate interface
+    def parse_interface(self, interface):
+        if self.pfsense.is_interface_name(interface):
+            interface = self.pfsense.get_interface_pfsense_by_name(interface)
+            return interface
+        elif self.pfsense.is_interface_pfsense(interface):
+            return interface
+        else:
+            self.module.fail_json(msg='%s is not a valid interface' % (interface))
 
     def parse_address(self, s):
         m = re.match('([^:]+):?([^:]+)?', s)
@@ -175,6 +185,10 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         elif address == 'NET':
             d['network'] = port
             return d
+        # rule with interface name (LAN, WAN...)
+        elif self.pfsense.is_interface_name(address):
+            interface = self.pfsense.get_interface_pfsense_by_name(address)
+            d['network'] = interface
         else:
             if not self.pfsense.is_ip_or_alias(address):
                 self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
@@ -240,7 +254,7 @@ def main():
                 'default': 'pass',
                 'required': False,
                 'choices': ['pass', "block", 'reject']
-            },    
+            },
             'state': {
                 'required': True,
                 'choices': ['present', 'absent']
@@ -264,7 +278,7 @@ def main():
             'ipprotocol': {
                 'required': False,
                 'default': 'inet',
-                'choices': [ 'inet' ]
+                'choices': [ 'inet', 'inet46' ]
             },
             'protocol': {
                 'default': 'any',
@@ -307,7 +321,9 @@ def main():
     rule = dict()
     rule['descr'] = module.params['name']
     rule['type'] = module.params['action']
-    rule['interface'] = module.params['interface']
+    #rule['interface'] = module.params['interface']
+    # Parse interface
+    rule['interface'] = pfrule.parse_interface(module.params['interface'])
     if module.params['floating'] == 'yes':
         rule['floating'] = module.params['floating']
     if module.params['direction'] is not None:
