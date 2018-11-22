@@ -34,7 +34,7 @@ options:
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
-    default: false 
+    default: false
   interface:
     description: The interface for the rule
     required: true
@@ -160,7 +160,7 @@ class pfSenseRule(object):
                 self.module.fail_json(msg='Failed to insert before rule=%s interface=%s' % (before, interface))
         else:
             self.module.fail_json(msg='Failed to add rule')
-        
+
     def _update(self):
         return self.pfsense.phpshell('''require_once("filter.inc");
 if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
@@ -172,6 +172,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         d = dict()
         if address == 'any':
             d['any'] = None
+        # rule with this firewall
+        elif address == 'firewall':
+            d['network'] = '(self)'
         elif address == 'NET':
             d['network'] = port
             return d
@@ -240,7 +243,7 @@ def main():
                 'default': 'pass',
                 'required': False,
                 'choices': ['pass', "block", 'reject']
-            },    
+            },
             'state': {
                 'required': True,
                 'choices': ['present', 'absent']
