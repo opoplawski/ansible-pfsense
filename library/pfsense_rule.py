@@ -173,7 +173,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         if address == 'any':
             d['any'] = None
         # rule with this firewall
-        elif address == 'firewall':
+        elif address == '(self)':
             d['network'] = '(self)'
         elif address == 'NET':
             d['network'] = port
