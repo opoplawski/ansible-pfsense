@@ -166,21 +166,15 @@ class pfSenseRule(object):
 if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
 
     def parse_address(self, s):
-        # add one more regex for invert rule (maybe better solution!)
-        # TODO find a regex that match all cases
-        invert = None
-        if s.count(':') > 1:
-            m = re.match('([^:]+):?([^:]+):?([^:]+)?', s)
-            invert = m.group(3)
-        else:
-            m = re.match('([^:]+):?([^:]+)?', s)
+        m = re.match('([^:]+):?([^:]+)?', s)
         address = m.group(1)
         port = m.group(2)
-	address = m.group(1)
-        port = m.group(2)
         d = dict()
-        if invert == '!':
+        # Check if the first character is "!"
+        if address[0] == '!':
+            # Invert the rule
             d['not'] = None
+            address = address[1:]
         if address == 'any':
             d['any'] = None
         elif address == 'NET':
