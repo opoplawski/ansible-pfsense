@@ -191,7 +191,7 @@ class pfSenseModule(object):
         shutil.move('/tmp/config.xml', self.config)
         try:
             os.remove('/tmp/config.cache')
-        except OSError, e:
+        except OSError as e:
             if e.errno == 2:
                 # suppress "No such file or directory error
                 pass
