@@ -14,7 +14,7 @@ module: pfsense_ca
 short_description: Manage pfSense Certificate Authorities
 description:
   >
-    Manage pfSense LDAP Certificate Authorities
+    Manage pfSense Certificate Authorities
 author: Orion Poplawski (@opoplawski)
 notes:
 options:
@@ -28,6 +28,10 @@ options:
   certificate:
     description: The certificate for the Certificate Authority
     required: true
+  crl:
+    description: The Certificate Revocation List for the Certificate Authority
+    required: false
+    default: none
 """
 
 EXAMPLES = """
@@ -59,6 +63,7 @@ class pfSenseCA(object):
         self.module = module
         self.pfsense = pfSenseModule(module)
         self.cas = self.pfsense.get_elements('ca')
+        self.crls = self.pfsense.get_elements('crl')
 
     def _find_ca(self, name):
         found = None
@@ -70,28 +75,66 @@ class pfSenseCA(object):
                 break
         return (found, i)
 
+    def _find_crl(self, caref):
+        found = None
+        i = 0
+        for crl in self.crls:
+            i = self.pfsense.get_index(crl)
+            if crl.find('caref').text == caref:
+                found = crl
+                break
+        return (found, i)
+
     def add(self, ca):
         caEl, i = self._find_ca(ca['descr'])
         changed = False
         rc = 0
+        crl = {}
         stdout = ''
         stderr = ''
+        diff = {}
+        if 'crl' in ca:
+            crl['method'] = 'existing'
+            crl['text'] = ca.pop('crl')
         if caEl is None:
+            diff['before'] = ''
             changed = True
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
             caEl = self.pfsense.new_element('ca')
             ca['refid'] = self.pfsense.uniqid()
+            if 'text' in crl:
+                crlEl = self.pfsense.new_element('crl')
+                crl['refid'] = self.pfsense.uniqid()
+                crl['descr'] = ca['descr'] + ' CRL'
+                crl['caref'] = ca['refid']
+                self.pfsense.copy_dict_to_element(crl, crlEl)
+                self.pfsense.root.insert(i+1, crlEl)
             self.pfsense.copy_dict_to_element(ca, caEl)
             self.pfsense.root.insert(i+1, caEl)
-            self.pfsense.write_config(descr='ansible pfsense_ca added %s' % (ca['descr']))
+            descr='ansible pfsense_ca added %s' % (ca['descr'])
         else:
-            changed = self.pfsense.copy_dict_to_element(ca, caEl)
-            if self.module.check_mode:
-                self.module.exit_json(changed=changed)
-            if changed:
-                self.pfsense.write_config(descr='ansible pfsense_ca updated "%s"' % (ca['descr']))
-        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed)
+            diff['before'] = self.pfsense.element_to_dict(caEl)
+            if 'text' in crl:
+                crlEl, crlIndex = self._find_crl(caEl.find('refid').text)
+                if crlEl is None:
+                    changed = True
+                    crlEl = self.pfsense.new_element('crl')
+                    crl['refid'] = self.pfsense.uniqid()
+                    crl['descr'] = ca['descr'] + ' CRL'
+                    crl['caref'] = caEl.find('refid').text
+                    self.pfsense.copy_dict_to_element(crl, crlEl)
+                    self.pfsense.root.insert(crlIndex+1, crlEl)
+                else:
+                    diff['before']['crl'] = crlEl.find('text').text
+                    changed = self.pfsense.copy_dict_to_element(crl, crlEl)
+            if self.pfsense.copy_dict_to_element(ca, caEl):
+                changed = True
+            descr = 'ansible pfsense_ca updated "%s"' % (ca['descr'])
+        if changed and not self.module.check_mode:
+            self.pfsense.write_config(descr=descr)
+        diff['after'] = self.pfsense.element_to_dict(caEl)
+        if 'text' in crl:
+            diff['after']['crl'] = crl['text']
+        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed, diff=diff)
 
     def remove(self, ca):
         caEl, i = self._find_ca(ca['descr'])
@@ -99,13 +142,21 @@ class pfSenseCA(object):
         rc = 0
         stdout = ''
         stderr = ''
+        diff = {}
+        diff['after'] = {}
         if caEl is not None:
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
-            self.cas.remove(caEl)
             changed = True
+            diff['before'] = self.pfsense.element_to_dict(caEl)
+            crlEl, crlIndex = self._find_crl(caEl.find('refid').text)
+            self.cas.remove(caEl)
+            if crlEl is not None:
+                diff['before']['crl'] = crlEl.find('text').text
+                self.crls.remove(crlEl)
+        else:
+            diff['before'] = {}
+        if changed and not self.module.check_mode:
             self.pfsense.write_config(descr='ansible pfsense_ca removed "%s"' % (ca['descr']))
-        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed)
+        self.module.exit_json(stdout=stdout, stderr=stderr, changed=changed, diff=diff)
 
 
 def main():
@@ -116,8 +167,12 @@ def main():
                 'required': True,
                 'choices': ['present', 'absent']
             },
-            'certificate': {'required': True, 'type': 'str'},
+            'certificate': {'required': False, 'type': 'str'},
+            'crl': {'required': False, 'default': None, 'type': 'str'},
         },
+        required_if = [
+            [ "state", "present", [ "certificate" ] ],
+        ],
         supports_check_mode=True)
 
     pfca = pfSenseCA(module)
@@ -129,6 +184,7 @@ def main():
         pfca.remove(ca)
     elif state == 'present':
         ca['crt'] = module.params['certificate']
+        ca['crl'] = module.params['crl']
         pfca.add(ca)
 
 
