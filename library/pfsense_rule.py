@@ -267,7 +267,7 @@ def main():
             'ipprotocol': {
                 'required': False,
                 'default': 'inet',
-                'choices': [ 'inet' ]
+                'choices': [ 'inet', 'inet46', 'inet6' ]
             },
             'protocol': {
                 'default': 'any',

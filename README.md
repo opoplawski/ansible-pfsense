@@ -328,7 +328,7 @@ OPTIONS (= is mandatory):
 
 - ipprotocol
         The IP protocol
-        (Choices: inet)[Default: inet]
+        (Choices: inet, inet46, inet6)[Default: inet]
 
 = name
         The name the rule
