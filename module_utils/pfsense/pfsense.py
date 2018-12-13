@@ -8,7 +8,7 @@ import shutil
 import os
 import pwd
 import time
-import xml.etree.ElementTree as ET 
+import xml.etree.ElementTree as ET
 
 class pfSenseModule(object):
 

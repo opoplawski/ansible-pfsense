@@ -11,7 +11,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_group
-short_description: Manage pfSense groups 
+short_description: Manage pfSense groups
 description:
   >
     Manage pfSense groups

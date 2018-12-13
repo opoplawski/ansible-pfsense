@@ -62,7 +62,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add adservers alias
@@ -158,7 +158,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add adservers authentication server
@@ -207,7 +207,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add AD Certificate Authority
@@ -267,7 +267,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: Add adservers group
@@ -356,7 +356,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 - name: "Add Internal DNS out rule"

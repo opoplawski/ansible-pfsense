@@ -77,7 +77,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         rc = 0
         stdout = ''
         stderr = ''
-        diff = {} 
+        diff = {}
         diff['after'] = alias
         if aliasEl is None:
             diff['before'] = ''
@@ -102,7 +102,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         rc = 0
         stdout = ''
         stderr = ''
-        diff = {} 
+        diff = {}
         diff['after'] = ''
         diff['before'] = ''
         if aliasEl is not None:
@@ -123,7 +123,7 @@ def main():
                 'default': 'host',
                 'required': False,
                 'choices': ['host', 'port', 'urltable']
-            },    
+            },
             'state': {
                 'required': True,
                 'choices': ['present', 'absent']

@@ -11,7 +11,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_authserver_ldap
-short_description: Manage pfSense LDAP authentication servers 
+short_description: Manage pfSense LDAP authentication servers
 description:
   >
     Manage pfSense LDAP authentication servers
@@ -66,7 +66,7 @@ options:
   attr_groupobj:
     description: LDAP Group objectClass naming attribute
     default: posixGroup
-  
+
 """
 
 EXAMPLES = """
