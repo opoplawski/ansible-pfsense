@@ -29,6 +29,31 @@ class pfSenseModule(object):
     def get_index(self, el):
         return list(self.root).index(el)
 
+    # return pfsense interface by name
+    def get_interface_pfsense_by_name(self, name):
+        for interface in self.interfaces:
+            interface_name = interface.find('descr').text
+            if interface_name.strip() == name:
+                return interface.tag
+        return None
+
+    # determines if arg is a pfsense interface or not
+    def is_interface_pfsense(self, name):
+        for interface in self.interfaces:
+            interfaceEl = interface.tag.strip()
+            if interfaceEl == name:
+                return True
+        return False
+
+    # determines if arg is an interface name or not
+    def is_interface_name(self, name):
+        for interface in self.interfaces:
+            descrEl = interface.find('descr')
+            if descrEl != None:
+                if descrEl.text.strip() == name:
+                    return True
+        return False
+
     def new_element(self, tag):
         el = ET.Element(tag)
         # Attempt to preserve some of the formatting of pfSense's config.xml
