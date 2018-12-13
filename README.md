@@ -307,7 +307,7 @@ OPTIONS (= is mandatory):
         [Default: None]
 
 = destination
-        The destination address
+        The destination address, in [!]{IP,HOST,ALIAS,(self)}[:port] or NET:INTERFACE format
         [Default: None]
 
 - direction
@@ -339,7 +339,7 @@ OPTIONS (= is mandatory):
         (Choices: any, tcp, udp, tcp/udp, icmp)[Default: any]
 
 = source
-        The source address
+        The source address, in [!]{IP,HOST,ALIAS,(self)}[:port] or NET:INTERFACE format
         [Default: None]
 
 = state

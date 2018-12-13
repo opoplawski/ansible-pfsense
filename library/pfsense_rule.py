@@ -53,11 +53,11 @@ options:
     default: any
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp" ]
   source:
-    description: The source address, in {IP,HOST,ALIAS}[:port] or NET:INTERFACE format
+    description: The source address, in [!]{IP,HOST,ALIAS,(self)}[:port] or NET:INTERFACE format
     required: true
     default: null
   destination:
-    description: The destination address, in {IP,HOST,ALIAS}[:port] or NET:INTERFACE format
+    description: The destination address, in [!]{IP,HOST,ALIAS,(self)}[:port] or NET:INTERFACE format
     required: true
     default: null
   log:
