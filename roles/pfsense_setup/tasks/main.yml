@@ -1,14 +1,28 @@
 ---
-# Configures pfsense for LDAP authentication against Active Directory
 - block:
   - name: "Load private data"
     include_vars: keys.yml
 
+  # Different releases of pfSense work with different nss-pam-ldapd packages
+  - name: "Set facts"
+    set_fact:
+      nss_pam_ldap_pkg: http://pkg.freebsd.org/FreeBSD:11:amd64/release_2/All/nss-pam-ldapd-0.9.9.txz
+    when:
+    - ansible_distribution_version == "11.1"
+
+  - name: "Set facts"
+    set_fact:
+      nss_pam_ldap_pkg: http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.10_1.txz
+    when:
+    - ansible_distribution_version == "11.2"
+
   - name: "Install nss-pam-ldap"
   #  package:
-  #    name: http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.10_1.txz
+  #    name: {{ nss_pam_ldap_pkg }}
   #    state: present
-    command: /usr/sbin/pkg add http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.10_1.txz
+    command: /usr/sbin/pkg add {{ nss_pam_ldap_pkg }}
+    register: pkg_command
+    changed_when: not pkg_command.stdout is search("is already installed")
 
   - name: "Install packages"
     package:
@@ -27,8 +41,8 @@
 
   - name: "Install AD cert"
     copy:
-      src: ad.crt
-      dest: /root/ad.crt
+      src: ad.example.com.crt
+      dest: /root/ad.example.com.crt
 
   - name: "Configure /etc/nsswitch.conf"
     lineinfile:
@@ -54,12 +68,20 @@
       enabled: true
       state: started
 
+  - name: "Enable savehist"
+    lineinfile:
+      path: "/etc/skel/dot.tcshrc"
+      regexp: '^set savehist.*'
+      line: "set savehist='1024 merge'"
+
   - name: "Setup admin users"
-    include_tasks: setup_user.yml user="{{ user }}"
+    include_tasks: setup_user.yml
+    vars:
+      user: "{{ adminuser }}"
+    loop_control:
+      loop_var: adminuser
     with_items:
     - "{{ admin_users }}"
-    loop_control:
-      loop_var: user
     tags: users
 
   # Need to include sudoers.d in the GUI
