@@ -47,7 +47,7 @@ options:
   ipprotocol:
     description: The IP protocol
     default: inet
-    choices: [ "inet" ]
+    choices: [ "inet", "inet46", "inet6" ]
   protocol:
     description: The protocol
     default: any
