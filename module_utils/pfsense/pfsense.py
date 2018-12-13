@@ -12,9 +12,10 @@ import xml.etree.ElementTree as ET
 
 class pfSenseModule(object):
 
-    def __init__(self, module):
+    def __init__(self, module, config = '/cf/conf/config.xml'):
         self.module = module
-        self.tree = ET.parse('/cf/conf/config.xml')
+        self.config = config
+        self.tree = ET.parse(config)
         self.root = self.tree.getroot()
         self.aliases = self.get_element('aliases')
         self.debug = open('/tmp/pfsense.debug','w')
@@ -187,7 +188,7 @@ class pfSenseModule(object):
         # Use 'html' to have explicit close tags - 3.4 has short_empty_elements
         # xml_declaration does not appear to be working
         self.tree.write('/tmp/config.xml', xml_declaration=True, method='html')
-        shutil.move('/tmp/config.xml', '/cf/conf/config.xml')
+        shutil.move('/tmp/config.xml', self.config)
         try:
             os.remove('/tmp/config.cache')
         except OSError, e:
