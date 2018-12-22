@@ -10,7 +10,9 @@ import pwd
 import time
 import xml.etree.ElementTree as ET
 
-class pfSenseModule(object):
+
+class PFSenseModule(object):
+    """ class managing pfsense base configuration """
 
     def __init__(self, module, config = '/cf/conf/config.xml'):
         self.module = module
@@ -18,35 +20,39 @@ class pfSenseModule(object):
         self.tree = ET.parse(config)
         self.root = self.tree.getroot()
         self.aliases = self.get_element('aliases')
-        self.debug = open('/tmp/pfsense.debug','w')
+        self.interfaces = self.get_element('interfaces')
+        self.debug = open('/tmp/pfsense.debug', 'w')
 
     def get_element(self, node):
+        """ return <node> configuration element """
         return self.root.find(node)
 
     def get_elements(self, node):
+        """ return all <node> configuration elements  """
         return self.root.findall(node)
 
-    def get_index(self, el):
-        return list(self.root).index(el)
+    def get_index(self, elt):
+        """ Get elt index  """
+        return list(self.root).index(elt)
 
-    # return pfsense interface by name
     def get_interface_pfsense_by_name(self, name):
+        """ return pfsense interface by name """
         for interface in self.interfaces:
             interface_name = interface.find('descr').text
             if interface_name.strip() == name:
                 return interface.tag
         return None
 
-    # determines if arg is a pfsense interface or not
     def is_interface_pfsense(self, name):
+        """ determines if arg is a pfsense interface or not """
         for interface in self.interfaces:
             interfaceEl = interface.tag.strip()
             if interfaceEl == name:
                 return True
         return False
 
-    # determines if arg is an interface name or not
     def is_interface_name(self, name):
+        """ determines if arg is an interface name or not """
         for interface in self.interfaces:
             descrEl = interface.find('descr')
             if descrEl != None:
@@ -54,157 +60,166 @@ class pfSenseModule(object):
                     return True
         return False
 
-    def new_element(self, tag):
-        el = ET.Element(tag)
+    @staticmethod
+    def new_element(tag):
+        """ Create and return new XML configuration element  """
+        elt = ET.Element(tag)
         # Attempt to preserve some of the formatting of pfSense's config.xml
-        el.text = '\n\t\t\t'
-        el.tail = '\n\t\t'
-        return el
+        elt.text = '\n\t\t\t'
+        elt.tail = '\n\t\t'
+        return elt
 
-    def copy_dict_to_element(self, d, topEl, sub=0):
+    def copy_dict_to_element(self, src, top_elt, sub=0):
+        """ Copy/update top_elt from src """
         changed = False
-        for (key, value) in d.items():
+        for (key, value) in src.items():
             self.debug.write('changed=%s key=%s value=%s\n' % (changed, key, value))
-            thisEl = topEl.find(key)
-            if thisEl is None:
+            this_elt = top_elt.find(key)
+            if this_elt is None:
                 changed = True
-                if isinstance(value,dict):
+                if isinstance(value, dict):
                     self.debug.write('calling copy_dict_to_element()\n')
                     # Create a new element
-                    newEl = ET.Element(key)
-                    newEl.text = '\n%s' % ('\t' * (sub + 4))
-                    newEl.tail = '\n%s' % ('\t' * (sub + 3))
-                    self.copy_dict_to_element(value, newEl, sub=sub+1)
-                    topEl.append(newEl)
-                elif isinstance(value,list):
+                    new_elt = ET.Element(key)
+                    new_elt.text = '\n%s' % ('\t' * (sub + 4))
+                    new_elt.tail = '\n%s' % ('\t' * (sub + 3))
+                    self.copy_dict_to_element(value, new_elt, sub=sub + 1)
+                    top_elt.append(new_elt)
+                elif isinstance(value, list):
                     for item in value:
-                        newEl = self.new_element(key)
-                        newEl.text = item
-                        topEl.append(newEl)
+                        new_elt = self.new_element(key)
+                        new_elt.text = item
+                        top_elt.append(new_elt)
                 else:
                     # Create a new element
-                    newEl = ET.Element(key)
-                    newEl.text = value
-                    newEl.tail = '\n%s' % ('\t' * (sub + 3))
-                    topEl.append(newEl)
-                self.debug.write('changed=%s added key=%s value=%s tag=%s\n' % (changed, key, value, topEl.tag))
+                    new_elt = ET.Element(key)
+                    new_elt.text = value
+                    new_elt.tail = '\n%s' % ('\t' * (sub + 3))
+                    top_elt.append(new_elt)
+                self.debug.write('changed=%s added key=%s value=%s tag=%s\n' % (changed, key, value, top_elt.tag))
             else:
-                if isinstance(value,dict):
+                if isinstance(value, dict):
                     self.debug.write('calling copy_dict_to_element()\n')
-                    subchanged = self.copy_dict_to_element(value, thisEl, sub=sub+1)
+                    subchanged = self.copy_dict_to_element(value, this_elt, sub=sub + 1)
                     if subchanged:
                         changed = True
-                elif isinstance(value,list):
-                    thisList = value
+                elif isinstance(value, list):
+                    this_list = value
                     # Remove existing items not in the new list
-                    for listEl in topEl.findall(key):
-                        if listEl.text in thisList:
-                            thisList.remove(listEl.text)
+                    for list_elt in top_elt.findall(key):
+                        if list_elt.text in this_list:
+                            this_list.remove(list_elt.text)
                         else:
-                            topEl.remove(listEl)
+                            top_elt.remove(list_elt)
                             changed = True
                     # Add any remaining items in the new list
-                    for item in thisList:
-                        newEl = self.new_element(key)
-                        newEl.text = item
-                        topEl.append(newEl)
+                    for item in this_list:
+                        new_elt = self.new_element(key)
+                        new_elt.text = item
+                        top_elt.append(new_elt)
                         changed = True
-                elif thisEl.text == None and value == '':
-                        pass
-                elif thisEl.text != value:
-                        thisEl.text = value
-                        changed = True
-                self.debug.write('changed=%s thisEl.text=%s value=%s\n' % (changed, thisEl.text, value))
+                elif this_elt.text is None and value == '':
+                    pass
+                elif this_elt.text != value:
+                    this_elt.text = value
+                    changed = True
+                self.debug.write('changed=%s this_elt.text=%s value=%s\n' % (changed, this_elt.text, value))
         # Sub-elements must be completely described, so remove any missing elements
         if sub:
-            for childEl in list(topEl):
-                if childEl.tag not in d:
+            for child_elt in list(top_elt):
+                if child_elt.tag not in src:
                     changed = True
-                    self.debug.write('changed=%s removed tag=%s\n' % (changed, childEl.tag))
-                    topEl.remove(childEl)
+                    self.debug.write('changed=%s removed tag=%s\n' % (changed, child_elt.tag))
+                    top_elt.remove(child_elt)
 
         return changed
 
-    def element_to_dict(self, t):
-        d = {}
-        for el in list(t):
-            d[el.tag] = el.text if el.text is not None else ''
-        return d
+    @staticmethod
+    def element_to_dict(src):
+        """ Create XML elt from src """
+        res = {}
+        for elt in list(src):
+            res[elt.tag] = elt.text if elt.text is not None else ''
+        return res
 
     def get_caref(self, name):
-        caref = None
+        """ get CA refid for name """
         cas = self.get_elements('ca')
-        for ca in cas:
-            if ca.find('descr').text == name:
-                caref = ca.find('refid').text
-                break
-        return caref
+        for elt in cas:
+            if elt.find('descr').text == name:
+                return elt.find('refid').text
+        return None
 
-    def get_username(self):
+    @staticmethod
+    def get_username():
+        """ get username logged """
         username = pwd.getpwuid(os.getuid()).pw_name
         if os.environ.get('SUDO_USER'):
             username = os.environ.get('SUDO_USER')
         # sudo masks this
         sshclient = os.environ.get('SSH_CLIENT')
         if sshclient:
-             username = username + '@' + sshclient
+            username = username + '@' + sshclient
         return username
 
     def find_alias(self, name, aliastype):
-        found = None
+        """ return alias named name, having type aliastype """
         for alias in self.aliases:
             if alias.find('name').text == name and alias.find('type').text == aliastype:
-                found = alias
-                break
-        return found
+                return alias
+        return None
 
     def is_ip_or_alias(self, address):
+        """ return True if address is an ip or an alias """
         # Is it an alias?
-        if self.find_alias(address, 'host'):
+        if self.find_alias(address, 'host') or self.find_alias(address, 'network') or self.find_alias(address, 'urltable'):
             return True
-        if self.find_alias(address, 'urltable'):
-            return True
+
         # Is it an IP address?
         try:
-            dummy_address = ipaddress.ip_address(unicode(address))
-        except ValueError:
-            dummy_address = None
-        if dummy_address is not None:
+            ipaddress.ip_address(unicode(address))
             return True
+        except ValueError:
+            pass
+
         # Is it an IP network?
         try:
-            dummy_network = ipaddress.ip_network(unicode(address))
-        except ValueError:
-            dummy_network = None
-        if dummy_network is not None:
+            ipaddress.ip_network(unicode(address))
             return True
+        except ValueError:
+            pass
+
         # None of the above
         return False
 
     def is_port_or_alias(self, port):
+        """ return True if port is a valid port number or an alias """
         if self.find_alias(port, 'port'):
             return True
         try:
             if int(port) > 0 and int(port) < 65536:
                 return True
-        except:
-            return False
+        except ValueError:
+            pass
         return False
 
-    def uniqid(self, prefix = ''):
-        return prefix + hex(int(time.time()))[2:10] + hex(int(time.time()*1000000) % 0x100000)[2:7]
+    @staticmethod
+    def uniqid(prefix=''):
+        """ return an identifier based on time """
+        return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7]
 
-    # Run a command in the php developer shell
     def phpshell(self, command):
+        """ Run a command in the php developer shell """
         command = command + "\nexec\nexit"
         # Dummy argument suppresses displaying help message
         return self.module.run_command('/usr/local/sbin/pfSsh.php dummy', data=command)
 
     def write_config(self, descr='Updated by ansible pfsense module'):
+        """ Generate config file """
         revision = self.get_element('revision')
         revision.find('time').text = '%d' % time.time()
         revdescr = revision.find('description')
-        if revdescr == None:
+        if revdescr is None:
             revdescr = ET.Element('description')
             revision.append(revdescr)
         revdescr.text = descr
@@ -216,8 +231,8 @@ class pfSenseModule(object):
         shutil.move('/tmp/config.xml', self.config)
         try:
             os.remove('/tmp/config.cache')
-        except OSError as e:
-            if e.errno == 2:
+        except OSError as exception:
+            if exception.errno == 2:
                 # suppress "No such file or directory error
                 pass
             else:

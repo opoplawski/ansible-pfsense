@@ -55,13 +55,13 @@ CSjdKUG1zZTJTS3dtDQp6QnhT....
     state: absent
 """
 
-from ansible.module_utils.pfsense.pfsense import pfSenseModule
+from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
 class pfSenseCA(object):
 
     def __init__(self, module):
         self.module = module
-        self.pfsense = pfSenseModule(module)
+        self.pfsense = PFSenseModule(module)
         self.cas = self.pfsense.get_elements('ca')
         self.crls = self.pfsense.get_elements('crl')
 

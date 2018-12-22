@@ -87,7 +87,7 @@ EXAMPLES = """
     state: present
 """
 
-from ansible.module_utils.pfsense.pfsense import pfSenseModule
+from ansible.module_utils.pfsense.pfsense import PFSenseModule
 import time
 import re
 
@@ -95,7 +95,7 @@ class pfSenseRule(object):
 
     def __init__(self, module):
         self.module = module
-        self.pfsense = pfSenseModule(module)
+        self.pfsense = PFSenseModule(module)
         self.rules = self.pfsense.get_element('filter')
 
     def _find_rule_by_descr(self, descr, interface):
