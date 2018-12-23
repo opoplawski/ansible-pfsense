@@ -10,60 +10,6 @@ __metaclass__ = type
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
-
-DOCUMENTATION = """
----
-module: pfsense_alias
-short_description: Manage pfSense aliases
-description:
-  >
-    Manage pfSense aliases
-author: Orion Poplawski (@opoplawski)
-notes:
-options:
-  name:
-    description: The name the alias
-    required: true
-    default: null
-  type:
-    description: The type of the alias
-    required: true
-    default: host
-    choices: [ "host", "network", "port", "urltable" ]
-  state:
-    description: State in which to leave the alias
-    default: present
-    choices: [ "present", "absent" ]
-  address:
-    description: The address of the alias
-    required: true
-    default: null
-  descr:
-    description: Description
-    default: null
-  detail:
-    description: Details for items
-    default: ""
-  updatefreq:
-    description: Update frequency in days for urltable
-"""
-
-EXAMPLES = """
-- name: Add adservers alias
-  pfsense_alias:
-    name: adservers
-    address: 10.0.0.1 10.0.0.2
-    state: present
-
-- name: Remove adservers alias
-  pfsense_alias:
-    name: adservers
-    state: absent
-"""
-
 ALIASES_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     type=dict(default='host', required=False, choices=['host', 'network', 'port', 'urltable']),
@@ -111,8 +57,10 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
             (rc, stdout, stderr) = self._update()
 
         diff = {}
-        if 'after' in self.diff: diff['after'] = self.diff['after']
-        if 'before' in self.diff: diff['before'] = self.diff['before']
+        if 'after' in self.diff:
+            diff['after'] = self.diff['after']
+        if 'before' in self.diff:
+            diff['before'] = self.diff['before']
         self.module.exit_json(stdout=stdout, stderr=stderr, changed=self.changed, diff=diff)
 
     def add(self, alias):

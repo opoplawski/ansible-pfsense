@@ -4,8 +4,8 @@
 # Copyright: (c) 2018, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
@@ -14,11 +14,11 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_rule
+version_added: "2.8"
+author: Orion Poplawski (@opoplawski)
 short_description: Manage pfSense rules
 description:
-  >
-    Manage pfSense rules
-author: Orion Poplawski (@opoplawski)
+  - Manage pfSense rules
 notes:
 options:
   name:
@@ -33,7 +33,6 @@ options:
   state:
     description: State in which to leave the rule
     required: true
-    default: present
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
@@ -65,7 +64,6 @@ options:
     default: null
   log:
     description: Log packets matched by rule
-    default: no
     choices: [ "no", "yes" ]
   after:
     description: Rule to go after, or "top"
@@ -90,6 +88,9 @@ EXAMPLES = """
     state: present
 """
 
+from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+
 
 def main():
     module = AnsibleModule(
@@ -102,6 +103,7 @@ def main():
     pfrule.run(module.params)
 
     pfrule.commit_changes()
+
 
 if __name__ == '__main__':
     main()

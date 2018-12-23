@@ -159,10 +159,14 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
     def remove_deleted_rule_params(self, rule, rule_elt):
         """ Remove from rule a few deleted rule params """
         changed = False
-        if self.remove_deleted_rule_param(rule, rule_elt, 'log'): changed = True
-        if self.remove_deleted_rule_param(rule, rule_elt, 'floating'): changed = True
-        if self.remove_deleted_rule_param(rule, rule_elt, 'direction'): changed = True
-        if self.remove_deleted_rule_param(rule, rule_elt, 'protocol'): changed = True
+        if self.remove_deleted_rule_param(rule, rule_elt, 'log'):
+            changed = True
+        if self.remove_deleted_rule_param(rule, rule_elt, 'floating'):
+            changed = True
+        if self.remove_deleted_rule_param(rule, rule_elt, 'direction'):
+            changed = True
+        if self.remove_deleted_rule_param(rule, rule_elt, 'protocol'):
+            changed = True
 
         return changed
 
@@ -185,7 +189,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             self.change_descr = 'ansible pfsense_rule added %s' % (rule['descr'])
         else:
             changed = self.pfsense.copy_dict_to_element(rule, rule_elt)
-            if self.remove_deleted_rule_params(rule, rule_elt): changed = True
+            if self.remove_deleted_rule_params(rule, rule_elt):
+                changed = True
 
             # changing the rule order if required
             if after is not None:

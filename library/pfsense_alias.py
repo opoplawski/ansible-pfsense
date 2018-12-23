@@ -7,9 +7,6 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
-
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'community'}
@@ -17,11 +14,11 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_alias
+version_added: "2.8"
+author: Orion Poplawski (@opoplawski)
 short_description: Manage pfSense aliases
 description:
-  >
-    Manage pfSense aliases
-author: Orion Poplawski (@opoplawski)
+  - Manage pfSense aliases
 notes:
 options:
   name:
@@ -35,7 +32,6 @@ options:
     choices: [ "host", "network", "port", "urltable" ]
   state:
     description: State in which to leave the alias
-    default: present
     choices: [ "present", "absent" ]
   address:
     description: The address of the alias
@@ -64,6 +60,8 @@ EXAMPLES = """
     state: absent
 """
 
+from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
 
 def main():
     module = AnsibleModule(

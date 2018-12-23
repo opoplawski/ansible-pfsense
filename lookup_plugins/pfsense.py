@@ -239,7 +239,8 @@ def is_valid_port(port):
 def is_valid_port_range(port_range):
     """ validate port range format """
     group = re.match(r'^(\d+)-(\d+)$', port_range)
-    if not group: return False
+    if not group:
+        return False
     nport1 = int(group.group(1))
     nport2 = int(group.group(2))
 
@@ -297,7 +298,8 @@ def cross_dict(tab, rule, field, out_field=None):
 
 def cross_ports(rule, field, field_port):
     """ Return cartesian cross between rule[field] and field_port as string """
-    if field_port not in rule: return rule[field]
+    if field_port not in rule:
+        return rule[field]
 
     aliases = rule[field].split(' ')
     ports = rule[field_port].split(' ')
@@ -316,7 +318,8 @@ def cross_ports(rule, field, field_port):
 
 def format_after(last_name):
     """ Format after field for rules definition if filled """
-    if last_name: return ", after: \"" + last_name + "\""
+    if last_name:
+        return ", after: \"" + last_name + "\""
     return ""
 
 
@@ -382,7 +385,8 @@ class PFSenseHostAlias(object):
 
     def match_interface_src(self, interface):
         """ check if an alias match the src network of an interface """
-        if not interface.local_network: return False
+        if not interface.local_network:
+            return False
 
         for alias_ip in self.ips:
             local_ip = is_local_ip(alias_ip)
@@ -513,7 +517,8 @@ class PFSenseHostAlias(object):
                     if local_ip and local_net or not local_ip and not local_net:
                         if alias_ip in snet:
                             found = True
-            if not found: return False
+            if not found:
+                return False
 
         for alias_net in self.networks:
             local_neta = is_local_network(alias_net)
@@ -526,7 +531,8 @@ class PFSenseHostAlias(object):
                     if local_neta and local_net or not local_neta and not local_net:
                         if alias_net.subnet_of(snet):
                             found = True
-            if not found: return False
+            if not found:
+                return False
 
         return True
 
@@ -578,7 +584,8 @@ class PFSenseHostAlias(object):
                     if local_ip and local_net or not local_ip and not local_net:
                         if alias_ip in snet:
                             found = True
-            if not found: return False
+            if not found:
+                return False
 
         for alias_net in self.networks:
             local_neta = is_local_network(alias_net)
@@ -590,7 +597,8 @@ class PFSenseHostAlias(object):
                     if local_neta and local_net or not local_neta and not local_net:
                         if alias_net.subnet_of(snet):
                             found = True
-            if not found: return False
+            if not found:
+                return False
 
         return True
 
@@ -606,7 +614,8 @@ class PFSenseHostAlias(object):
                     if local_ip and local_net or not local_ip and not local_net:
                         if alias_ip in snet:
                             found = True
-            if not found: return False
+            if not found:
+                return False
 
         for alias_net in self.networks:
             local_neta = is_local_network(alias_net)
@@ -618,7 +627,8 @@ class PFSenseHostAlias(object):
                     if local_neta and local_net or not local_neta and not local_net:
                         if alias_net.subnet_of(snet):
                             found = True
-            if not found: return False
+            if not found:
+                return False
 
         return True
 
@@ -634,7 +644,8 @@ class PFSenseHostAlias(object):
                     if local_ip and local_net or not local_ip and not local_net:
                         if alias_ip in snet:
                             found = True
-            if found: return False
+            if found:
+                return False
 
         for alias_net in self.networks:
             local_neta = is_local_network(alias_net)
@@ -646,7 +657,8 @@ class PFSenseHostAlias(object):
                     if local_neta and local_net or not local_neta and not local_net:
                         if alias_net.subnet_of(snet):
                             found = True
-            if found: return False
+            if found:
+                return False
 
         return True
 
@@ -703,15 +715,30 @@ class PFSenseRule(object):
     def to_json(self):
         """ return JSON String containing rule """
         srcs = []
-        for src in self.src: srcs.append(src.name)
+        for src in self.src:
+            srcs.append(src.name)
+
         dsts = []
-        for dst in self.dst: dsts.append(dst.name)
+        for dst in self.dst:
+            dsts.append(dst.name)
+
         res = self.name + ": { src: " + " ".join(srcs) + ", dst: " + " ".join(dsts)
-        if self.src_port: res += ", src_port: " + " ".join(self.src_port)
-        if self.dst_port: res += ", dst_port: " + " ".join(self.dst_port)
-        if self.protocol: res += ", protocol: " + " ".join(self.protocol)
-        if self.action != "pass": res += ", action: " + " ".join(self.action)
-        if self.log != "yes": res += ", log: " + " ".join(self.log)
+
+        if self.src_port:
+            res += ", src_port: " + " ".join(self.src_port)
+
+        if self.dst_port:
+            res += ", dst_port: " + " ".join(self.dst_port)
+
+        if self.protocol:
+            res += ", protocol: " + " ".join(self.protocol)
+
+        if self.action != "pass":
+            res += ", action: " + " ".join(self.action)
+
+        if self.log != "yes":
+            res += ", log: " + " ".join(self.log)
+
         res += " }"
         return res
 
@@ -747,17 +774,21 @@ class PFSense(object):
         """ Check if address belong to our local networks """
         try:
             host_ip = ipaddress.ip_address(to_unicode(address))
-            if not is_local_ip(host_ip): return False
+            if not is_local_ip(host_ip):
+                return False
             for snet in self.local_networks:
-                if host_ip in snet: return True
+                if host_ip in snet:
+                    return True
         except ValueError:
             pass
 
         try:
             net = ipaddress.ip_network(to_unicode(address))
-            if not is_local_network(net): return False
+            if not is_local_network(net):
+                return False
             for snet in self.local_networks:
-                if net.subnet_of(snet): return True
+                if net.subnet_of(snet):
+                    return True
         except ValueError:
             pass
         return False
@@ -871,10 +902,19 @@ class PFSenseData(object):
     def cleanup_defs(self):
         """ cleaning all attributes (except src and dst which are processed later) """
         ret = self._cleanup_defs('_hosts_aliases')
-        if not self._cleanup_defs('_ports_aliases'): ret = False
-        if not self._cleanup_defs('_sites'): ret = False
-        if not self._cleanup_defs('_pfsenses'): ret = False
-        if not self._cleanup_defs('_rules'): ret = False
+
+        if not self._cleanup_defs('_ports_aliases'):
+            ret = False
+
+        if not self._cleanup_defs('_sites'):
+            ret = False
+
+        if not self._cleanup_defs('_pfsenses'):
+            ret = False
+
+        if not self._cleanup_defs('_rules'):
+            ret = False
+
         self._target_name = cleanup_def_name(self._target_name)
 
         return ret
@@ -969,7 +1009,8 @@ class PFSenseDataChecker(object):
 
             # we check for duplicates
             _alias = deepcopy(alias)
-            if 'descr' in _alias: del _alias['descr']
+            if 'descr' in _alias:
+                del _alias['descr']
             dup = json.dumps(_alias)
             if dup in dups:
                 display.warning("duplicate alias definition for ip " + alias['ip'] + " (" + dups[dup] + ", " + name + ")")
@@ -979,7 +1020,8 @@ class PFSenseDataChecker(object):
             obj = PFSenseHostAlias()
             obj.name = name
             obj.definition = alias['ip'].split(' ')
-            if 'descr' in alias: obj.descr = alias['descr']
+            if 'descr' in alias:
+                obj.descr = alias['descr']
             self._data.hosts_aliases_obj[name] = obj
 
         return ret
@@ -1027,7 +1069,8 @@ class PFSenseDataChecker(object):
 
             # we check for duplicates
             _alias = deepcopy(alias)
-            if 'descr' in _alias: del _alias['descr']
+            if 'descr' in _alias:
+                del _alias['descr']
             dup = json.dumps(_alias)
             if dup in dups:
                 display.warning("duplicate alias definition for port " + alias['port'] + " (" + dups[dup] + ", " + name + ")")
@@ -1188,7 +1231,8 @@ class PFSenseDataChecker(object):
 
     def check_tcp_udp(self, rule, name):
         """ check if protocol is valid when ports are sets """
-        if 'protocol' not in rule: return True
+        if 'protocol' not in rule:
+            return True
         protocols = str(rule['protocol']).split(' ')
         for protocol in protocols:
             if protocol != 'udp' and protocol != 'tcp' and protocol != 'tcp/udp':
@@ -1220,7 +1264,8 @@ class PFSenseDataChecker(object):
 
             # we check for duplicates
             _site = deepcopy(site)
-            if 'descr' in _site: del _site['descr']
+            if 'descr' in _site:
+                del _site['descr']
             dup = json.dumps(_site)
             if dup in dups:
                 display.warning("duplicate site definition for network " + site['network'] + " (" + dups[dup] + ", " + name + ")")
@@ -1233,8 +1278,10 @@ class PFSenseDataChecker(object):
         """ Checking all interfaces networks between them """
         for src_name, src in interfaces.items():
             for dst_name, dst in interfaces.items():
-                if src_name == dst_name: continue
-                if not src.local_network: continue
+                if src_name == dst_name:
+                    continue
+                if not src.local_network:
+                    continue
 
                 if dst.local_network and src.local_network.overlaps(dst.local_network):
                     self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
@@ -1243,12 +1290,14 @@ class PFSenseDataChecker(object):
                 # we remove the local networks from the routed_networks of other interfaces
                 routed_networks = deepcopy(dst.routed_networks)
                 for network in dst.routed_networks:
-                    if network.prefixlen == 0: continue
+                    if network.prefixlen == 0:
+                        continue
                     if network.compare_networks(src.local_network) == 0:
                         routed_networks.remove(network)
                         dst.networks.remove(network)
                     elif network.overlaps(src.local_network):
-                        self._data.set_error("Local network of " + src_name + " overlaps with routed network " + network.exploded + " of " + dst_name + " in " + name)
+                        self._data.set_error("Local network of " + src_name + " overlaps with routed network "
+                                             + network.exploded + " of " + dst_name + " in " + name)
                         return False
 
                 if len(routed_networks) != len(dst.routed_networks):
@@ -1353,7 +1402,8 @@ class PFSenseDataChecker(object):
 
             # we check for duplicates
             _pfsense = deepcopy(pfsense)
-            if 'descr' in _pfsense: del _pfsense['descr']
+            if 'descr' in _pfsense:
+                del _pfsense['descr']
             dup = json.dumps(_pfsense)
             if dup in dups:
                 display.warning("duplicate pfsense definition for ip " + pfsense['ip'] + " (" + dups[dup] + ", " + name + ")")
@@ -1460,9 +1510,12 @@ class PFSenseRuleDecomposer(object):
         dst = rule.dst[0]
 
         sub_rules = self.separate_aliases(rule, src, 'src', 'host_separate')
-        if not sub_rules: sub_rules = self.separate_aliases(rule, dst, 'dst', 'host_separate')
-        if not sub_rules: sub_rules = self.separate_aliases(rule, src, 'src', 'host_separate_by_iface')
-        if not sub_rules: sub_rules = self.separate_aliases(rule, dst, 'dst', 'host_separate_by_iface')
+        if not sub_rules:
+            sub_rules = self.separate_aliases(rule, dst, 'dst', 'host_separate')
+        if not sub_rules:
+            sub_rules = self.separate_aliases(rule, src, 'src', 'host_separate_by_iface')
+        if not sub_rules:
+            sub_rules = self.separate_aliases(rule, dst, 'dst', 'host_separate_by_iface')
 
         return sub_rules
 
@@ -1492,7 +1545,8 @@ class PFSenseAliasFactory(object):
         aliases[name] = self._data.all_defs[name]
         for target in alias.definition:
             obj = self._data.hosts_aliases_obj[target]
-            if obj.fake_alias_ip or obj.fake_alias_network: continue
+            if obj.fake_alias_ip or obj.fake_alias_network:
+                continue
             self.add_host_alias_rec(obj, aliases)
 
     def add_port_alias_rec(self, alias, aliases):
@@ -1508,11 +1562,13 @@ class PFSenseAliasFactory(object):
     def add_hosts_aliases(self, rule, aliases):
         """ Return aliases hosts names to define """
         for alias in rule.src:
-            if alias.fake_alias_ip or alias.fake_alias_network: continue
+            if alias.fake_alias_ip or alias.fake_alias_network:
+                continue
             self.add_host_alias_rec(alias, aliases)
 
         for alias in rule.dst:
-            if alias.fake_alias_ip or alias.fake_alias_network: continue
+            if alias.fake_alias_ip or alias.fake_alias_network:
+                continue
             self.add_host_alias_rec(alias, aliases)
 
     def add_ports_aliases(self, rule, aliases):
@@ -1530,9 +1586,11 @@ class PFSenseAliasFactory(object):
         ports_aliases = {}
 
         for name, rule in self._data.rules_obj.items():
-            if rule_filter is not None and name != rule_filter: continue
+            if rule_filter is not None and name != rule_filter:
+                continue
             for subrule in rule.sub_rules:
-                if not subrule.interfaces: continue
+                if not subrule.interfaces:
+                    continue
                 self.add_hosts_aliases(subrule, hosts_aliases)
                 self.add_ports_aliases(subrule, ports_aliases)
 
@@ -1566,7 +1624,8 @@ class PFSenseAliasFactory(object):
         print(Fore.CYAN + "          # Hosts & network aliases")
         print(Fore.CYAN + "          # ")
         for alias in aliases:
-            if alias['type'] == 'port': continue
+            if alias['type'] == 'port':
+                continue
             definition = "          - { name: \"" + alias['name'] + "\", type: \"" + alias['type'] + "\", address: \"" + alias['address'] + "\""
             if 'descr' in alias:
                 definition = definition + ", descr: \"" + alias['descr'] + "\""
@@ -1577,7 +1636,8 @@ class PFSenseAliasFactory(object):
         print(Fore.CYAN + "          # ports aliases")
         print(Fore.CYAN + "          # ")
         for alias in aliases:
-            if alias['type'] != 'port': continue
+            if alias['type'] != 'port':
+                continue
             definition = "          - { name: \"" + alias['name'] + "\", type: \"port\", address: \"" + alias['address'] + "\""
             if 'descr' in alias:
                 definition = definition + ", descr: \"" + alias['descr'] + "\""
@@ -1593,7 +1653,7 @@ class PFSenseRuleFactory(object):
         self._decomposer = PFSenseRuleDecomposer(data)
 
     def rule_interfaces_any(self, rule_obj):
-        """ Return interfaces list on which the rule is needed to be defined
+        """ Return interfaces set on which the rule is needed to be defined
             Manage rules with any src or dst """
         src = rule_obj.src[0]
         dst = rule_obj.dst[0]
@@ -1630,7 +1690,8 @@ class PFSenseRuleFactory(object):
         assert len(rule_obj.dst) == 1
 
         interfaces = self.rule_interfaces_any(rule_obj)
-        if interfaces: return interfaces
+        if interfaces:
+            return interfaces
 
         interfaces = set()
         src_is_local = rule_obj.src[0].is_whole_local(self._data.target)
@@ -1670,9 +1731,12 @@ class PFSenseRuleFactory(object):
         rule = {}
         rule['src'] = rule_obj.src[0].name
         rule['dst'] = rule_obj.dst[0].name
-        if rule_obj.src_port: rule['src_port'] = ' '.join(rule_obj.src_port)
-        if rule_obj.dst_port: rule['dst_port'] = ' '.join(rule_obj.dst_port)
-        if rule_obj.protocol: rule['protocol'] = ' '.join(rule_obj.protocol)
+        if rule_obj.src_port:
+            rule['src_port'] = ' '.join(rule_obj.src_port)
+        if rule_obj.dst_port:
+            rule['dst_port'] = ' '.join(rule_obj.dst_port)
+        if rule_obj.protocol:
+            rule['protocol'] = ' '.join(rule_obj.protocol)
 
         rule['src'] = cross_ports(rule, 'src', 'src_port')
         rule['dst'] = cross_ports(rule, 'dst', 'dst_port')
@@ -1689,7 +1753,8 @@ class PFSenseRuleFactory(object):
                 definition['log'] = rule_obj.log
                 definition['interface'] = interface
                 definition['state'] = 'present'
-                if last_name: definition['after'] = last_name[interface]
+                if last_name:
+                    definition['after'] = last_name[interface]
                 definition.update(base[0])
                 interfaces[interface].append(definition)
                 last_name[interface] = name
@@ -1703,7 +1768,8 @@ class PFSenseRuleFactory(object):
                     definition['log'] = rule_obj.log
                     definition['interface'] = interface
                     definition['state'] = 'present'
-                    if last_name: definition['after'] = last_name[interface]
+                    if last_name:
+                        definition['after'] = last_name[interface]
                     definition.update(rule_def)
                     interfaces[interface].append(definition)
                     last_name[interface] = rule_name
@@ -1724,8 +1790,10 @@ class PFSenseRuleFactory(object):
             subrules = []
             for subrule in rule.sub_rules:
                 subrule.interfaces = self.rule_interfaces(subrule)
-                if rule_filter is not None and name != rule_filter: continue
-                if not subrule.interfaces: continue
+                if rule_filter is not None and name != rule_filter:
+                    continue
+                if not subrule.interfaces:
+                    continue
                 subrules.append(subrule)
                 for interface in subrule.interfaces:
                     if interface not in interfaces:
@@ -1756,12 +1824,18 @@ class PFSenseRuleFactory(object):
         print(Fore.CYAN + "          # Rules")
         print(Fore.CYAN + "          # ")
         for rule in rules:
-            definition = "          - { name: \"" + rule['name'] + "\", source: \"" + rule['source'] + "\", destination: \"" + rule['destination'] + "\", interface: \"" + rule['interface'] + "\", action: \"" + rule['action'] + "\""
-            if 'protocol' in rule: definition = definition + ", protocol: \"" + rule['protocol'] + "\""
-            if 'descr' in rule: definition = definition + ", descr: \"" + rule['descr'] + "\""
-            if 'log' in rule: definition = definition + ", log: \"" + rule['log'] + "\""
-            if 'after' in rule: definition = definition + ", after: \"" + rule['after'] + "\""
-            definition = definition + ", state: \"present\" }"
+            definition = ("          - { name: \"" + rule['name'] + "\", source: \""
+                          + rule['source'] + "\", destination: \"" + rule['destination']
+                          + "\", interface: \"" + rule['interface'] + "\", action: \"" + rule['action'] + "\"")
+            if 'protocol' in rule:
+                definition += ", protocol: \"" + rule['protocol'] + "\""
+            if 'descr' in rule:
+                definition += ", descr: \"" + rule['descr'] + "\""
+            if 'log' in rule:
+                definition += ", log: \"" + rule['log'] + "\""
+            if 'after' in rule:
+                definition += ", after: \"" + rule['after'] + "\""
+            definition += ", state: \"present\" }"
             print(Fore.GREEN + definition)
 
 
@@ -1833,12 +1907,14 @@ def main():
         rules=fvars['rules'],
         target_name=sys.argv[2]
     )
-    if not data.cleanup_defs(): return False
+    if not data.cleanup_defs():
+        return False
 
     checker = PFSenseDataChecker(data)
 
     print(Fore.MAGENTA + 'Parsing data...' + Fore.WHITE)
-    if not checker.check_defs(): return False
+    if not checker.check_defs():
+        return False
     alias_factory = PFSenseAliasFactory(data)
     rule_factory = PFSenseRuleFactory(data)
 

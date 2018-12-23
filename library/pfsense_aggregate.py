@@ -7,11 +7,6 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
-from ansible.module_utils.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
-from ansible.module_utils.basic import AnsibleModule
-
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'community'}
@@ -19,13 +14,14 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_aggregate
+version_added: "2.8"
+author: Frederic Bor (@f-bor)
 short_description: Manage multiple pfSense rules or aliases
 description:
-  >
-    Manage multiple pfSense rules or aliases
-author: Frederic Bor (@f-bor)
-notes: aggregated_aliases and aggregated_rules use the same options definitions
- than pfsense_alias and pfsense_rule modules.
+  - Manage multiple pfSense rules or aliases
+notes:
+  - aggregated_aliases and aggregated_rules use the same options definitions
+    than pfsense_alias and pfsense_rule modules.
 options:
   aggregated_aliases:
     description: Dict of aliases to apply on the target
@@ -36,6 +32,7 @@ options:
   purge:
     description: delete all the rules or aliases that are not defined into aggregated_aliases or aggregated_rules
     required: False
+    type: bool
     default: False
 """
 
@@ -56,6 +53,11 @@ EXAMPLES = """
       - { name: "allow_all_https", source: any, destination: "any:port_https", protocol: tcp, interface: wan, state: present }
 """
 
+from ansible.module_utils.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+from ansible.module_utils.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
+from ansible.module_utils.basic import AnsibleModule
+
 
 class PFSenseModuleAggregate(object):
     """ module managing pfsense aggregated aliases and rules """
@@ -69,8 +71,10 @@ class PFSenseModuleAggregate(object):
     def _update(self):
         cmd = 'require_once("filter.inc");\n'
         cmd += 'if (filter_configure() == 0) { \n'
-        if self.pfsense_aliases.changed: cmd += 'clear_subsystem_dirty(\'aliases\');\n'
-        if self.pfsense_rules.changed: cmd += 'clear_subsystem_dirty(\'rules\');\n'
+        if self.pfsense_aliases.changed:
+            cmd += 'clear_subsystem_dirty(\'aliases\');\n'
+        if self.pfsense_rules.changed:
+            cmd += 'clear_subsystem_dirty(\'rules\');\n'
         cmd += '}'
         return self.pfsense.phpshell(cmd)
 
@@ -84,7 +88,8 @@ class PFSenseModuleAggregate(object):
             return True
 
         for rule in rules:
-            if rule['state'] == 'absent': continue
+            if rule['state'] == 'absent':
+                continue
             if rule['name'] == descr.text and self.pfsense_rules.parse_interface(rule['interface']) == interface.text:
                 return True
         return False
@@ -100,7 +105,8 @@ class PFSenseModuleAggregate(object):
             return True
 
         for alias in aliases:
-            if alias['state'] == 'absent': continue
+            if alias['state'] == 'absent':
+                continue
             if alias['name'] == name.text and alias['type'] == alias_type.text:
                 return True
         return False
