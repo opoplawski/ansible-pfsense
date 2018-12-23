@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
-    def __init__(self, module, config = '/cf/conf/config.xml'):
+    def __init__(self, module, config='/cf/conf/config.xml'):
         self.module = module
         self.config = config
         self.tree = ET.parse(config)
@@ -46,17 +46,17 @@ class PFSenseModule(object):
     def is_interface_pfsense(self, name):
         """ determines if arg is a pfsense interface or not """
         for interface in self.interfaces:
-            interfaceEl = interface.tag.strip()
-            if interfaceEl == name:
+            interface_elt = interface.tag.strip()
+            if interface_elt == name:
                 return True
         return False
 
     def is_interface_name(self, name):
         """ determines if arg is an interface name or not """
         for interface in self.interfaces:
-            descrEl = interface.find('descr')
-            if descrEl != None:
-                if descrEl.text.strip() == name:
+            descr_elt = interface.find('descr')
+            if descr_elt is not None:
+                if descr_elt.text.strip() == name:
                     return True
         return False
 
@@ -172,7 +172,7 @@ class PFSenseModule(object):
     def is_ip_or_alias(self, address):
         """ return True if address is an ip or an alias """
         # Is it an alias?
-        if self.find_alias(address, 'host') or self.find_alias(address, 'network') or self.find_alias(address, 'urltable'):
+        if self.find_alias(address, 'host') is not None or self.find_alias(address, 'network') is not None or self.find_alias(address, 'urltable') is not None:
             return True
 
         # Is it an IP address?
@@ -194,7 +194,7 @@ class PFSenseModule(object):
 
     def is_port_or_alias(self, port):
         """ return True if port is a valid port number or an alias """
-        if self.find_alias(port, 'port'):
+        if self.find_alias(port, 'port') is not None:
             return True
         try:
             if int(port) > 0 and int(port) < 65536:

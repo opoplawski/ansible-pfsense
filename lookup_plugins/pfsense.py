@@ -1,3 +1,137 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright: (c) 2018, Frederic Bor <frederic.bor@wanadoo.fr>
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+"""
+This lookup plugin is designed to be used with pfsense_aggregate module.
+It takes a yaml file and generate list of aliases and rules definitions.
+The aim is to be able to easily manage a fleet of pfSenses and avoiding any
+redundant work, like defining the sames hosts/ports aliases or rules
+on multiples pfSenses. The plugin determine what is required to be defined
+on each pfsense, leaving to the network administrator only the pain of updating
+the yaml definition file.
+
+To determine if a rule and corresponding alias has to be declared on a pfsense
+and on which interfaces, the plugin check if rule source or destination is
+matching any local or routed network on the pfsense. To avoid having every rule
+declared on a wan interface, 0.0.0.0/0 is considered as an internet only network,
+excluding any local network address. If a network is declared as
+routed (accessible thru) on an interface and is also defined as the local network
+on an interface of the target pfsense, it is automaticly removed (it allows easy
+routing declaration).
+
+Following pfSense rule definition (one host/alias per source/destination,
+one port/alias per source/destination), each rule declared in the yaml is breaked
+into smaller rules until having rules than can be declared.
+
+For now, the generated rules are not always ordered as in the yaml file but
+it will change in a near future.
+
+The yaml file must include the following definitions to describe the network topology:
+- sites (useless but required for now, will probably be removed in a near future)
+- pfsenses
+- rules
+- hosts_aliases
+- ports_aliases
+
+You can run the plugin alone to debug rules and aliases generation, for example:
+- ./lookup_plugins/pfsense.py defs.yml pf1
+- ./lookup_plugins/pfsense.py defs.yml pf1 ping_from_poc3
+
+A typical pfsense_aggregate task using the lookup plugin will look like this:
+  tasks:
+    - name: "setup aliases & rules"
+      pfsense_aggregate:
+        purge: true
+        aggregated_aliases: |
+          {{ lookup('pfsense', 'defs.yml', 'gen_aliases')}}
+        aggregated_rules: |
+          {{ lookup('pfsense', 'defs.yml', 'gen_rules')}}
+
+
+Here is an example of yaml file:
+---
+sites:
+  poc1:         { network: 192.168.1.0/24 }
+  poc2:         { network: 192.168.2.0/24 }
+  poc3:         { network: 192.168.3.0/24 }
+
+pfsenses:
+  pf1:          {
+    site: poc1,
+    interfaces: {
+      lan: { ip: 192.168.1.1/24 },
+      lan_100: { ip: 172.16.1.1/24 },
+      vpn: { routed_networks: lan_data_all lan_voip_all},
+      }
+    }
+
+  pf2:          {
+    site: poc2,
+    interfaces: {
+      lan: { ip: 192.168.2.1/24 },
+      lan_100: { ip: 172.16.2.1/24 },
+      vpn: { routed_networks: lan_data_all lan_voip_all},
+      }
+    }
+
+  pf3:          {
+    site: poc3,
+    interfaces: {
+      lan: { ip: 192.168.3.1/24 },
+      lan_100: { ip: 172.16.3.1/24 },
+      vpn: { routed_networks: lan_data_all lan_voip_all},
+      wan: { routed_networks: 0.0.0.0/0 }
+      }
+    }
+
+rules:
+  antilock_out: { src: any, dst: any, protocol: tcp, dst_port: port_ssh port_http 443 }
+  void_conf_tftp: { src: all_ipbx, dst: lan_voip_all, dst_port: 69, protocol: udp }
+  admin_bypass: { src: srv_admin, dst: any }
+  ping_from_poc3: { src: lan_poc3_all, dst: srv_admin, protocol: icmp }
+  ads_to_ads_tcp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap port_ldap_ssl, protocol: tcp }
+  ads_to_ads_udp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap, protocol: udp }
+
+hosts_aliases:
+  # hosts
+  ipbx_poc1: { ip: 172.16.1.3 }
+  ipbx_poc2: { ip: 172.16.2.3 }
+  ipbx_poc3: { ip: 172.16.3.3 }
+  all_ipbx: { ip: ipbx_poc1 ipbx_poc2 ipbx_poc3 }
+
+  ad_poc1: { ip: 192.168.1.3 }
+  ad_poc2: { ip: 192.168.2.3 }
+  ad_poc3: { ip: 192.168.3.3 }
+  all_ads: { ip: ad_poc1 ad_poc2 ad_poc3 }
+
+  # networks
+  lan_voip_poc1: { ip: 172.16.1.0/24 }
+  lan_voip_poc2: { ip: 172.16.2.0/24 }
+  lan_voip_poc3: { ip: 172.16.3.0/24 }
+  lan_voip_all : { ip: lan_voip_poc1 lan_voip_poc2 lan_voip_poc3 }
+
+  lan_data_poc1: { ip: 192.168.1.0/24 }
+  lan_data_poc2: { ip: 192.168.2.0/24 }
+  lan_data_poc3: { ip: 192.168.3.0/24 }
+  lan_data_all : { ip: lan_data_poc1 lan_data_poc2 lan_data_poc3 }
+
+  lan_poc3_all : { ip: lan_voip_poc3 lan_data_poc3 }
+
+  srv_admin: { ip: 192.168.1.165 }
+
+ports_aliases:
+  port_ssh: { port: 22 }
+  port_telnet: { port: 23 }
+  port_dns: { port: 51 }
+  port_http: { port: 80 }
+  port_ldap: { port: 389 }
+  port_ldap_ssl: { port: 636 }
+
+ """
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -198,7 +332,7 @@ class PFSenseHostAlias(object):
         self.fake_alias_network = False
 
         # define all interfaces on which the alias is to be defined
-        # interfaces['gw_aja_1'] = ['lan', 'obs']
+        # interfaces['gw_poc1_1'] = ['lan', 'obs']
         self.interfaces = {}
         self.interfaces_src = {}
 
@@ -395,6 +529,42 @@ class PFSenseHostAlias(object):
             if not found: return False
 
         return True
+
+    def routed_by_interfaces(self, pfsense):
+        """ return all interfaces for which all ips/networks match a routed network in pfense """
+        interfaces = set()
+        for interface in pfsense.interfaces.values():
+            all_found = (len(interface.routed_networks) > 0)
+            # we must found a routing network for each ip
+            found = False
+            for alias_ip in self.ips:
+                local_ip = is_local_ip(alias_ip)
+                for snet in interface.routed_networks:
+                    local_net = is_local_network(snet)
+                    # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
+                    if local_ip and local_net or not local_ip and not local_net:
+                        if alias_ip in snet:
+                            found = True
+                if not found:
+                    all_found = False
+                    break
+
+            # we must found a routing network for each network
+            found = False
+            for alias_net in self.networks:
+                local_neta = is_local_network(alias_net)
+                for snet in interface.routed_networks:
+                    local_net = is_local_network(snet)
+                    # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_net.exploded + ' ' + str(alias_net.subnet_of(snet)))
+                    if local_neta and local_net or not local_neta and not local_net:
+                        if alias_net.subnet_of(snet):
+                            found = True
+                if not found:
+                    all_found = False
+                    break
+            if all_found:
+                interfaces.add(interface.name)
+        return interfaces
 
     def is_routed(self, pfsense):
         """ check if all ips/networks match a routed network in pfense """
@@ -1353,13 +1523,14 @@ class PFSenseAliasFactory(object):
         for alias in rule.dst_port:
             self.add_port_alias_rec(alias, aliases)
 
-    def generate_aliases(self):
+    def generate_aliases(self, rule_filter=None):
         """ Return aliases definitions for pfsense_aliases_aggregate """
 
         hosts_aliases = {}
         ports_aliases = {}
 
         for name, rule in self._data.rules_obj.items():
+            if rule_filter is not None and name != rule_filter: continue
             for subrule in rule.sub_rules:
                 if not subrule.interfaces: continue
                 self.add_hosts_aliases(subrule, hosts_aliases)
@@ -1388,10 +1559,9 @@ class PFSenseAliasFactory(object):
 
         return ret
 
-    def output_aliases(self, aliases=None):
+    @staticmethod
+    def output_aliases(aliases):
         """ Output aliases definitions for pfsense_aliases_aggregate """
-        if not aliases:
-            aliases = self.generate_aliases()
         print(Fore.CYAN + "          #===========================")
         print(Fore.CYAN + "          # Hosts & network aliases")
         print(Fore.CYAN + "          # ")
@@ -1445,9 +1615,10 @@ class PFSenseRuleFactory(object):
 
         elif rule_obj.dst[0].name == 'any':
             # we allow the interfaces matching the source ip/networks
+            # or the routed networks
             interfaces = set()
             for iface, interface in self._data.target.interfaces.items():
-                if src.match_interface_src(interface):
+                if src.match_interface_src(interface) or src.match_interface_dst(interface):
                     interfaces.add(iface)
             return interfaces
         return None
@@ -1482,6 +1653,9 @@ class PFSenseRuleFactory(object):
         if self._data.target.name in target.interfaces_src:
             for iface in target.interfaces_src[self._data.target.name]:
                 interfaces.add(iface)
+
+        if not src_is_local:
+            interfaces.update(rule_obj.src[0].routed_by_interfaces(self._data.target))
         return list(interfaces)
 
     @staticmethod
@@ -1514,6 +1688,7 @@ class PFSenseRuleFactory(object):
                 definition['action'] = rule_obj.action
                 definition['log'] = rule_obj.log
                 definition['interface'] = interface
+                definition['state'] = 'present'
                 if last_name: definition['after'] = last_name[interface]
                 definition.update(base[0])
                 interfaces[interface].append(definition)
@@ -1527,14 +1702,17 @@ class PFSenseRuleFactory(object):
                     definition['action'] = rule_obj.action
                     definition['log'] = rule_obj.log
                     definition['interface'] = interface
+                    definition['state'] = 'present'
                     if last_name: definition['after'] = last_name[interface]
                     definition.update(rule_def)
                     interfaces[interface].append(definition)
                     last_name[interface] = rule_name
                     rule_idx = rule_idx + 1
 
-    def generate_rules(self):
-        """ Return rules definitions for pfsense_rules_aggregate """
+    def generate_rules(self, rule_filter=None):
+        """ Return rules definitions for pfsense_rules_aggregate
+            if rule_filter, process only rules matching rule_filter
+        """
 
         self._decomposer.decompose_rules()
         ret = []
@@ -1546,6 +1724,7 @@ class PFSenseRuleFactory(object):
             subrules = []
             for subrule in rule.sub_rules:
                 subrule.interfaces = self.rule_interfaces(subrule)
+                if rule_filter is not None and name != rule_filter: continue
                 if not subrule.interfaces: continue
                 subrules.append(subrule)
                 for interface in subrule.interfaces:
@@ -1570,10 +1749,9 @@ class PFSenseRuleFactory(object):
 
         return ret
 
-    def output_rules(self, rules=None):
+    @staticmethod
+    def output_rules(rules):
         """ Output aliases definitions for pfsense_aliases_aggregate """
-        if not rules:
-            rules = self.generate_rules()
         print(Fore.CYAN + "          #===========================")
         print(Fore.CYAN + "          # Rules")
         print(Fore.CYAN + "          # ")
@@ -1630,3 +1808,49 @@ class LookupModule(LookupBase):
             return [rules]
 
         return []
+
+
+def main():
+    """ Output debug helper """
+
+    colorama.init()
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
+        print('Usage: pfsense.py <file> <target_fw> [rule_name]')
+        return 0
+
+    rule_filter = None
+    if len(sys.argv) == 4:
+        rule_filter = sys.argv[3]
+
+    print(Fore.MAGENTA + 'Loading data...' + Fore.WHITE)
+    fvars = ordered_load(open(sys.argv[1]), yaml.SafeLoader)
+
+    data = PFSenseData(
+        sites=fvars['sites'],
+        hosts_aliases=fvars['hosts_aliases'],
+        ports_aliases=fvars['ports_aliases'],
+        pfsenses=fvars['pfsenses'],
+        rules=fvars['rules'],
+        target_name=sys.argv[2]
+    )
+    if not data.cleanup_defs(): return False
+
+    checker = PFSenseDataChecker(data)
+
+    print(Fore.MAGENTA + 'Parsing data...' + Fore.WHITE)
+    if not checker.check_defs(): return False
+    alias_factory = PFSenseAliasFactory(data)
+    rule_factory = PFSenseRuleFactory(data)
+
+    print(Fore.MAGENTA + 'Generating rules...' + Fore.WHITE)
+    rules = rule_factory.generate_rules(rule_filter)
+
+    print(Fore.MAGENTA + 'Generating aliases...' + Fore.WHITE)
+    aliases = alias_factory.generate_aliases(rule_filter)
+
+    alias_factory.output_aliases(aliases)
+    rule_factory.output_rules(rules)
+
+
+if __name__ == '__main__':
+    main()
