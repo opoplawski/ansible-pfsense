@@ -77,10 +77,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
             self.diff['before'] = ''
             self.change_descr = 'ansible pfsense_alias added %s type %s' % (alias['name'], alias['type'])
         else:
+            self.diff['before'] = self.pfsense.element_to_dict(alias_elt)
             changed = self.pfsense.copy_dict_to_element(alias, alias_elt)
             if changed:
+                self.diff['after'] = self.pfsense.element_to_dict(alias_elt)
                 self.results['modified'].append(self.pfsense.element_to_dict(alias_elt))
-                self.diff['before'] = self.pfsense.element_to_dict(alias_elt)
                 self.change_descr = 'ansible pfsense_alias updated "%s" type %s' % (alias['name'], alias['type'])
 
         if changed:
