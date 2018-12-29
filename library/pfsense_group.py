@@ -53,13 +53,13 @@ EXAMPLES = """
     state: absent
 """
 
-from ansible.module_utils.pfsense.pfsense import pfSenseModule
+from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
 class pfSenseGroup(object):
 
     def __init__(self, module):
         self.module = module
-        self.pfsense = pfSenseModule(module)
+        self.pfsense = PFSenseModule(module)
         self.system = self.pfsense.get_element('system')
         self.groups = self.system.findall('group')
 

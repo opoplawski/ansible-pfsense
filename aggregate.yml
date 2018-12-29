@@ -1,0 +1,13 @@
+---
+- hosts: pfsense
+  gather_facts: false
+  connection: paramiko
+
+  tasks:
+    - name: "setup aliases & rules"
+      pfsense_aggregate:
+        purge: true
+        aggregated_aliases: |
+          {{ lookup('pfsense', 'all_pf_defs.yml', 'gen_aliases')}}
+        aggregated_rules: |
+          {{ lookup('pfsense', 'all_pf_defs.yml', 'gen_rules')}}
