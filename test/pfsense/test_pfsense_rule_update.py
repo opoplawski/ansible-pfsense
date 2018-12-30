@@ -87,6 +87,26 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='test_rule_2', source='any', destination='any', interface='wan', protocol='tcp')
         self.do_rule_update_test(rule)
 
+    def test_rule_update_negate_add_source(self):
+        """ test creation of a new rule with a not source """
+        rule = dict(name='test_rule_2', source='!srv_admin', destination='any', interface='wan', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_negate_add_destination(self):
+        """ test creation of a new rule with a not destination """
+        rule = dict(name='test_rule_2', source='any', destination='!srv_admin', interface='wan', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_negate_remove_source(self):
+        """ test creation of a new rule with a not source """
+        rule = dict(name='not_rule_src', source='srv_admin', destination='any:port_ssh', interface='wan', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_negate_remove_destination(self):
+        """ test creation of a new rule with a not destination """
+        rule = dict(name='not_rule_dst', source='any', destination='srv_admin:port_ssh', interface='wan', protocol='tcp')
+        self.do_rule_update_test(rule)
+
     @unittest.expectedFailure
     def test_rule_update_before(self):
         """ test updating position of a rule to before another """

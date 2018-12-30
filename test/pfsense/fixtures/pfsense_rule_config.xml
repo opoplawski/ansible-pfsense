@@ -424,6 +424,60 @@
 			</updated>
 			<protocol>tcp</protocol>
 			<log></log>
+			<descr>not_rule_dst</descr>
+			<created>
+				<username></username>
+				<time>1545574416</time>
+			</created>
+			<destination>
+				<address>srv_admin</address>
+				<not></not>
+				<port>port_ssh</port>
+			</destination>
+			<statetype>keep state</statetype>
+			<source>
+				<any></any>
+			</source>
+			<tracker>1545574416</tracker>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<type>pass</type>
+			<id></id>
+		</rule>
+		<rule>
+			<updated>
+				<username></username>
+				<time>1545574416</time>
+			</updated>
+			<protocol>tcp</protocol>
+			<log></log>
+			<descr>not_rule_src</descr>
+			<created>
+				<username></username>
+				<time>1545574416</time>
+			</created>
+			<destination>
+				<any></any>
+				<port>port_ssh</port>
+			</destination>
+			<statetype>keep state</statetype>
+			<source>
+				<address>srv_admin</address>
+				<not></not>
+			</source>
+			<tracker>1545574416</tracker>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<type>pass</type>
+			<id></id>
+		</rule>
+		<rule>
+			<updated>
+				<username></username>
+				<time>1545574416</time>
+			</updated>
+			<protocol>tcp</protocol>
+			<log></log>
 			<descr>antilock_out_2</descr>
 			<created>
 				<username></username>

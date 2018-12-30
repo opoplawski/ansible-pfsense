@@ -283,6 +283,16 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='one_rule', source='10.10.1.1:openvpn_port', destination='10.10.10.1', interface='lan')
         self.do_rule_creation_test(rule, failed=True)
 
+    def test_rule_create_negate_source(self):
+        """ test creation of a new rule with a not source """
+        rule = dict(name='one_rule', source='!srv_admin', destination='any', interface='lan')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_negate_destination(self):
+        """ test creation of a new rule with a not destination """
+        rule = dict(name='one_rule', source='any', destination='!srv_admin', interface='lan')
+        self.do_rule_creation_test(rule)
+
     @unittest.expectedFailure
     def test_rule_create_separator_top(self):
         """ test creation of a new rule at top """

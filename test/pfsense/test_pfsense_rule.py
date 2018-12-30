@@ -78,6 +78,9 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         """ return address parsed in dict """
         parts = addr.split(':')
         res = {}
+        if parts[0][0] == '!':
+            res['not'] = None
+            parts[0] = parts[0][1:]
         if parts[0] == 'any':
             res['any'] = None
         elif parts[0] == '(self)':
@@ -110,6 +113,9 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         if 'address' in addr_dict:
             self.assert_not_find_xml_elt(addr_elt, 'network')
             self.assert_not_find_xml_elt(addr_elt, 'any')
+
+        if 'not' not in addr_dict:
+            self.assert_not_find_xml_elt(addr_elt, 'not')
 
     def check_rule_elt(self, rule):
         """ test the xml definition of rule """
