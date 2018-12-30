@@ -26,8 +26,7 @@ Following pfSense rule definition (one host/alias per source/destination,
 one port/alias per source/destination), each rule declared in the yaml is breaked
 into smaller rules until having rules than can be declared.
 
-For now, the generated rules are not always ordered as in the yaml file but
-it will change in a near future.
+The generated rules order follows the yaml file rules order.
 
 The yaml file must include the following definitions to describe the network topology:
 - sites (useless but required for now, will probably be removed in a near future)
@@ -885,7 +884,7 @@ class PFSenseData(object):
     def _cleanup_defs(self, defs_name):
         """ cleaning attribute defs_name """
         defs = getattr(self, defs_name)
-        _defs = {}
+        _defs = OrderedDict()
         ret = True
         for name, _def in defs.items():
             name = cleanup_def_name(name)
@@ -1785,7 +1784,7 @@ class PFSenseRuleFactory(object):
 
         interfaces = {}
         last_name = {}
-        rules = {}
+        rules = OrderedDict()
         for name, rule in self._data.rules_obj.items():
             subrules = []
             for subrule in rule.sub_rules:
