@@ -18,7 +18,7 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         target = copy(rule)
         target.update(kwargs)
         set_module_args(args_from_var(target))
-        self.execute_module(changed=True)
+        self.execute_module(changed=True, failed=failed)
         if failed:
             self.assertFalse(self.load_xml_result())
         else:
@@ -37,25 +37,33 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='test_rule', source='any', destination='any', interface='wan', disabled='True', protocol='tcp')
         self.do_rule_update_test(rule)
 
+    def test_rule_update_floating_interface(self):
+        """ test updating interface of a floating rule """
+        rule = dict(name='test_rule_floating', source='any', destination='any', interface='lan', floating='yes', direction='out', protocol='tcp')
+        self.do_rule_update_test(rule)
+
     def test_rule_update_floating_direction(self):
         """ test updating direction of a rule to out """
         rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', floating='yes', direction='out', protocol='tcp')
         self.do_rule_update_test(rule)
 
+    @unittest.expectedFailure
     def test_rule_update_floating_yes(self):
         """ test updating floating of a rule to yes """
         rule = dict(name='test_rule', source='any', destination='any', interface='wan', floating='yes', direction='any', protocol='tcp')
-        self.do_rule_update_test(rule)
+        self.do_rule_update_test(rule, failed=True)
 
+    @unittest.expectedFailure
     def test_rule_update_floating_no(self):
         """ test updating floating of a rule to no """
         rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', floating='no', direction='any', protocol='tcp')
-        self.do_rule_update_test(rule)
+        self.do_rule_update_test(rule, failed=True)
 
+    @unittest.expectedFailure
     def test_rule_update_floating_default(self):
         """ test updating floating of a rule to default """
         rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', protocol='tcp')
-        self.do_rule_update_test(rule)
+        self.do_rule_update_test(rule, failed=True)
 
     def test_rule_update_inet(self):
         """ test updating ippprotocol of a rule to ipv4 and ipv6 """
@@ -107,52 +115,56 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='not_rule_dst', source='any', destination='srv_admin:port_ssh', interface='wan', protocol='tcp')
         self.do_rule_update_test(rule)
 
-    @unittest.expectedFailure
     def test_rule_update_before(self):
         """ test updating position of a rule to before another """
         rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', before='test_rule')
         self.do_rule_update_test(rule)
         self.check_rule_idx(rule, 0)
 
-    @unittest.expectedFailure
     def test_rule_update_before_bottom(self):
         """ test updating position of a rule to bottom """
         rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', before='bottom')
         self.do_rule_update_test(rule)
-        self.check_rule_idx(rule, 5)
+        self.check_rule_idx(rule, 3)
 
     def test_rule_update_after(self):
-        """ test updating position of a rule to after another """
-        rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', after='test_rule_3')
+        """ test updating position of a rule to after another rule """
+        rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', after='antilock_out_3')
         self.do_rule_update_test(rule)
-        self.check_rule_idx(rule, 4)
+        self.check_rule_idx(rule, 3)
 
-    @unittest.expectedFailure
+    def test_rule_update_after_self(self):
+        """ test updating position of a rule to after same rule """
+        rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', after='test_rule_3')
+        self.do_rule_update_test(rule, failed=True)
+
+    def test_rule_update_before_self(self):
+        """ test updating position of a rule to before same rule """
+        rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', before='test_rule_3')
+        self.do_rule_update_test(rule, failed=True)
+
     def test_rule_update_after_top(self):
         """ test updating position of a rule to top """
         rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', after='top')
         self.do_rule_update_test(rule)
         self.check_rule_idx(rule, 0)
 
-    @unittest.expectedFailure
     def test_rule_update_separator_top(self):
         """ test updating position of a rule to top """
-        rule = dict(name='r1', source='any', destination='any', interface='vt1', after='top')
+        rule = dict(name='r2', source='any', destination='any', interface='vt1', after='top')
         self.do_rule_update_test(rule)
         self.check_rule_idx(rule, 0)
         self.check_separator_idx(rule['interface'], 'test_sep1', 1)
-        self.check_separator_idx(rule['interface'], 'test_sep2', 4)
+        self.check_separator_idx(rule['interface'], 'test_sep2', 3)
 
-    @unittest.expectedFailure
     def test_rule_update_separator_bottom(self):
         """ test updating position of a rule to bottom """
         rule = dict(name='r1', source='any', destination='any', interface='vt1', before='bottom')
         self.do_rule_update_test(rule)
-        self.check_rule_idx(rule, 3)
+        self.check_rule_idx(rule, 2)
         self.check_separator_idx(rule['interface'], 'test_sep1', 0)
-        self.check_separator_idx(rule['interface'], 'test_sep2', 3)
+        self.check_separator_idx(rule['interface'], 'test_sep2', 2)
 
-    @unittest.expectedFailure
     def test_rule_update_separator_before_first(self):
         """ test creation of a new rule at bottom """
         rule = dict(name='r3', source='any', destination='any', interface='vt1', before='r1')

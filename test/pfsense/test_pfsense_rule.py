@@ -175,13 +175,19 @@ class TestPFSenseRuleModule(TestPFSenseModule):
 
     def check_rule_idx(self, rule, target_idx):
         """ test the xml position of rule """
+        floating = 'floating' in rule and rule['floating'] == 'yes'
         rule['interface'] = self.unalias_interface(rule['interface'])
         rules_elt = self.assert_find_xml_elt(self.xml_result, 'filter')
         idx = -1
         for rule_elt in rules_elt:
             interface_elt = rule_elt.find('interface')
-            if interface_elt is None or interface_elt.text is None or interface_elt.text != rule['interface']:
+            floating_elt = rule_elt.find('floating')
+            floating_rule = floating_elt is not None and floating_elt.text == 'yes'
+            if floating and not floating_rule:
                 continue
+            elif not floating:
+                if floating_rule or interface_elt is None or interface_elt.text is None or interface_elt.text != rule['interface']:
+                    continue
             idx += 1
             descr_elt = rule_elt.find('descr')
             self.assertIsNotNone(descr_elt)

@@ -164,18 +164,23 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         """ test creation of a new rule at bottom """
         rule = dict(name='one_rule', source='any', destination='any', interface='wan', before='bottom')
         self.do_rule_creation_test(rule)
-        self.check_rule_idx(rule, 5)
+        self.check_rule_idx(rule, 4)
 
     def test_rule_create_before_bottom_default(self):
         """ test creation of a new rule at bottom (default) """
         rule = dict(name='one_rule', source='any', destination='any', interface='wan', action='pass')
         self.do_rule_creation_test(rule)
-        self.check_rule_idx(rule, 5)
+        self.check_rule_idx(rule, 4)
 
     def test_rule_create_before_invalid(self):
         """ test creation of a new rule before an invalid rule """
         rule = dict(name='one_rule', source='any', destination='any', interface='lan', before='admin_bypass')
         self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_source_alias(self):
+        """ test creation of a new rule with a valid source alias """
+        rule = dict(name='one_rule', source='srv_admin', destination='any', interface='lan')
+        self.do_rule_creation_test(rule)
 
     def test_rule_create_source_alias_invalid(self):
         """ test creation of a new rule with an invalid source alias """
@@ -191,6 +196,11 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         """ test creation of a new rule with an invalid source network """
         rule = dict(name='one_rule', source='192.193.194.195/256', destination='any', interface='lan')
         self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_destination_alias(self):
+        """ test creation of a new rule with a valid source alias """
+        rule = dict(name='one_rule', source='any', destination='srv_admin', interface='lan')
+        self.do_rule_creation_test(rule)
 
     def test_rule_create_destination_alias_invalid(self):
         """ test creation of a new rule with an invalid destination alias """
@@ -293,7 +303,6 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='one_rule', source='any', destination='!srv_admin', interface='lan')
         self.do_rule_creation_test(rule)
 
-    @unittest.expectedFailure
     def test_rule_create_separator_top(self):
         """ test creation of a new rule at top """
         rule = dict(name='one_rule', source='any', destination='any', interface='vt1', after='top')
@@ -310,7 +319,6 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         self.check_separator_idx(rule['interface'], 'test_sep1', 0)
         self.check_separator_idx(rule['interface'], 'test_sep2', 3)
 
-    @unittest.expectedFailure
     def test_rule_create_separator_before_first(self):
         """ test creation of a new rule at bottom """
         rule = dict(name='one_rule', source='any', destination='any', interface='vt1', before='r1')
@@ -319,7 +327,6 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         self.check_separator_idx(rule['interface'], 'test_sep1', 0)
         self.check_separator_idx(rule['interface'], 'test_sep2', 4)
 
-    @unittest.expectedFailure
     def test_rule_create_separator_after_third(self):
         """ test creation of a new rule at bottom """
         rule = dict(name='one_rule', source='any', destination='any', interface='vt1', after='r3')
