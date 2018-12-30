@@ -47,7 +47,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         self.mock_shutil_move = patch('shutil.move')
         self.shutil_move = self.mock_shutil_move.start()
 
-        self.mock_phpshell = patch('ansible.module_utils.pfsense.pfsense.pfSenseModule.phpshell')
+        self.mock_phpshell = patch('ansible.module_utils.pfsense.pfsense.PFSenseModule.phpshell')
         self.phpshell = self.mock_phpshell.start()
         self.phpshell.return_value = (0, '', '')
 
