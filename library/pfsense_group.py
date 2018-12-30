@@ -55,6 +55,7 @@ EXAMPLES = """
 
 from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
+
 class pfSenseGroup(object):
 
     def __init__(self, module):
@@ -85,7 +86,7 @@ class pfSenseGroup(object):
                 self.module.exit_json(changed=True)
             groupEl = self.pfsense.new_element('group')
             self.pfsense.copy_dict_to_element(group, groupEl)
-            self.system.insert(i+1,groupEl)
+            self.system.insert(i + 1, groupEl)
             self.pfsense.write_config(descr='ansible pfsense_group added %s' % (group['name']))
         else:
             changed = self.pfsense.copy_dict_to_element(group, groupEl)

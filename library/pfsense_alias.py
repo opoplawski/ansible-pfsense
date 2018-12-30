@@ -63,6 +63,7 @@ EXAMPLES = """
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
 
+
 def main():
     module = AnsibleModule(
         argument_spec=ALIASES_ARGUMENT_SPEC,

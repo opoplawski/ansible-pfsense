@@ -57,6 +57,7 @@ CSjdKUG1zZTJTS3dtDQp6QnhT....
 
 from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
+
 class pfSenseCA(object):
 
     def __init__(self, module):
@@ -107,10 +108,10 @@ class pfSenseCA(object):
                 crl['descr'] = ca['descr'] + ' CRL'
                 crl['caref'] = ca['refid']
                 self.pfsense.copy_dict_to_element(crl, crlEl)
-                self.pfsense.root.insert(i+1, crlEl)
+                self.pfsense.root.insert(i + 1, crlEl)
             self.pfsense.copy_dict_to_element(ca, caEl)
-            self.pfsense.root.insert(i+1, caEl)
-            descr='ansible pfsense_ca added %s' % (ca['descr'])
+            self.pfsense.root.insert(i + 1, caEl)
+            descr = 'ansible pfsense_ca added %s' % (ca['descr'])
         else:
             diff['before'] = self.pfsense.element_to_dict(caEl)
             if 'text' in crl:
@@ -122,7 +123,7 @@ class pfSenseCA(object):
                     crl['descr'] = ca['descr'] + ' CRL'
                     crl['caref'] = caEl.find('refid').text
                     self.pfsense.copy_dict_to_element(crl, crlEl)
-                    self.pfsense.root.insert(crlIndex+1, crlEl)
+                    self.pfsense.root.insert(crlIndex + 1, crlEl)
                 else:
                     diff['before']['crl'] = crlEl.find('text').text
                     changed = self.pfsense.copy_dict_to_element(crl, crlEl)
@@ -170,8 +171,8 @@ def main():
             'certificate': {'required': False, 'type': 'str'},
             'crl': {'required': False, 'default': None, 'type': 'str'},
         },
-        required_if = [
-            [ "state", "present", [ "certificate" ] ],
+        required_if=[
+            ["state", "present", ["certificate"]],
         ],
         supports_check_mode=True)
 

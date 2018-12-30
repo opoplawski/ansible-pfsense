@@ -93,6 +93,7 @@ EXAMPLES = """
 
 from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
+
 class pfSenseAuthserverLDAP(object):
 
     def __init__(self, module):
@@ -129,7 +130,7 @@ class pfSenseAuthserverLDAP(object):
             authserverEl = self.pfsense.new_element('authserver')
             authserver['refid'] = self.pfsense.uniqid()
             self.pfsense.copy_dict_to_element(authserver, authserverEl)
-            self.system.insert(i+1,authserverEl)
+            self.system.insert(i + 1, authserverEl)
             self.pfsense.write_config(descr='ansible pfsense_authserver_ldap added %s' % (authserver['name']))
         else:
             changed = self.pfsense.copy_dict_to_element(authserver, authserverEl)
@@ -201,7 +202,7 @@ def main():
     elif state == 'present':
         authserver['host'] = module.params['host']
         authserver['ldap_port'] = module.params['port']
-        urltype = dict({ 'tcp': '', 'starttls': '', 'ssl': 'SSL - Encrypted' })
+        urltype = dict({'tcp': '', 'starttls': '', 'ssl': 'SSL - Encrypted'})
         authserver['ldap_urltype'] = urltype[module.params['transport']]
         authserver['ldap_protver'] = module.params['protver']
         authserver['ldap_timeout'] = module.params['timeout']
