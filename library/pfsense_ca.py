@@ -11,6 +11,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_ca
+version_added: "2.8"
 short_description: Manage pfSense Certificate Authorities
 description:
   >
@@ -31,22 +32,13 @@ options:
   crl:
     description: The Certificate Revocation List for the Certificate Authority
     required: false
-    default: none
 """
 
 EXAMPLES = """
 - name: Add AD Certificate Authority
   pfsense_ca:
     name: AD CA
-    certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dBd0lCQWdJUVBreXdY
-dWRkZnFOR2h2aWExVDVYZ3pBTkJna3Foa2lHOXcwQkFRMEZBREJjDQpNUk13RVFZS0NaSW1pWlB5TEdRQkdSWURZMjl0T
-VJRd0VnWUtDWkltaVpQeUxHUUJHUllFYm5keVlURVNNQkFHDQpDZ21TSm9tVDhpeGtBUmtXQW1Ga01Sc3dHUVlEVlFRRE
-V4SmhaQzFCUkMxVFJVRlVWRXhGTURFdFEwRXdIaGNODQpNVFl3TkRBM01UWTBOVEE0V2hjTk1qWXdOREEzTVRZMU5UQTN
-XakJjTVJNd0VRWUtDWkltaVpQeUxHUUJHUllEDQpZMjl0TVJRd0VnWUtDWkltaVpQeUxHUUJHUllFYm5keVlURVNNQkFH
-Q2dtU0pvbVQ4aXhrQVJrV0FtRmtNUnN3DQpHUVlEVlFRREV4SmhaQzFCUkMxVFJVRlVWRXhGTURFdFEwRXdnZ0lpTUEwR
-0NTcUdTSWIzRFFFQkFRVUFBNElDDQpEd0F3Z2dJS0FvSUNBUUNWdGM0dzBnY0h5aFkzRkVpUENVMmZLYXAyWnFHb0ROL1
-VuRkVRRVBqZ1R4NmE4UEF5DQpqWjRMS2o2N1AybkRLTFA0ZVFQSFFzQmRkTVNneVl1RzdCQTlycmNCaFIzY0VlZ1RmNm9
-CSjdKUG1zZTJTS3dtDQp6QnhT....
+    certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dB...
     state: present
 
 - name: Remove AD Certificate Authority

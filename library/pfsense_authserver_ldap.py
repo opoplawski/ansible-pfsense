@@ -11,6 +11,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_authserver_ldap
+version_added: "2.8"
 short_description: Manage pfSense LDAP authentication servers
 description:
   >

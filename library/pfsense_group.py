@@ -11,6 +11,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_group
+version_added: "2.8"
 short_description: Manage pfSense groups
 description:
   >
@@ -32,11 +33,14 @@ options:
     default: system
     choices: [ "system", "remote" ]
   gid:
-    description: GID of the group
-    default: next available GID
+    description:
+    - GID of the group.
+    - Will use next available GID if not specified.
   priv:
-    description: Priveleges to assign
-    choices: [ "page-all", "user-shell-access" ]
+    description:
+    - A list of priveleges to assign.
+    - Allowed values include page-all, user-shell-access.
+    type: list
 """
 
 EXAMPLES = """
@@ -45,7 +49,7 @@ EXAMPLES = """
     name: Domain Admins
     description: Remote Admins
     scope: remote
-    priv: [ 'page-all, 'user-shell-access' ]
+    priv: [ 'page-all', 'user-shell-access' ]
 
 - name: Remove group
   pfsense_group:
