@@ -98,7 +98,7 @@ EXAMPLES = """
 from ansible.module_utils.pfsense.pfsense import PFSenseModule
 
 
-class pfSenseAuthserverLDAP(object):
+class PFSenseAuthserverLDAP(object):
 
     def __init__(self, module):
         self.module = module
@@ -191,18 +191,17 @@ def main():
             'attr_group': {'default': 'cn', 'type': 'str'},
             'attr_member': {'default': 'member', 'type': 'str'},
             'attr_groupobj': {'default': 'posixGroup', 'type': 'str'},
-            'attr_user': {'default': 'cn', 'type': 'str'},
         },
         supports_check_mode=True)
 
-    pfauthserverldap = pfSenseAuthserverLDAP(module)
+    pfauthserverldap = PFSenseAuthserverLDAP(module)
 
     authserver = dict()
     authserver['name'] = module.params['name']
     authserver['type'] = 'ldap'
     state = module.params['state']
     if state == 'absent':
-        pfauthserver.remove(authserver)
+        pfauthserverldap.remove(authserver)
     elif state == 'present':
         authserver['host'] = module.params['host']
         authserver['ldap_port'] = module.params['port']
