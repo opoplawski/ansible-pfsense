@@ -106,9 +106,12 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
 
     def parse_address(self, param):
         """ validate param address field and returns it as a dict """
-        match = re.match('([^:]+):?([^:]+)?', param)
+        match = re.match('^([^:]+)(?::?([^:-]+)-?([^:-]+)?)?$', param)
+        if match is None:
+            self.module.fail_json(msg='Cannot parse address %s' % (param))
         address = match.group(1)
-        port = match.group(2)
+        port_start = match.group(2)
+        port_end = match.group(3)
 
         ret = dict()
         # Check if the first character is "!"
@@ -122,7 +125,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         elif address == '(self)':
             ret['network'] = '(self)'
         elif address == 'NET':
-            ret['network'] = port
+            ret['network'] = port_start
+            # TODO: check if '-' is allowed into interfaces name
+            # TODO: check interface name validity
+            if port_end:
+                ret['network'] += '-' + port_end
             return ret
         # rule with interface name (LAN, WAN...)
         elif self.pfsense.is_interface_name(address):
@@ -132,10 +139,16 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             if not self.pfsense.is_ip_or_alias(address):
                 self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
             ret['address'] = address
-        if port is not None:
-            if not self.pfsense.is_port_or_alias(port):
-                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port))
-            ret['port'] = port
+
+        if port_start is not None:
+            if not self.pfsense.is_port_or_alias(port_start):
+                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port_start))
+            ret['port'] = port_start
+        if port_end is not None:
+            if not self.pfsense.is_port_or_alias(port_end):
+                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port_end))
+            ret['port'] += '-' + port_end
+
         return ret
 
     def parse_interface(self, interface):
