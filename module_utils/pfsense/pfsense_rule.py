@@ -194,7 +194,7 @@ class PFSenseRuleModule(object):
     def _get_expected_rule_position(self):
         """ get expected rule position in interface/floating """
         if self._before == 'bottom':
-            return self._get_interface_rule_count()
+            return self._get_interface_rule_count() - 1
         elif self._after == 'top':
             return 0
         elif self._after is not None:
