@@ -32,30 +32,6 @@ class TestPFSenseRuleModule(TestPFSenseModule):
 
     module = pfsense_rule
 
-    def setUp(self):
-        """ mocking up """
-        super(TestPFSenseRuleModule, self).setUp()
-
-        self.mock_parse = patch('xml.etree.ElementTree.parse')
-        self.parse = self.mock_parse.start()
-
-        self.mock_shutil_move = patch('shutil.move')
-        self.shutil_move = self.mock_shutil_move.start()
-
-        self.mock_phpshell = patch('ansible.module_utils.pfsense.pfsense.PFSenseModule.phpshell')
-        self.phpshell = self.mock_phpshell.start()
-        self.phpshell.return_value = (0, '', '')
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        """ mocking down """
-        super(TestPFSenseRuleModule, self).tearDown()
-
-        self.mock_parse.stop()
-        self.mock_shutil_move.stop()
-        self.mock_phpshell.stop()
-
     def load_fixtures(self, commands=None):
         """ loading data """
         config_file = 'pfsense_rule_config.xml'
