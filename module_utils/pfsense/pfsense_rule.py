@@ -12,7 +12,7 @@ RULES_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     action=dict(default='pass', required=False, choices=['pass', "block", 'reject']),
     state=dict(required=True, choices=['present', 'absent']),
-    disabled=dict(default=False, required=False,),
+    disabled=dict(default=False, required=False, type='bool'),
     interface=dict(required=True, type='str'),
     floating=dict(required=False, choices=["yes", "no"]),
     direction=dict(required=False, choices=["any", "in", "out"]),
@@ -317,6 +317,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             changed = True
         if self._remove_deleted_rule_param(rule_elt, 'protocol'):
             changed = True
+        if self._remove_deleted_rule_param(rule_elt, 'disabled'):
+            changed = True
 
         return changed
 
@@ -427,6 +429,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         rule['destination'] = self._parse_address(params['destination'])
         if params['log'] == 'yes':
             rule['log'] = ''
+        if params['disabled']:
+            rule['disabled'] = ''
         rule['statetype'] = params['statetype']
 
         return rule
