@@ -149,6 +149,12 @@ class TestPFSenseRuleModule(TestPFSenseModule):
             statetype = 'keep state'
         self.assert_xml_elt_equal(rule_elt, 'statetype', statetype)
 
+        # checking disabled option
+        if 'disabled' in rule and rule['disabled'] == 'yes':
+            self.assert_xml_elt_is_none_or_empty(rule_elt, 'disabled')
+        elif 'disabled' not in rule or rule['disabled'] == 'no':
+            self.assert_not_find_xml_elt(rule_elt, 'disabled')
+
     def check_rule_idx(self, rule, target_idx):
         """ test the xml position of rule """
         floating = 'floating' in rule and rule['floating'] == 'yes'

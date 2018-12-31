@@ -89,8 +89,9 @@ class TestPFSenseModule(ModuleTestCase):
         else:
             result = self.changed(changed)
 
-            #todo: discuss about this with Orion
-            #self.assertEqual(result['changed'], changed, result)
+        # TODO: set changed status even if there is a module failure
+        if not failed:
+            self.assertEqual(result['changed'], changed, result)
 
         if commands is not None:
             if sort:
