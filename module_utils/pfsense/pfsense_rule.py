@@ -196,7 +196,7 @@ class PFSenseRuleModule(object):
         elif self._after is not None:
             return self._get_rule_position(self._after) + 1
         elif self._before is not None:
-            return self._get_rule_position(self._before)
+            return self._get_rule_position(self._before) - 1
         else:
             self.module.fail_json(msg='Failed to add rule')
         return -1
