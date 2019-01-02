@@ -4,6 +4,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import pytest
+import sys
+
+if sys.version_info < (2, 7):
+    pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from xml.etree.ElementTree import fromstring, ElementTree
 from units.compat.mock import patch
@@ -66,7 +71,10 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         elif parts[0] == '(self)':
             res['network'] = '(self)'
         elif parts[0] == 'NET':
-            res['network'] = parts[1]
+            res['network'] = self.unalias_interface(parts[1])
+            return res
+        elif parts[0] == 'IP':
+            res['network'] = self.unalias_interface(parts[1]) + 'ip'
             return res
         elif parts[0] in ['lan', 'lan', 'vpn', 'vt1', 'lan_100']:
             res['network'] = self.unalias_interface(parts[0])

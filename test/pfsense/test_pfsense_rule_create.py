@@ -4,7 +4,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import unittest
+import pytest
+import sys
+
+if sys.version_info < (2, 7):
+    pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from units.modules.utils import set_module_args
 from .test_pfsense_rule import TestPFSenseRuleModule, args_from_var
@@ -111,7 +115,7 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
 
     def test_rule_create_state_keep(self):
         """ test creation of a new rule with explicit keep state """
-        rule = dict(name='one_rule', source='any', destination='any', interface='lan', statetype='keepstate')
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', statetype='keep state')
         self.do_rule_creation_test(rule)
 
     def test_rule_create_state_sloppy(self):
@@ -127,10 +131,9 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
 
     def test_rule_create_state_none(self):
         """ test creation of a new rule with no state """
-        rule = dict(name='one_rule', source='any', destination='any', interface='lan', statetype=None)
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', statetype='none')
         self.do_rule_creation_test(rule)
 
-    @unittest.expectedFailure
     def test_rule_create_state_invalid(self):
         """ test creation of a new rule with invalid state """
         rule = dict(name='one_rule', source='any', destination='any', interface='lan', statetype='acme state')
@@ -236,10 +239,19 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='one_rule', source='NET:lan', destination='any', interface='lan')
         self.do_rule_creation_test(rule)
 
-    @unittest.expectedFailure
     def test_rule_create_net_interface_invalid(self):
         """ test creation of a new rule with invalid interface """
         rule = dict(name='one_rule', source='NET:invalid_lan', destination='any', interface='lan')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_ip_interface(self):
+        """ test creation of a new rule with valid interface """
+        rule = dict(name='one_rule', source='IP:vt1', destination='any', interface='lan')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_ip_interface_invalid(self):
+        """ test creation of a new rule with invalid interface """
+        rule = dict(name='one_rule', source='IP:invalid_lan', destination='any', interface='lan')
         self.do_rule_creation_test(rule, failed=True)
 
     def test_rule_create_interface(self):
