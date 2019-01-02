@@ -4,14 +4,18 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import unittest
 from copy import copy
+import pytest
+import sys
+
+if sys.version_info < (2, 7):
+    pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from units.modules.utils import set_module_args
 from .test_pfsense_rule import TestPFSenseRuleModule, args_from_var
 
 
-class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
+class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
 
     def do_rule_update_test(self, rule, failed=False, **kwargs):
         """ test updating field of an host alias """
