@@ -38,6 +38,7 @@ options:
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
+    type: bool
     default: false
   interface:
     description: The interface for the rule
