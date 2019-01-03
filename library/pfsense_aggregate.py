@@ -29,8 +29,13 @@ options:
   aggregated_rules:
     description: Dict of rules to apply on the target
     required: False
-  purge:
-    description: delete all the rules or aliases that are not defined into aggregated_aliases or aggregated_rules
+  purge_aliases:
+    description: delete all the aliases that are not defined into aggregated_aliases
+    required: False
+    type: bool
+    default: False
+  purge_rules:
+    description: delete all the rules that are not defined into aggregated_rules
     required: False
     type: bool
     default: False
@@ -133,7 +138,7 @@ class PFSenseModuleAggregate(object):
             self.pfsense_rules.run(param)
 
         # delete every other rule if required
-        if self.module.params['purge']:
+        if self.module.params['purge_rules']:
             todel = []
             for rule_elt in self.pfsense_rules.rules:
                 if not self.want_rule(rule_elt, want):
@@ -151,7 +156,7 @@ class PFSenseModuleAggregate(object):
             self.pfsense_aliases.run(param)
 
         # delete every other alias if required
-        if self.module.params['purge']:
+        if self.module.params['purge_aliases']:
             todel = []
             for alias_elt in self.pfsense_aliases.aliases:
                 if not self.want_alias(alias_elt, want):
@@ -167,7 +172,7 @@ class PFSenseModuleAggregate(object):
         changed = self.pfsense_aliases.changed or self.pfsense_rules.changed
         if changed and not self.module.check_mode:
             self.pfsense.write_config(descr='aggregated change')
-            (rc, stdout, stderr) = self._update()
+            (_, stdout, stderr) = self._update()
 
         results = {}
         results['aggregated_aliases'] = {}
@@ -181,7 +186,8 @@ def main():
     argument_spec = dict(
         aggregated_aliases=dict(type='list', elements='dict', options=ALIASES_ARGUMENT_SPEC, required_if=ALIASES_REQUIRED_IF),
         aggregated_rules=dict(type='list', elements='dict', options=RULES_ARGUMENT_SPEC, required_if=RULES_REQUIRED_IF),
-        purge=dict(default=False, type='bool')
+        purge_aliases=dict(default=False, type='bool'),
+        purge_rules=dict(default=False, type='bool'),
     )
 
     required_one_of = [['aggregated_aliases', 'aggregated_rules']]
