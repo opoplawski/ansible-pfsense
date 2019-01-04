@@ -76,6 +76,10 @@ options:
     description: State type
     default: keep state
     choices: ["keep state", "sloppy state", "synproxy state", "none"]
+  queue:
+    description: QOS default queue
+  ackqueue:
+    description: QOS acknowledge queue
 """
 
 EXAMPLES = """

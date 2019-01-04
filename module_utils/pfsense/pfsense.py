@@ -22,6 +22,7 @@ class PFSenseModule(object):
         self.root = self.tree.getroot()
         self.aliases = self.get_element('aliases')
         self.interfaces = self.get_element('interfaces')
+        self.shapers = self.get_element('shaper')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -221,6 +222,37 @@ class PFSenseModule(object):
         except ValueError:
             pass
         return False
+
+    def find_queue(self, name, interface=None, enabled=False):
+        """ return QOS queue if found """
+
+        # iterate each interface
+        for shaper_elt in self.shapers:
+            if interface is not None:
+                interface_elt = shaper_elt.find('interface')
+                if interface_elt is None or interface_elt.text != interface:
+                    continue
+
+            if enabled:
+                enabled_elt = shaper_elt.find('enabled')
+                if enabled_elt is None or enabled_elt.text != 'on':
+                    continue
+
+            # iterate each queue
+            for queue in shaper_elt.findall('queue'):
+                name_elt = queue.find('name')
+                if name_elt is None or name_elt.text != name:
+                    continue
+
+                if enabled:
+                    enabled_elt = queue.find('enabled')
+                    if enabled_elt is None or enabled_elt.text != 'on':
+                        continue
+
+                # found it
+                return queue
+
+        return None
 
     @staticmethod
     def uniqid(prefix=''):

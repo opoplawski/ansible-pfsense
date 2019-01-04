@@ -24,7 +24,9 @@ RULES_ARGUMENT_SPEC = dict(
     log=dict(required=False, choices=["no", "yes"]),
     after=dict(required=False, type='str'),
     before=dict(required=False, type='str'),
-    statetype=dict(required=False, default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none'])
+    statetype=dict(required=False, default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none']),
+    queue=dict(required=False, type='str'),
+    ackqueue=dict(required=False, type='str'),
 )
 
 RULES_REQUIRED_IF = [["floating", "yes", ["direction"]]]
@@ -305,6 +307,20 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             res.append(self._parse_interface(interface))
         return ','.join(res)
 
+    def _check_queues(self, params):
+        if params['ackqueue'] is not None and params['queue'] is None:
+            self.module.fail_json(msg='A default queue must be selected when an acknowledge queue is also selected')
+
+        if params['ackqueue'] is not None and params['ackqueue'] == params['queue']:
+            self.module.fail_json(msg='Acknowledge queue and defalt queue cannot be the same')
+
+        # as in pfSense 2.4, the GUI accepts any queue defined on any interface without checking, we do the same
+        if params['ackqueue'] is not None and self.pfsense.find_queue(params['ackqueue'], enabled=True) is None:
+            self.module.fail_json(msg='Failed to find enabled ackqueue=%s' % params['ackqueue'])
+
+        if params['queue'] is not None and self.pfsense.find_queue(params['queue'], enabled=True) is None:
+            self.module.fail_json(msg='Failed to find enabled queue=%s' % params['queue'])
+
     def _remove_deleted_rule_param(self, rule_elt, param):
         """ Remove from rule a deleted rule param """
         changed = False
@@ -327,6 +343,10 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         if self._remove_deleted_rule_param(rule_elt, 'protocol'):
             changed = True
         if self._remove_deleted_rule_param(rule_elt, 'disabled'):
+            changed = True
+        if self._remove_deleted_rule_param(rule_elt, 'defaultqueue'):
+            changed = True
+        if self._remove_deleted_rule_param(rule_elt, 'ackqueue'):
             changed = True
 
         return changed
@@ -444,6 +464,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             rule['disabled'] = ''
         rule['statetype'] = params['statetype']
 
+        self._check_queues(params)
+        if params['queue'] is not None:
+            rule['defaultqueue'] = params['queue']
+        if params['ackqueue'] is not None:
+            rule['ackqueue'] = params['ackqueue']
         return rule
 
     def commit_changes(self):

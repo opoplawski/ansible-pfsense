@@ -203,3 +203,23 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         self.check_rule_idx(rule, 2)
         self.check_separator_idx(rule['interface'], 'test_sep1', 0)
         self.check_separator_idx(rule['interface'], 'test_sep2', 3)
+
+    def test_rule_update_queue_set(self):
+        """ test updating queue of a rule """
+        rule = dict(name='test_rule', source='any', destination='any', interface='wan', queue='one_queue', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_queue_set_ack(self):
+        """ test updating queue and ackqueue of a rule """
+        rule = dict(name='test_rule', source='any', destination='any', interface='wan', queue='one_queue', ackqueue='another_queue', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_queue_unset_ack(self):
+        """ test updating queue of a rule """
+        rule = dict(name='test_lan_100_3', source='any', destination='any', interface='lan_100', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_queue_unset(self):
+        """ test updating queue and ackqueue of a rule """
+        rule = dict(name='test_lan_100_2', source='any', destination='any', interface='lan_100', queue='one_queue', protocol='tcp')
+        self.do_rule_update_test(rule)

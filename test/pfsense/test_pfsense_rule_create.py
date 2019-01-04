@@ -345,3 +345,33 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         self.check_rule_idx(rule, 3)
         self.check_separator_idx(rule['interface'], 'test_sep1', 0)
         self.check_separator_idx(rule['interface'], 'test_sep2', 4)
+
+    def test_rule_create_queue(self):
+        """ test creation of a new rule with default queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', queue='one_queue')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_queue_ack(self):
+        """ test creation of a new rule with default queue and ack queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', queue='one_queue', ackqueue='another_queue')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_queue_ack_without_default(self):
+        """ test creation of a new rule with ack queue and without default queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', ackqueue='another_queue')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_queue_same(self):
+        """ test creation of a new rule with same default queue and ack queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', queue='one_queue', ackqueue='one_queue')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_queue_invalid(self):
+        """ test creation of a new rule with invalid default queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', queue='acme_queue')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_queue_invalid_ack(self):
+        """ test creation of a new rule with default queue and invalid ack queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', queue='one_queue', ackqueue='acme_queue')
+        self.do_rule_creation_test(rule, failed=True)

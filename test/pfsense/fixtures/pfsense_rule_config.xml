@@ -343,6 +343,57 @@
 				<time>1545574416</time>
 			</updated>
 			<protocol>tcp</protocol>
+			<descr>test_lan_100_2</descr>
+			<created>
+				<username></username>
+				<time>1545574416</time>
+			</created>
+			<destination>
+				<any></any>
+			</destination>
+			<statetype>keep state</statetype>
+			<source>
+				<any></any>
+			</source>
+			<tracker>1545574416</tracker>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<type>pass</type>
+			<id></id>
+			<defaultqueue>one_queue</defaultqueue>
+			<ackqueue>another_queue</ackqueue>
+		</rule>
+		<rule>
+			<updated>
+				<username></username>
+				<time>1545574416</time>
+			</updated>
+			<protocol>tcp</protocol>
+			<descr>test_lan_100_3</descr>
+			<created>
+				<username></username>
+				<time>1545574416</time>
+			</created>
+			<destination>
+				<any></any>
+			</destination>
+			<statetype>keep state</statetype>
+			<source>
+				<any></any>
+			</source>
+			<tracker>1545574416</tracker>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<type>pass</type>
+			<id></id>
+			<defaultqueue>one_queue</defaultqueue>
+		</rule>
+		<rule>
+			<updated>
+				<username></username>
+				<time>1545574416</time>
+			</updated>
+			<protocol>tcp</protocol>
 			<descr>test_rule_3</descr>
 			<created>
 				<username></username>
@@ -1494,7 +1545,34 @@
 							</created>
 			</rule>
 		</filter>
-	<shaper></shaper>
+	<shaper>
+		<queue>
+						<interface>opt2</interface>
+						<name>opt2</name>
+						<scheduler>CBQ</scheduler>
+						<bandwidth>100</bandwidth>
+						<bandwidthtype>Mb</bandwidthtype>
+						<queue>
+										<interface>opt2</interface>
+										<qlimit>10000</qlimit>
+										<priority>0</priority>
+										<name>one_queue</name>
+										<bandwidth>50</bandwidth>
+										<bandwidthtype>Mb</bandwidthtype>
+										<enabled>on</enabled>
+						</queue>
+						<queue>
+										<interface>opt2</interface>
+										<qlimit>1000</qlimit>
+										<priority>1</priority>
+										<name>another_queue</name>
+										<bandwidth>50</bandwidth>
+										<bandwidthtype>Mb</bandwidthtype>
+										<enabled>on</enabled>
+						</queue>
+						<enabled>on</enabled>
+		</queue>
+	</shaper>
 	<ipsec></ipsec>
 	<aliases>
 		<alias>
