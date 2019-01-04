@@ -374,7 +374,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
     def add(self, rule, after=None, before=None):
         """ add or update rule """
         self._set_internals(rule, after, before)
-        rule_elt, i = self._find_rule_by_descr(self._descr)
+        rule_elt, _ = self._find_rule_by_descr(self._descr)
         changed = False
         timestamp = '%d' % int(time.time())
         if rule_elt is None:
@@ -413,7 +413,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
     def remove(self, rule):
         """ delete rule """
         self._set_internals(rule)
-        rule_elt, i = self._find_rule_by_descr(self._descr)
+        rule_elt, _ = self._find_rule_by_descr(self._descr)
         if rule_elt is not None:
             self.diff['before'] = self.rule_element_to_dict(rule_elt)
             self._adjust_separators(self._get_rule_position(), add=False)
@@ -452,7 +452,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         stderr = ''
         if self.changed and not self.module.check_mode:
             self.pfsense.write_config(descr=self.change_descr)
-            (rc, stdout, stderr) = self._update()
+            (_, stdout, stderr) = self._update()
 
         self.module.exit_json(stdout=stdout, stderr=stderr, changed=self.changed, diff=self.diff)
 

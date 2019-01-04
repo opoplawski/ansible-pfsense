@@ -55,7 +55,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         stderr = ''
         if self.changed and not self.module.check_mode:
             self.pfsense.write_config(descr=self.change_descr)
-            (rc, stdout, stderr) = self._update()
+            (_, stdout, stderr) = self._update()
 
         self.module.exit_json(stdout=stdout, stderr=stderr, changed=self.changed, diff=self.diff, result=self.results)
 

@@ -24,7 +24,8 @@ class PFSenseModule(object):
         self.interfaces = self.get_element('interfaces')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
-    def addr_normalize(self, addr):
+    @staticmethod
+    def addr_normalize(addr):
         """ return address element formatted like module argument """
         address = ''
         if 'address' in addr:
