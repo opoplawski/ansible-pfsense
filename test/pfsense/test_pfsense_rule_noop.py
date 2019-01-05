@@ -157,3 +157,14 @@ class TestPFSenseRuleNoopModule(TestPFSenseRuleModule):
         """ test updating queue and ackqueue of a rule """
         rule = dict(name='test_lan_100_3', source='any', destination='any', interface='lan_100', queue='one_queue', protocol='tcp')
         self.do_rule_noop_test(rule)
+
+    def test_rule_noop_limiter_out(self):
+        """ test updating queue of a rule """
+        rule = dict(
+            name='test_lan_100_4', source='any', destination='any', interface='lan_100', in_queue='one_limiter', out_queue='another_limiter', protocol='tcp')
+        self.do_rule_noop_test(rule)
+
+    def test_rule_noop_limiter_in(self):
+        """ test updating queue and ackqueue of a rule """
+        rule = dict(name='test_lan_100_5', source='any', destination='any', interface='lan_100', in_queue='one_limiter', protocol='tcp')
+        self.do_rule_noop_test(rule)

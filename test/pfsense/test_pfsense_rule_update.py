@@ -215,11 +215,31 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         self.do_rule_update_test(rule)
 
     def test_rule_update_queue_unset_ack(self):
+        """ test updating ackqueue of a rule """
+        rule = dict(name='test_lan_100_2', source='any', destination='any', interface='lan_100', queue='one_queue', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_queue_unset(self):
         """ test updating queue of a rule """
         rule = dict(name='test_lan_100_3', source='any', destination='any', interface='lan_100', protocol='tcp')
         self.do_rule_update_test(rule)
 
-    def test_rule_update_queue_unset(self):
-        """ test updating queue and ackqueue of a rule """
-        rule = dict(name='test_lan_100_2', source='any', destination='any', interface='lan_100', queue='one_queue', protocol='tcp')
+    def test_rule_update_limiter_set(self):
+        """ test updating limiter of a rule """
+        rule = dict(name='test_rule', source='any', destination='any', interface='wan', in_queue='one_limiter', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_limiter_set_out(self):
+        """ test updating limiter in and out of a rule """
+        rule = dict(name='test_rule', source='any', destination='any', interface='wan', in_queue='one_limiter', out_queue='another_limiter', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_limiter_unset_out(self):
+        """ test updating limiter out of a rule """
+        rule = dict(name='test_lan_100_4', source='any', destination='any', interface='lan_100', in_queue='one_limiter', protocol='tcp')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_limiter_unset(self):
+        """ test updating limiter of a rule """
+        rule = dict(name='test_lan_100_5', source='any', destination='any', interface='lan_100', protocol='tcp')
         self.do_rule_update_test(rule)

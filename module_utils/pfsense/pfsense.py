@@ -23,6 +23,7 @@ class PFSenseModule(object):
         self.aliases = self.get_element('aliases')
         self.interfaces = self.get_element('interfaces')
         self.shapers = self.get_element('shaper')
+        self.dnshapers = self.get_element('dnshaper')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -239,18 +240,36 @@ class PFSenseModule(object):
                     continue
 
             # iterate each queue
-            for queue in shaper_elt.findall('queue'):
-                name_elt = queue.find('name')
+            for queue_elt in shaper_elt.findall('queue'):
+                name_elt = queue_elt.find('name')
                 if name_elt is None or name_elt.text != name:
                     continue
 
                 if enabled:
-                    enabled_elt = queue.find('enabled')
+                    enabled_elt = queue_elt.find('enabled')
                     if enabled_elt is None or enabled_elt.text != 'on':
                         continue
 
                 # found it
-                return queue
+                return queue_elt
+
+        return None
+
+    def find_limiter(self, name, enabled=False):
+        """ return QOS limiter if found """
+
+        # iterate each queue
+        for queue_elt in self.dnshapers:
+            if enabled:
+                enabled_elt = queue_elt.find('enabled')
+                if enabled_elt is None or enabled_elt.text != 'on':
+                    continue
+
+            name_elt = queue_elt.find('name')
+            if name_elt is None or name_elt.text != name:
+                continue
+
+            return queue_elt
 
         return None
 

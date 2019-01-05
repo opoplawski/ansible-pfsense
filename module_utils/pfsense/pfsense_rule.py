@@ -27,6 +27,8 @@ RULES_ARGUMENT_SPEC = dict(
     statetype=dict(required=False, default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none']),
     queue=dict(required=False, type='str'),
     ackqueue=dict(required=False, type='str'),
+    in_queue=dict(required=False, type='str'),
+    out_queue=dict(required=False, type='str'),
 )
 
 RULES_REQUIRED_IF = [["floating", "yes", ["direction"]]]
@@ -307,7 +309,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             res.append(self._parse_interface(interface))
         return ','.join(res)
 
-    def _check_queues(self, params):
+    def _validate_params(self, params):
+        """ do some extra checks on input parameters """
         if params['ackqueue'] is not None and params['queue'] is None:
             self.module.fail_json(msg='A default queue must be selected when an acknowledge queue is also selected')
 
@@ -320,6 +323,21 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
 
         if params['queue'] is not None and self.pfsense.find_queue(params['queue'], enabled=True) is None:
             self.module.fail_json(msg='Failed to find enabled queue=%s' % params['queue'])
+
+        if params['out_queue'] is not None and params['in_queue'] is None:
+            self.module.fail_json(msg='A queue must be selected for the In direction before selecting one for Out too')
+
+        if params['out_queue'] is not None and params['out_queue'] == params['in_queue']:
+            self.module.fail_json(msg='In and Out Queue cannot be the same')
+
+        if params['out_queue'] is not None and self.pfsense.find_limiter(params['out_queue'], enabled=True) is None:
+            self.module.fail_json(msg='Failed to find enabled out_queue=%s' % params['out_queue'])
+
+        if params['in_queue'] is not None and self.pfsense.find_limiter(params['in_queue'], enabled=True) is None:
+            self.module.fail_json(msg='Failed to find enabled in_queue=%s' % params['in_queue'])
+
+        if params['floating'] == 'yes' and params['direction'] == 'any' and (params['in_queue'] is not None or params['out_queue'] is not None):
+            self.module.fail_json(msg='Limiters can not be used in Floating rules without choosing a direction')
 
     def _remove_deleted_rule_param(self, rule_elt, param):
         """ Remove from rule a deleted rule param """
@@ -334,20 +352,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
     def _remove_deleted_rule_params(self, rule_elt):
         """ Remove from rule a few deleted rule params """
         changed = False
-        if self._remove_deleted_rule_param(rule_elt, 'log'):
-            changed = True
-        if self._remove_deleted_rule_param(rule_elt, 'floating'):
-            changed = True
-        if self._remove_deleted_rule_param(rule_elt, 'direction'):
-            changed = True
-        if self._remove_deleted_rule_param(rule_elt, 'protocol'):
-            changed = True
-        if self._remove_deleted_rule_param(rule_elt, 'disabled'):
-            changed = True
-        if self._remove_deleted_rule_param(rule_elt, 'defaultqueue'):
-            changed = True
-        if self._remove_deleted_rule_param(rule_elt, 'ackqueue'):
-            changed = True
+        for param in ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe']:
+            if self._remove_deleted_rule_param(rule_elt, param):
+                changed = True
 
         return changed
 
@@ -442,33 +449,48 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
 
     def params_to_rule(self, params):
         """ return a rule dict from module params """
+        self._validate_params(params)
+
         rule = dict()
+
+        def param_to_rule(param_field, rule_field):
+            """ set rule_field if param_field is defined """
+            if params[param_field] is not None:
+                rule[rule_field] = params[param_field]
+
+        def bool_to_rule(param_field, rule_field):
+            """ set rule_field if param_field is True """
+            if params[param_field]:
+                rule[rule_field] = ''
+
         rule['descr'] = params['name']
         rule['type'] = params['action']
+        rule['ipprotocol'] = params['ipprotocol']
+        rule['statetype'] = params['statetype']
+
+        rule['source'] = self._parse_address(params['source'])
+        rule['destination'] = self._parse_address(params['destination'])
+
         if params['floating'] == 'yes':
             rule['floating'] = params['floating']
             rule['interface'] = self._parse_floating_interfaces(params['interface'])
         else:
             rule['interface'] = self._parse_interface(params['interface'])
-        if params['direction'] is not None:
-            rule['direction'] = params['direction']
-        rule['ipprotocol'] = params['ipprotocol']
+
         if params['protocol'] != 'any':
             rule['protocol'] = params['protocol']
-        rule['source'] = dict()
-        rule['source'] = self._parse_address(params['source'])
-        rule['destination'] = self._parse_address(params['destination'])
+
         if params['log'] == 'yes':
             rule['log'] = ''
-        if params['disabled']:
-            rule['disabled'] = ''
-        rule['statetype'] = params['statetype']
 
-        self._check_queues(params)
-        if params['queue'] is not None:
-            rule['defaultqueue'] = params['queue']
-        if params['ackqueue'] is not None:
-            rule['ackqueue'] = params['ackqueue']
+        bool_to_rule('disabled', 'disabled')
+
+        param_to_rule('direction', 'direction')
+        param_to_rule('queue', 'defaultqueue')
+        param_to_rule('ackqueue', 'ackqueue')
+        param_to_rule('in_queue', 'dnpipe')
+        param_to_rule('out_queue', 'pdnpipe')
+
         return rule
 
     def commit_changes(self):

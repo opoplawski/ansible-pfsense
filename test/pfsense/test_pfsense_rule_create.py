@@ -375,3 +375,43 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         """ test creation of a new rule with default queue and invalid ack queue """
         rule = dict(name='one_rule', source='any', destination='any', interface='lan', queue='one_queue', ackqueue='acme_queue')
         self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_limiter(self):
+        """ test creation of a new rule with in_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='one_limiter')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_limiter_out(self):
+        """ test creation of a new rule with in_queue and out_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='one_limiter', out_queue='another_limiter')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_limiter_disabled(self):
+        """ test creation of a new rule with disabled in_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='disabled_limiter')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_limiter_out_without_in(self):
+        """ test creation of a new rule with out_queue and without in_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', out_queue='another_limiter')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_limiter_same(self):
+        """ test creation of a new rule with same in_queue and out_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='one_limiter', out_queue='one_limiter')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_limiter_invalid(self):
+        """ test creation of a new rule with invalid in_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='acme_queue')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_limiter_invalid_out(self):
+        """ test creation of a new rule with in_queue and invalid out_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='one_limiter', out_queue='acme_queue')
+        self.do_rule_creation_test(rule, failed=True)
+
+    def test_rule_create_limiter_floating_any(self):
+        """ test creation of a new rule with in_queue and invalid out_queue """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='one_limiter', floating='yes', direction='any')
+        self.do_rule_creation_test(rule, failed=True)

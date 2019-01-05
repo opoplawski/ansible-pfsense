@@ -80,6 +80,10 @@ options:
     description: QOS default queue
   ackqueue:
     description: QOS acknowledge queue
+  in_queue:
+    description: Limiter queue for traffic coming into the chosen interface
+  out_queue:
+    description: Limiter queue for traffic leaving the chosen interface
 """
 
 EXAMPLES = """

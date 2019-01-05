@@ -21,7 +21,7 @@ def args_from_var(var, state='present', **kwargs):
     args = {}
     fields = ['name', 'source', 'destination', 'descr', 'interface', 'action']
     fields.extend(['log', 'disabled', 'floating', 'direction', 'ipprotocol'])
-    fields.extend(['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue'])
+    fields.extend(['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue'])
     for field in fields:
         if field in var:
             args[field] = var[field]
@@ -155,6 +155,10 @@ class TestPFSenseRuleModule(TestPFSenseModule):
 
         # checking acknowledge queue option
         self.check_rule_option_equal_or_not_find(rule, rule_elt, 'ackqueue')
+
+        # limiters
+        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'in_queue', 'dnpipe')
+        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'out_queue', 'pdnpipe')
 
         # checking ipprotocol option
         if 'ipprotocol' in rule:
