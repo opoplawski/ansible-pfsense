@@ -45,7 +45,7 @@ options:
     required: true
   floating:
     description: Is the rule floating
-    choices: [ "yes", "no" ]
+    type: bool
   direction:
     description: Direction floating rule applies to
     choices: [ "any", "in", "out" ]
@@ -67,7 +67,7 @@ options:
     default: null
   log:
     description: Log packets matched by rule
-    choices: [ "no", "yes" ]
+    type: bool
   after:
     description: Rule to go after, or "top"
   before:

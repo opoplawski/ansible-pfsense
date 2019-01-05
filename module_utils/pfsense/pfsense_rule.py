@@ -15,13 +15,13 @@ RULES_ARGUMENT_SPEC = dict(
     state=dict(required=True, choices=['present', 'absent']),
     disabled=dict(default=False, required=False, type='bool'),
     interface=dict(required=True, type='str'),
-    floating=dict(required=False, choices=["yes", "no"]),
+    floating=dict(required=False, type='bool'),
     direction=dict(required=False, choices=["any", "in", "out"]),
     ipprotocol=dict(required=False, default='inet', choices=['inet', 'inet46', 'inet6']),
     protocol=dict(default='any', required=False, choices=["any", "tcp", "udp", "tcp/udp", "icmp"]),
     source=dict(required=True, type='str'),
     destination=dict(required=True, type='str'),
-    log=dict(required=False, choices=["no", "yes"]),
+    log=dict(required=False, type='bool'),
     after=dict(required=False, type='str'),
     before=dict(required=False, type='str'),
     statetype=dict(required=False, default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none']),
@@ -31,7 +31,7 @@ RULES_ARGUMENT_SPEC = dict(
     out_queue=dict(required=False, type='str'),
 )
 
-RULES_REQUIRED_IF = [["floating", "yes", ["direction"]]]
+RULES_REQUIRED_IF = [["floating", True, ["direction"]]]
 
 
 class PFSenseRuleModule(object):
@@ -336,7 +336,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         if params['in_queue'] is not None and self.pfsense.find_limiter(params['in_queue'], enabled=True) is None:
             self.module.fail_json(msg='Failed to find enabled in_queue=%s' % params['in_queue'])
 
-        if params['floating'] == 'yes' and params['direction'] == 'any' and (params['in_queue'] is not None or params['out_queue'] is not None):
+        if params['floating'] and params['direction'] == 'any' and (params['in_queue'] is not None or params['out_queue'] is not None):
             self.module.fail_json(msg='Limiters can not be used in Floating rules without choosing a direction')
 
     def _remove_deleted_rule_param(self, rule_elt, param):
@@ -471,8 +471,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         rule['source'] = self._parse_address(params['source'])
         rule['destination'] = self._parse_address(params['destination'])
 
-        if params['floating'] == 'yes':
-            rule['floating'] = params['floating']
+        if params['floating']:
+            rule['floating'] = 'yes'
             rule['interface'] = self._parse_floating_interfaces(params['interface'])
         else:
             rule['interface'] = self._parse_interface(params['interface'])
@@ -480,10 +480,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         if params['protocol'] != 'any':
             rule['protocol'] = params['protocol']
 
-        if params['log'] == 'yes':
-            rule['log'] = ''
-
         bool_to_rule('disabled', 'disabled')
+        bool_to_rule('log', 'log')
 
         param_to_rule('direction', 'direction')
         param_to_rule('queue', 'defaultqueue')
