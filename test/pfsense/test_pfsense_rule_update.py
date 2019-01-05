@@ -17,12 +17,12 @@ from .test_pfsense_rule import TestPFSenseRuleModule, args_from_var
 
 class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
 
-    def do_rule_update_test(self, rule, failed=False, **kwargs):
+    def do_rule_update_test(self, rule, failed=False, msg='', **kwargs):
         """ test updating field of an host alias """
         target = copy(rule)
         target.update(kwargs)
         set_module_args(args_from_var(target))
-        self.execute_module(changed=True, failed=failed)
+        self.execute_module(changed=True, failed=failed, msg=msg)
         if failed:
             self.assertFalse(self.load_xml_result())
         else:
@@ -159,12 +159,12 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
     def test_rule_update_after_self(self):
         """ test updating position of a rule to after same rule """
         rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', after='test_rule_3')
-        self.do_rule_update_test(rule, failed=True)
+        self.do_rule_update_test(rule, failed=True, msg='Cannot specify the current rule in after')
 
     def test_rule_update_before_self(self):
         """ test updating position of a rule to before same rule """
         rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp', before='test_rule_3')
-        self.do_rule_update_test(rule, failed=True)
+        self.do_rule_update_test(rule, failed=True, msg='Cannot specify the current rule in before')
 
     def test_rule_update_after_top(self):
         """ test updating position of a rule to top """

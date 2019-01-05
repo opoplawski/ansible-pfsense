@@ -48,10 +48,10 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     # First we run the module
     # Then, we check return values
     # Finally, we check the xml
-    def do_alias_creation_test(self, alias, failed=False):
+    def do_alias_creation_test(self, alias, failed=False, msg=''):
         """ test creation of a new alias """
         set_module_args(args_from_var(alias))
-        result = self.execute_module(changed=True, failed=failed)
+        result = self.execute_module(changed=True, failed=failed, msg=msg)
 
         if not failed:
             diff = dict(before='', after=alias)
@@ -220,37 +220,37 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def test_create_alias_duplicate(self):
         """ test creation of a duplicate alias """
         alias = dict(name='port_ssh', address='10.0.0.1 10.0.0.2', type='host')
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='An alias with this name and a different type already exists')
 
     def test_create_alias_invalid_name(self):
         """ test creation of a new alias with invalid name """
         alias = dict(name='ads-ervers', address='10.0.0.1 10.0.0.2', type='host')
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='The name of the alias may only consist of the characters "a-z, A-Z, 0-9 and _"')
 
     def test_create_alias_invalid_updatefreq(self):
         """ test creation of a new host alias with incoherent params """
         alias = dict(name='adservers', address='10.0.0.1 10.0.0.2', type='host', updatefreq=10)
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='updatefreq is only valid with type urltable')
 
     def test_create_alias_without_type(self):
         """ test creation of a new host alias without type """
         alias = dict(name='adservers', address='10.0.0.1 10.0.0.2')
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='state is present but all of the following are missing: type')
 
     def test_create_alias_without_address(self):
         """ test creation of a new host alias without address """
         alias = dict(name='adservers', type='host')
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='state is present but all of the following are missing: address')
 
     def test_create_alias_invalid_details(self):
         """ test creation of a new host alias with invalid details """
         alias = dict(name='adservers', address='10.0.0.1 10.0.0.2', type='host', detail='ad1||ad2||ad3')
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='Too many details in relation to addresses')
 
     def test_create_alias_invalid_details2(self):
         """ test creation of a new host alias with invalid details """
         alias = dict(name='adservers', address='10.0.0.1 10.0.0.2', type='host', detail='|ad1||ad2')
-        self.do_alias_creation_test(alias, failed=True)
+        self.do_alias_creation_test(alias, failed=True, msg='Vertical bars (|) at start or end of descriptions not allowed')
 
     def test_delete_inexistent_alias(self):
         """ test deletion of an inexistent alias """
@@ -267,7 +267,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
         args = args_from_var(alias)
         args['state'] = 'absent'
         set_module_args(args)
-        self.execute_module(failed=True)
+        self.execute_module(failed=True, msg="descr is invalid with state='absent'")
 
     def test_check_mode(self):
         """ test updating an host alias without generating result """
@@ -284,4 +284,4 @@ class TestPFSenseAliasModule(TestPFSenseModule):
         """ test creation of a new urltable alias without giving updatefreq (should fail) """
         alias = dict(name='acme', address='http://www.acme.com', descr='', type='urltable', detail='')
         set_module_args(args_from_var(alias))
-        self.execute_module(failed=True)
+        self.execute_module(failed=True, msg='type is urltable but all of the following are missing: updatefreq')

@@ -315,7 +315,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
             self.module.fail_json(msg='A default queue must be selected when an acknowledge queue is also selected')
 
         if params['ackqueue'] is not None and params['ackqueue'] == params['queue']:
-            self.module.fail_json(msg='Acknowledge queue and defalt queue cannot be the same')
+            self.module.fail_json(msg='Acknowledge queue and default queue cannot be the same')
 
         # as in pfSense 2.4, the GUI accepts any queue defined on any interface without checking, we do the same
         if params['ackqueue'] is not None and self.pfsense.find_queue(params['ackqueue'], enabled=True) is None:
