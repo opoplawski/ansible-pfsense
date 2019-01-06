@@ -193,7 +193,10 @@ class PFSenseModule(object):
     def is_ip_or_alias(self, address):
         """ return True if address is an ip or an alias """
         # Is it an alias?
-        if self.find_alias(address, 'host') is not None or self.find_alias(address, 'network') is not None or self.find_alias(address, 'urltable') is not None:
+        if (self.find_alias(address, 'host') is not None
+                or self.find_alias(address, 'network') is not None
+                or self.find_alias(address, 'urltable') is not None
+                or self.find_alias(address, 'urltable_ports') is not None):
             return True
 
         # Is it an IP address?
