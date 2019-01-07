@@ -28,36 +28,36 @@ There are currently the following modules:
 
 OPTIONS (= is mandatory):
 
-= address
-        The address of the alias
+- address
+        The address of the alias. Use a space separator for multiple values
         [Default: None]
 
 - descr
-        Description
+        The description of the alias
         [Default: None]
 
 - detail
-        Details for items
+        The descriptions of the items. Use || separator between items
         [Default: None]
 
 = name
-        The name the alias
-        [Default: None]
+        The name of the alias
 
-- state
+
+= state
         State in which to leave the alias
         (Choices: present, absent)[Default: present]
 
-= type
+- type
         The type of the alias
-        (Choices: host, port, urltable)[Default: hostrue]
+        (Choices: host, network, port, urltable, urltable_ports)[Default: None]
 
 - updatefreq
         Update frequency in days for urltable
-        [Default: (null)]
+        [Default: None]
 
 
-AUTHOR: Orion Poplawski (@opoplawski)
+AUTHOR: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
         METADATA:
           status:
           - preview
@@ -72,9 +72,23 @@ EXAMPLES:
     state: present
 
 - name: Remove adservers alias
-  pfsense_rule:
+  pfsense_alias:
     name: adservers
     state: absent
+
+RETURN VALUES:
+
+
+commands:
+    description: the set of commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: always
+    type: list
+    sample: ["create alias 'adservers', type='host', address='10.0.0.1 10.0.0.2'", "update alias 'one_host' set address='10.9.8.7'", "delete alias 'one_alias'"]
+diff:
+    description: a pair of dicts, before and after, with alias settings before and after task run
+    returned: always
+    type: dict
+    sample: {}
 ```
 # pfsense_authserver_ldap
 ```
@@ -185,13 +199,17 @@ EXAMPLES:
 ```
 > PFSENSE_CA    (/export/home/orion/src/ansible-pfsense/library/pfsense_ca.py)
 
-        Manage pfSense LDAP Certificate Authorities
+        Manage pfSense Certificate Authorities
 
 OPTIONS (= is mandatory):
 
 = certificate
         The certificate for the Certificate Authority
 
+
+- crl
+        The Certificate Revocation List for the Certificate Authority
+        [Default: (null)]
 
 = name
         The name of the Certificate Authority
@@ -213,15 +231,7 @@ EXAMPLES:
 - name: Add AD Certificate Authority
   pfsense_ca:
     name: AD CA
-    certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dBd0lCQWdJUVBreXdY
-dWRkZnFOR2h2aWExVDVYZ3pBTkJna3Foa2lHOXcwQkFRMEZBREJjDQpNUk13RVFZS0NaSW1pWlB5TEdRQkdSWURZMjl0T
-VJRd0VnWUtDWkltaVpQeUxHUUJHUllFYm5keVlURVNNQkFHDQpDZ21TSm9tVDhpeGtBUmtXQW1Ga01Sc3dHUVlEVlFRRE
-V4SmhaQzFCUkMxVFJVRlVWRXhGTURFdFEwRXdIaGNODQpNVFl3TkRBM01UWTBOVEE0V2hjTk1qWXdOREEzTVRZMU5UQTN
-XakJjTVJNd0VRWUtDWkltaVpQeUxHUUJHUllEDQpZMjl0TVJRd0VnWUtDWkltaVpQeUxHUUJHUllFYm5keVlURVNNQkFH
-Q2dtU0pvbVQ4aXhrQVJrV0FtRmtNUnN3DQpHUVlEVlFRREV4SmhaQzFCUkMxVFJVRlVWRXhGTURFdFEwRXdnZ0lpTUEwR
-0NTcUdTSWIzRFFFQkFRVUFBNElDDQpEd0F3Z2dJS0FvSUNBUUNWdGM0dzBnY0h5aFkzRkVpUENVMmZLYXAyWnFHb0ROL1
-VuRkVRRVBqZ1R4NmE4UEF5DQpqWjRMS2o2N1AybkRLTFA0ZVFQSFFzQmRkTVNneVl1RzdCQTlycmNCaFIzY0VlZ1RmNm9
-CSjdKUG1zZTJTS3dtDQp6QnhT....
+    certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dB...
     state: present
 
 - name: Remove AD Certificate Authority
@@ -242,16 +252,19 @@ OPTIONS (= is mandatory):
         [Default: (null)]
 
 - gid
-        GID of the group
-        [Default: next available GID]
+        GID of the group.
+        Will use next available GID if not specified.
+        [Default: (null)]
 
 = name
         The name of the group
 
 
 - priv
-        Priveleges to assign
-        (Choices: page-all, user-shell-access)[Default: (null)]
+        A list of priveleges to assign.
+        Allowed values include page-all, user-shell-access.
+        [Default: (null)]
+        type: list
 
 - scope
         Scope of the group ('system' is 'Local')
@@ -275,7 +288,7 @@ EXAMPLES:
     name: Domain Admins
     description: Remote Admins
     scope: remote
-    priv: [ 'page-all, 'user-shell-access' ]
+    priv: [ 'page-all', 'user-shell-access' ]
 
 - name: Remove group
   pfsense_group:
@@ -290,6 +303,10 @@ EXAMPLES:
 
 OPTIONS (= is mandatory):
 
+- ackqueue
+        QOS acknowledge queue
+        [Default: (null)]
+
 = action
         The action of the rule
         (Choices: pass, block, reject)[Default: pass]
@@ -302,12 +319,8 @@ OPTIONS (= is mandatory):
         Rule to go before, or "bottom"
         [Default: (null)]
 
-- descr
-        Description
-        [Default: None]
-
 = destination
-        The destination address, in [!]{IP,HOST,ALIAS,(self)}[:port] or NET:INTERFACE format
+        The destination address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
         [Default: None]
 
 - direction
@@ -317,10 +330,16 @@ OPTIONS (= is mandatory):
 - disabled
         Is the rule disabled
         [Default: False]
+        type: bool
 
 - floating
         Is the rule floating
-        (Choices: yes, no)[Default: (null)]
+        [Default: (null)]
+        type: bool
+
+- in_queue
+        Limiter queue for traffic coming into the chosen interface
+        [Default: (null)]
 
 = interface
         The interface for the rule
@@ -330,28 +349,41 @@ OPTIONS (= is mandatory):
         The IP protocol
         (Choices: inet, inet46, inet6)[Default: inet]
 
+- log
+        Log packets matched by rule
+        [Default: (null)]
+        type: bool
+
 = name
         The name the rule
         [Default: None]
+
+- out_queue
+        Limiter queue for traffic leaving the chosen interface
+        [Default: (null)]
 
 - protocol
         The protocol
         (Choices: any, tcp, udp, tcp/udp, icmp)[Default: any]
 
+- queue
+        QOS default queue
+        [Default: (null)]
+
 = source
-        The source address, in [!]{IP,HOST,ALIAS,(self)}[:port] or NET:INTERFACE format
+        The source address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
         [Default: None]
 
-= state
+- state
         State in which to leave the rule
         (Choices: present, absent)[Default: present]
 
 - statetype
         State type
-        [Default: keep state]
+        (Choices: keep state, sloppy state, synproxy state, none)[Default: keep state]
 
 
-AUTHOR: Orion Poplawski (@opoplawski)
+AUTHOR: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
         METADATA:
           status:
           - preview
@@ -370,6 +402,74 @@ EXAMPLES:
     destination: any:53
     after: 'Allow proxies out'
     state: present
+```
+# pfsense_aggregate
+```
+> PFSENSE_AGGREGATE    (/export/home/orion/src/ansible-pfsense/library/pfsense_aggregate.py)
+
+        Manage multiple pfSense rules or aliases
+
+OPTIONS (= is mandatory):
+
+- aggregated_aliases
+        Dict of aliases to apply on the target
+        [Default: (null)]
+
+- aggregated_rules
+        Dict of rules to apply on the target
+        [Default: (null)]
+
+- purge_aliases
+        delete all the aliases that are not defined into aggregated_aliases
+        [Default: False]
+        type: bool
+
+- purge_rules
+        delete all the rules that are not defined into aggregated_rules
+        [Default: False]
+        type: bool
+
+
+NOTES:
+      * aggregated_aliases and aggregated_rules use the same options definitions than pfsense_alias and pfsense_rule modules.
+
+AUTHOR: Frederic Bor (@f-bor)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+        
+
+EXAMPLES:
+- name: "Add three aliases, six rules, and delete everything else"
+  pfsense_aggregate:
+    purge_aliases: true
+    purge_rules: true
+    aggregated_aliases:
+      - { name: port_ssh, type: port, address: 22, state: present }
+      - { name: port_http, type: port, address: 80, state: present }
+      - { name: port_https, type: port, address: 443, state: present }
+    aggregated_rules:
+      - { name: "allow_all_ssh", source: any, destination: "any:port_ssh", protocol: tcp, interface: lan, state: present }
+      - { name: "allow_all_http", source: any, destination: "any:port_http", protocol: tcp, interface: lan, state: present }
+      - { name: "allow_all_https", source: any, destination: "any:port_https", protocol: tcp, interface: lan, state: present }
+      - { name: "allow_all_ssh", source: any, destination: "any:port_ssh", protocol: tcp, interface: wan, state: present }
+      - { name: "allow_all_http", source: any, destination: "any:port_http", protocol: tcp, interface: wan, state: present }
+      - { name: "allow_all_https", source: any, destination: "any:port_https", protocol: tcp, interface: wan, state: present }
+
+RETURN VALUES:
+
+
+result_aliases:
+    description: the set of aliases commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create alias 'adservers', type='host', address='10.0.0.1 10.0.0.2'", "update alias 'one_host' set address='10.9.8.7'", "delete alias 'one_alias'"]
+aggregated_rules:
+    description: final set of rules
+    returned: success
+    type: list
+    sample: []
 ```
 # operation
 
