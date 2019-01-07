@@ -12,15 +12,15 @@ from ansible.module_utils.pfsense.pfsense import PFSenseModule
 RULES_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     action=dict(default='pass', required=False, choices=['pass', "block", 'reject']),
-    state=dict(required=True, choices=['present', 'absent']),
+    state=dict(default='present', choices=['present', 'absent']),
     disabled=dict(default=False, required=False, type='bool'),
     interface=dict(required=True, type='str'),
     floating=dict(required=False, type='bool'),
     direction=dict(required=False, choices=["any", "in", "out"]),
     ipprotocol=dict(required=False, default='inet', choices=['inet', 'inet46', 'inet6']),
     protocol=dict(default='any', required=False, choices=["any", "tcp", "udp", "tcp/udp", "icmp"]),
-    source=dict(required=True, type='str'),
-    destination=dict(required=True, type='str'),
+    source=dict(required=False, type='str'),
+    destination=dict(required=False, type='str'),
     log=dict(required=False, type='bool'),
     after=dict(required=False, type='str'),
     before=dict(required=False, type='str'),
@@ -31,7 +31,10 @@ RULES_ARGUMENT_SPEC = dict(
     out_queue=dict(required=False, type='str'),
 )
 
-RULES_REQUIRED_IF = [["floating", True, ["direction"]]]
+RULES_REQUIRED_IF = [
+    ["floating", True, ["direction"]],
+    ["state", "present", ["source", "destination"]]
+]
 
 
 class PFSenseRuleModule(object):
@@ -468,26 +471,27 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         rule['ipprotocol'] = params['ipprotocol']
         rule['statetype'] = params['statetype']
 
-        rule['source'] = self._parse_address(params['source'])
-        rule['destination'] = self._parse_address(params['destination'])
-
         if params['floating']:
             rule['floating'] = 'yes'
             rule['interface'] = self._parse_floating_interfaces(params['interface'])
         else:
             rule['interface'] = self._parse_interface(params['interface'])
 
-        if params['protocol'] != 'any':
-            rule['protocol'] = params['protocol']
+        if params['state'] == 'present':
+            rule['source'] = self._parse_address(params['source'])
+            rule['destination'] = self._parse_address(params['destination'])
 
-        bool_to_rule('disabled', 'disabled')
-        bool_to_rule('log', 'log')
+            if params['protocol'] != 'any':
+                rule['protocol'] = params['protocol']
 
-        param_to_rule('direction', 'direction')
-        param_to_rule('queue', 'defaultqueue')
-        param_to_rule('ackqueue', 'ackqueue')
-        param_to_rule('in_queue', 'dnpipe')
-        param_to_rule('out_queue', 'pdnpipe')
+            bool_to_rule('disabled', 'disabled')
+            bool_to_rule('log', 'log')
+
+            param_to_rule('direction', 'direction')
+            param_to_rule('queue', 'defaultqueue')
+            param_to_rule('ackqueue', 'ackqueue')
+            param_to_rule('in_queue', 'dnpipe')
+            param_to_rule('out_queue', 'pdnpipe')
 
         return rule
 

@@ -16,8 +16,7 @@ DOCUMENTATION = """
 ---
 module: pfsense_rule
 version_added: "2.8"
-author: Orion Poplawski (@opoplawski)
-        Frederic Bor (@-fbor)
+author: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
 short_description: Manage pfSense rules
 description:
   - Manage pfSense rules
@@ -34,7 +33,7 @@ options:
     choices: [ "pass", "block", "reject" ]
   state:
     description: State in which to leave the rule
-    required: true
+    default: present
     choices: [ "present", "absent" ]
   disabled:
     description: Is the rule disabled
