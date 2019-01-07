@@ -138,16 +138,13 @@ from copy import deepcopy
 from collections import OrderedDict
 
 import json
-import ipaddress
 import re
 import sys
 import yaml
 
-from colorama import Fore
-import colorama
-
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
+from ansible.module_utils.compat import ipaddress
 
 
 try:
@@ -1619,9 +1616,9 @@ class PFSenseAliasFactory(object):
     @staticmethod
     def output_aliases(aliases):
         """ Output aliases definitions for pfsense_aliases_aggregate """
-        print(Fore.CYAN + "          #===========================")
-        print(Fore.CYAN + "          # Hosts & network aliases")
-        print(Fore.CYAN + "          # ")
+        print("          #===========================")
+        print("          # Hosts & network aliases")
+        print("          # ")
         for alias in aliases:
             if alias['type'] == 'port':
                 continue
@@ -1629,11 +1626,11 @@ class PFSenseAliasFactory(object):
             if 'descr' in alias:
                 definition = definition + ", descr: \"" + alias['descr'] + "\""
             definition = definition + ", state: \"present\" }"
-            print(Fore.GREEN + definition)
+            print(definition)
 
-        print(Fore.CYAN + "          #===========================")
-        print(Fore.CYAN + "          # ports aliases")
-        print(Fore.CYAN + "          # ")
+        print("          #===========================")
+        print("          # ports aliases")
+        print("          # ")
         for alias in aliases:
             if alias['type'] != 'port':
                 continue
@@ -1641,7 +1638,7 @@ class PFSenseAliasFactory(object):
             if 'descr' in alias:
                 definition = definition + ", descr: \"" + alias['descr'] + "\""
             definition = definition + ", state: \"present\" }"
-            print(Fore.GREEN + definition)
+            print(definition)
 
 
 class PFSenseRuleFactory(object):
@@ -1819,9 +1816,9 @@ class PFSenseRuleFactory(object):
     @staticmethod
     def output_rules(rules):
         """ Output aliases definitions for pfsense_aliases_aggregate """
-        print(Fore.CYAN + "          #===========================")
-        print(Fore.CYAN + "          # Rules")
-        print(Fore.CYAN + "          # ")
+        print("          #===========================")
+        print("          # Rules")
+        print("          # ")
         for rule in rules:
             definition = ("          - { name: \"" + rule['name'] + "\", source: \""
                           + rule['source'] + "\", destination: \"" + rule['destination']
@@ -1835,7 +1832,7 @@ class PFSenseRuleFactory(object):
             if 'after' in rule:
                 definition += ", after: \"" + rule['after'] + "\""
             definition += ", state: \"present\" }"
-            print(Fore.GREEN + definition)
+            print(definition)
 
 
 class LookupModule(LookupBase):
@@ -1859,8 +1856,6 @@ class LookupModule(LookupBase):
 
     def run(self, terms, variables, **kwargs):
         """ Main function """
-        colorama.init()
-
         data = self.load_data(terms[0])
         if not data.cleanup_defs():
             raise AnsibleError("Error parsing pfsense data")
@@ -1885,8 +1880,6 @@ class LookupModule(LookupBase):
 
 def main():
     """ Output debug helper """
-
-    colorama.init()
     if len(sys.argv) != 3 and len(sys.argv) != 4:
         print('Usage: pfsense.py <file> <target_fw> [rule_name]')
         return 0
@@ -1895,7 +1888,7 @@ def main():
     if len(sys.argv) == 4:
         rule_filter = sys.argv[3]
 
-    print(Fore.MAGENTA + 'Loading data...' + Fore.WHITE)
+    print('Loading data...')
     fvars = ordered_load(open(sys.argv[1]), yaml.SafeLoader)
 
     data = PFSenseData(
@@ -1911,16 +1904,16 @@ def main():
 
     checker = PFSenseDataChecker(data)
 
-    print(Fore.MAGENTA + 'Parsing data...' + Fore.WHITE)
+    print('Parsing data...')
     if not checker.check_defs():
         return False
     alias_factory = PFSenseAliasFactory(data)
     rule_factory = PFSenseRuleFactory(data)
 
-    print(Fore.MAGENTA + 'Generating rules...' + Fore.WHITE)
+    print('Generating rules...')
     rules = rule_factory.generate_rules(rule_filter)
 
-    print(Fore.MAGENTA + 'Generating aliases...' + Fore.WHITE)
+    print('Generating aliases...')
     aliases = alias_factory.generate_aliases(rule_filter)
 
     alias_factory.output_aliases(aliases)
