@@ -72,9 +72,9 @@ aggregated_rules:
     sample: []
 """
 
-from ansible.module_utils.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
-from ansible.module_utils.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
+from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.networking.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+from ansible.module_utils.networking.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
 from ansible.module_utils.basic import AnsibleModule
 
 

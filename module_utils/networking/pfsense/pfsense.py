@@ -156,10 +156,10 @@ class PFSenseModule(object):
         return changed
 
     @staticmethod
-    def element_to_dict(src):
-        """ Create XML elt from src """
+    def element_to_dict(src_elt):
+        """ Create dict from XML src_elt """
         res = {}
-        for elt in list(src):
+        for elt in list(src_elt):
             res[elt.tag] = elt.text if elt.text is not None else ''
         return res
 

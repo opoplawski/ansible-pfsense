@@ -10,7 +10,7 @@ __metaclass__ = type
 import re
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule
 
 ALIASES_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
