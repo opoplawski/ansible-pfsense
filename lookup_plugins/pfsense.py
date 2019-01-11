@@ -213,6 +213,16 @@ def is_local_network(address):
     return net.subnet_of(is_local_ip.classA) or net.subnet_of(is_local_ip.classB) or net.subnet_of(is_local_ip.classC)
 
 
+@static_vars(ip_broadcast=ipaddress.IPv4Address((u"255.255.255.255")))
+def is_ip_broadcast(address):
+    """ check if ip address is ip broadcast address """
+    if not isinstance(address, ipaddress.IPv4Address):
+        ip_address = ipaddress.ip_address(to_unicode(address))
+    else:
+        ip_address = address
+    return ip_address == is_ip_broadcast.ip_broadcast
+
+
 def is_valid_ip(address):
     """ validate ip address format """
     try:
@@ -385,6 +395,8 @@ class PFSenseHostAlias(object):
             return False
 
         for alias_ip in self.ips:
+            if is_ip_broadcast(alias_ip):
+                return True
             local_ip = is_local_ip(alias_ip)
             snet = interface.local_network
             # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
@@ -405,6 +417,8 @@ class PFSenseHostAlias(object):
     def match_interface_dst(self, interface):
         """ check if an alias match the dst networks of an interface """
         for alias_ip in self.ips:
+            if is_ip_broadcast(alias_ip):
+                return True
             local_ip = is_local_ip(alias_ip)
             for snet in interface.routed_networks:
                 # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
@@ -503,6 +517,9 @@ class PFSenseHostAlias(object):
     def is_whole_local(self, pfsense):
         """ check if all ips/networks match a local network interface in pfense """
         for alias_ip in self.ips:
+            if is_ip_broadcast(alias_ip):
+                continue
+
             local_ip = is_local_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
@@ -598,9 +615,17 @@ class PFSenseHostAlias(object):
 
         return True
 
+    def is_ip_broadcast(self):
+        """ check if an alias is the ip_broadcast """
+        if len(self.ips) != 1 or self.networks:
+            return False
+        return is_ip_broadcast(self.ips[0])
+
     def is_whole_in_pfsense(self, pfsense):
         """ check if all ips/networks have as least one interface in pfense """
         for alias_ip in self.ips:
+            if is_ip_broadcast(alias_ip):
+                return False
             local_ip = is_local_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
@@ -631,6 +656,8 @@ class PFSenseHostAlias(object):
     def is_whole_not_in_pfsense(self, pfsense):
         """ check if all ips/networks have as least one interface in pfense """
         for alias_ip in self.ips:
+            if is_ip_broadcast(alias_ip):
+                return False
             local_ip = is_local_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
@@ -1447,6 +1474,8 @@ class PFSenseRuleDecomposer(object):
             ret.append(host)
         elif host.is_whole_in_pfsense(self._data.target):
             ret.append(host)
+        elif host.is_ip_broadcast():
+            ret.append(host)
         else:
             alias = self._data.all_defs[host.name]
             if 'ip' in alias:
@@ -1679,6 +1708,28 @@ class PFSenseRuleFactory(object):
             return interfaces
         return None
 
+    def rule_interfaces_ip_broadcast(self, rule_obj):
+        """ Return interfaces set on which the rule is needed to be defined
+            Manage rules with src or dst ip broadcast """
+        src = rule_obj.src[0]
+        dst = rule_obj.dst[0]
+        src_is_bcast = src.is_ip_broadcast()
+        dst_is_bcast = dst.is_ip_broadcast()
+        if not src_is_bcast and not dst_is_bcast:
+            return None
+
+        if src_is_bcast and rule_obj.dst[0].is_whole_local(self._data.target):
+            return rule_obj.dst[0].interfaces[self._data.target.name]
+
+        if rule_obj.src[0].is_whole_local(self._data.target) and dst_is_bcast:
+            return rule_obj.src[0].interfaces[self._data.target.name]
+
+        # we return no rules for:
+        # - broadcast to broadcast
+        # - broadcast to remote
+        # - remote to broadcast
+        return []
+
     def rule_interfaces(self, rule_obj):
         """ Return interfaces list on which the rule is needed to be defined """
 
@@ -1687,6 +1738,10 @@ class PFSenseRuleFactory(object):
 
         interfaces = self.rule_interfaces_any(rule_obj)
         if interfaces:
+            return interfaces
+
+        interfaces = self.rule_interfaces_ip_broadcast(rule_obj)
+        if interfaces is not None:
             return interfaces
 
         interfaces = set()
