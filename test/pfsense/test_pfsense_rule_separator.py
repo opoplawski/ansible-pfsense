@@ -170,7 +170,7 @@ class TestPFSenseRuleSeparatorModule(TestPFSenseModule):
     def test_separator_delete(self):
         """ test deletion of a separator """
         separator = dict(name='test_separator', interface='lan')
-        command = "delete rule_separator 'test_separator'"
+        command = "delete rule_separator 'test_separator', interface='lan'"
         self.do_separator_deletion_test(separator, command=command)
 
     def test_separator_delete_inexistent(self):

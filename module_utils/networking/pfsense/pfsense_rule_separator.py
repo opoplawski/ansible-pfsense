@@ -59,6 +59,8 @@ class PFSenseRuleSeparatorModule(PFSenseModuleBase):
     def _log_delete(self):
         """ generate pseudo-CLI command to delete a separator """
         log = "delete rule_separator '{0}'".format(self._name)
+        log += self.format_cli_field(self._params, 'interface')
+        log += self.format_cli_field(self._params, 'floating')
         self.result['commands'].append(log)
 
     def _log_update(self):
@@ -183,7 +185,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         """ return an separator dict from module params """
         separator = dict()
         separator['text'] = params['name']
-        if params['floating']:
+        if params.get('floating'):
             self._interface_name = 'floating'
             separator['if'] = 'floatingrules'
         else:
@@ -201,7 +203,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         self._params = params
         self._name = self._separator['text']
         self._interface = self._separator['if']
-        self._floating = params['floating']
+        self._floating = (params.get('floating'))
         self._after = params.get('after')
         self._before = params.get('before')
 

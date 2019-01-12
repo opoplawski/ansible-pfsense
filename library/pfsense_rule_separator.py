@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_rule_separator
 version_added: "2.8"
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense rules separators
+short_description: Manage pfSense rule separators
 description:
-  - Manage pfSense rules separators
+  - Manage pfSense rule separators
 notes:
 options:
   name:
