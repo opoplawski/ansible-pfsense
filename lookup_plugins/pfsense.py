@@ -1,18 +1,53 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2018, Frederic Bor <frederic.bor@wanadoo.fr>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-"""
-This lookup plugin is designed to be used with pfsense_aggregate module.
-It takes a yaml file and generate list of aliases and rules definitions.
-The aim is to be able to easily manage a fleet of pfSenses and avoiding any
-redundant work, like defining the sames hosts/ports aliases or rules
-on multiples pfSenses. The plugin determine what is required to be defined
-on each pfsense, leaving to the network administrator only the pain of updating
-the yaml definition file.
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 
+DOCUMENTATION = """
+lookup: pfsense
+author: Frederic Bor (@f-bor)
+version_added: "2.8"
+short_description: Generate pfSense rules and aliases
+description:
+- This lookup plugin is designed to be used with pfsense_aggregate module.
+  It takes a yaml file and generate list of aliases and rules definitions.
+  The aim is to be able to easily manage a fleet of pfSenses and avoiding any
+  redundant work, like defining the sames hosts/ports aliases or rules
+  on multiples pfSenses. The plugin determine what is required to be defined
+  on each pfsense, leaving to the network administrator only the pain of updating
+  the yaml definition file.
+options:
+  file:
+    description: The yaml file defining the network
+  type:
+    description: What to generate
+    choices:
+      - aliases
+      - rules
+"""
+
+EXAMPLES = """
+- name: Get all aliases to be defined
+  debug:
+    aliases: "{{ lookup('pfsense', 'all_pf_defs.yml', 'aliases') }}"
+
+- name: Get all rules to be defined
+  debug:
+    rules: "{{ lookup('pfsense', 'all_pf_defs.yml', 'rules') }}"
+
+"""
+
+RETURN = """
+  _list:
+    description:
+      - list of dictonaries with aliases or rules
+    type: list
+"""
+
+"""
 To determine if a rule and corresponding alias has to be declared on a pfsense
 and on which interfaces, the plugin check if rule source or destination is
 matching any local or routed network on the pfsense. To avoid having every rule
@@ -45,9 +80,9 @@ A typical pfsense_aggregate task using the lookup plugin will look like this:
       pfsense_aggregate:
         purge: true
         aggregated_aliases: |
-          {{ lookup('pfsense', 'defs.yml', 'gen_aliases')}}
+          {{ lookup('pfsense', 'defs.yml', 'aliases')}}
         aggregated_rules: |
-          {{ lookup('pfsense', 'defs.yml', 'gen_rules')}}
+          {{ lookup('pfsense', 'defs.yml', 'rules')}}
 
 
 Here is an example of yaml file:
@@ -130,9 +165,6 @@ ports_aliases:
   port_ldap_ssl: { port: 636 }
 
  """
-
-from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
 
 from copy import deepcopy
 from collections import OrderedDict
@@ -386,7 +418,9 @@ class PFSenseHostAlias(object):
 
             if address not in data.all_defs:
                 data.set_error("Invalid address: " + address + " for " + self.name)
-            assert address in data.all_defs
+            if address not in data.all_defs:
+                raise AssertionError()
+
             todo.extend(data.all_defs[address]['ip'].split(' '))
 
     def match_interface_src(self, interface):
@@ -1128,8 +1162,7 @@ class PFSenseDataChecker(object):
         elif src == 'any':
             return self.create_obj_any_alias()
         else:
-            self._data.set_error("Invalid alias: " + src)
-            assert False
+            raise AssertionError("Invalid alias: " + src)
 
         return obj
 
@@ -1528,8 +1561,8 @@ class PFSenseRuleDecomposer(object):
 
             return sub_rules
 
-        assert len(rule.src) == 1
-        assert len(rule.dst) == 1
+        if len(rule.src) != 1 or len(rule.dst) != 1:
+            raise AssertionError()
 
         src = rule.src[0]
         dst = rule.dst[0]
@@ -1733,8 +1766,8 @@ class PFSenseRuleFactory(object):
     def rule_interfaces(self, rule_obj):
         """ Return interfaces list on which the rule is needed to be defined """
 
-        assert len(rule_obj.src) == 1
-        assert len(rule_obj.dst) == 1
+        if len(rule_obj.src) != 1 or len(rule_obj.dst) != 1:
+            raise AssertionError()
 
         interfaces = self.rule_interfaces_any(rule_obj)
         if interfaces:
@@ -1776,8 +1809,8 @@ class PFSenseRuleFactory(object):
         base = []
         base.append({})
 
-        assert len(rule_obj.src) == 1
-        assert len(rule_obj.dst) == 1
+        if len(rule_obj.src) != 1 or len(rule_obj.dst) != 1:
+            raise AssertionError()
 
         rule = {}
         rule['src'] = rule_obj.src[0].name
@@ -1925,12 +1958,43 @@ class LookupModule(LookupBase):
         rules = rule_factory.generate_rules()
         aliases = alias_factory.generate_aliases()
 
-        if terms[1] == 'gen_aliases':
+        if terms[1] == 'aliases':
             return [aliases]
-        elif terms[1] == 'gen_rules':
+        elif terms[1] == 'rules':
             return [rules]
 
         return []
+
+
+def unit_test_helper(filename, pfname):
+    """ Unit test helper """
+    rule_filter = None
+    fvars = ordered_load(open(filename), yaml.SafeLoader)
+
+    data = PFSenseData(
+        sites=fvars['sites'],
+        hosts_aliases=fvars['hosts_aliases'],
+        ports_aliases=fvars['ports_aliases'],
+        pfsenses=fvars['pfsenses'],
+        rules=fvars['rules'],
+        target_name=pfname
+    )
+    if not data.cleanup_defs():
+        return False
+
+    checker = PFSenseDataChecker(data)
+
+    if not checker.check_defs():
+        return False
+    alias_factory = PFSenseAliasFactory(data)
+    rule_factory = PFSenseRuleFactory(data)
+
+    rules = rule_factory.generate_rules(rule_filter)
+    aliases = alias_factory.generate_aliases(rule_filter)
+    alias_factory.output_aliases(aliases)
+    rule_factory.output_rules(rules)
+
+    return (aliases, rules)
 
 
 def main():
