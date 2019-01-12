@@ -109,7 +109,7 @@ class PFSenseModuleAggregate(object):
         for rule in rules:
             if rule['state'] == 'absent':
                 continue
-            if rule['name'] == descr.text and self.pfsense_rules._parse_interface(rule['interface']) == interface.text:
+            if rule['name'] == descr.text and self.pfsense.parse_interface(rule['interface']) == interface.text:
                 return True
         return False
 
@@ -137,19 +137,25 @@ class PFSenseModuleAggregate(object):
         if want is None:
             return
 
-        # processing aggregated parameter
-        for param in want:
-            self.pfsense_rules.run(param)
+        # processing aggregated parameters
+        for params in want:
+            self.pfsense_rules.run(params)
 
         # delete every other rule if required
         if self.module.params['purge_rules']:
             todel = []
             for rule_elt in self.pfsense_rules.rules:
                 if not self.want_rule(rule_elt, want):
-                    todel.append(rule_elt)
+                    params = {}
+                    params['state'] = 'absent'
+                    params['name'] = rule_elt.find('descr').text
+                    params['interface'] = rule_elt.find('interface').text
+                    if rule_elt.find('floating') is not None:
+                        params['floating'] = True
+                    todel.append(params)
 
-            for rule_elt in todel:
-                self.pfsense_rules._remove_rule_elt(rule_elt)
+            for params in todel:
+                self.pfsense_rules.run(params)
 
     def run_aliases(self):
         """ process input params to add/update/delete all aliases """
@@ -167,12 +173,13 @@ class PFSenseModuleAggregate(object):
             todel = []
             for alias_elt in self.pfsense_aliases.aliases:
                 if not self.want_alias(alias_elt, want):
-                    todel.append(alias_elt)
+                    params = {}
+                    params['state'] = 'absent'
+                    params['name'] = alias_elt.find('name').text
+                    todel.append(params)
 
-            for alias_elt in todel:
-                alias = {}
-                alias['name'] = alias_elt.find('name').text
-                self.pfsense_aliases.remove(alias)
+            for params in todel:
+                self.pfsense_aliases.run(params)
 
     def commit_changes(self):
         """ apply changes and exit module """
