@@ -373,7 +373,10 @@ class PFSenseModuleBase(object):
             if log_none and alias[field] is None:
                 res = "{0}=none".format(field)
             if alias[field] is not None:
-                res = "{0}='{1}'".format(field, alias[field].replace("'", "\\'"))
+                if isinstance(alias[field], str):
+                    res = "{0}='{1}'".format(field, alias[field].replace("'", "\\'"))
+                else:
+                    res = "{0}={1}".format(field, alias[field])
         if add_comma and res:
             return ', ' + res
         return res

@@ -47,18 +47,6 @@ class TestPFSenseRuleModule(TestPFSenseModule):
     # First we run the module
     # Then, we check return values
     # Finally, we check the xml
-    @staticmethod
-    def unalias_interface(interface):
-        """ return real alias name if required """
-        res = []
-        interfaces = dict(lan='lan', wan='wan', vpn='opt1', vt1='opt2', lan_100='opt3')
-        for iface in interface.split(','):
-            if interface in interfaces:
-                res.append(interfaces[iface])
-            else:
-                res.append(iface)
-        return ','.join(res)
-
     def parse_address(self, addr):
         """ return address parsed in dict """
         parts = addr.split(':')

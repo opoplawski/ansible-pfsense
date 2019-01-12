@@ -100,53 +100,41 @@ class TestPFSenseRuleNoopModule(TestPFSenseRuleModule):
         """ test not updating position of a rule to before another """
         rule = dict(name='test_rule_2', source='any', destination='any', interface='wan', log='yes', protocol='tcp', before='test_rule_3')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 1)
 
     def test_rule_noop_before_bottom(self):
         """ test not updating position of a rule to bottom """
         rule = dict(name='antilock_out_3', source='any', destination='any:443', interface='wan', protocol='tcp', before='bottom')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 3)
 
     def test_rule_noop_position_bottom(self):
         """ test not updating position of a rule to bottom """
         rule = dict(name='antilock_out_3', source='any', destination='any:443', interface='wan', protocol='tcp')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 3)
 
     def test_rule_noop_position_middle(self):
         """ test not updating position of a rule to before another """
         rule = dict(name='test_rule_2', source='any', destination='any', interface='wan', log='yes', protocol='tcp')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 1)
 
     def test_rule_noop_after(self):
         """ test not updating position of a rule to after another rule """
         rule = dict(name='test_rule_2', source='any', destination='any', interface='wan', log='yes', protocol='tcp', after='test_rule')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 1)
 
     def test_rule_noop_after_top(self):
         """ test not updating position of a rule to top """
         rule = dict(name='test_rule', source='any', destination='any', interface='wan', log='no', protocol='tcp', after='top')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 0)
 
     def test_rule_noop_separator_top(self):
         """ test not updating position of a rule to top """
         rule = dict(name='r1', source='any', destination='any', interface='vt1', protocol='tcp')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 0)
-        self.check_separator_idx(rule['interface'], 'test_sep1', 0)
-        self.check_separator_idx(rule['interface'], 'test_sep2', 3)
 
     def test_rule_noop_separator_bottom(self):
         """ test not updating position of a rule to bottom """
         rule = dict(name='r3', source='any', destination='any', interface='vt1', protocol='tcp')
         self.do_rule_noop_test(rule)
-        self.check_rule_idx(rule, 2)
-        self.check_separator_idx(rule['interface'], 'test_sep1', 0)
-        self.check_separator_idx(rule['interface'], 'test_sep2', 3)
 
     def test_rule_noop_queue_ack(self):
         """ test updating queue of a rule """
