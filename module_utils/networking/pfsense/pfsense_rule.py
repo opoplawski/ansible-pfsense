@@ -302,7 +302,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
         if params.get('in_queue') is not None and self.pfsense.find_limiter(params['in_queue'], enabled=True) is None:
             self.module.fail_json(msg='Failed to find enabled in_queue=%s' % params['in_queue'])
 
-        if params.get('floating') and params['direction'] == 'any' and (params['in_queue'] is not None or params['out_queue'] is not None):
+        if params.get('floating') and params.get('direction') == 'any' and (params['in_queue'] is not None or params['out_queue'] is not None):
             self.module.fail_json(msg='Limiters can not be used in Floating rules without choosing a direction')
 
         if params.get('after') and params.get('before'):

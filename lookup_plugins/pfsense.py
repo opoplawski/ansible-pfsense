@@ -17,7 +17,7 @@ description:
   The aim is to be able to easily manage a fleet of pfSenses and avoiding any
   redundant work, like defining the sames hosts/ports aliases or rules
   on multiples pfSenses. The plugin determine what is required to be defined
-  on each pfsense, leaving to the network administrator only the pain of updating
+  on each pfsense, leaving to the network administrator only the task of updating
   the yaml definition file.
 options:
   file:
@@ -27,6 +27,7 @@ options:
     choices:
       - aliases
       - rules
+      - rule_separators
 """
 
 EXAMPLES = """
@@ -38,12 +39,16 @@ EXAMPLES = """
   debug:
     rules: "{{ lookup('pfsense', 'all_pf_defs.yml', 'rules') }}"
 
+- name: Get all rule_separators to be defined
+  debug:
+    rule_separators: "{{ lookup('pfsense', 'all_pf_defs.yml', 'rule_separators') }}"
+
 """
 
 RETURN = """
   _list:
     description:
-      - list of dictonaries with aliases or rules
+      - list of dictonaries with aliases, rules or rule_separators
     type: list
 """
 
@@ -63,6 +68,10 @@ into smaller rules until having rules than can be declared.
 
 The generated rules order follows the yaml file rules order.
 
+Rule separators name are taken from parent rules' groups (see 'ADMIN', 'VOIP',
+'MISC' or 'ACTIVE DIRECTORY' in the example below). Nested groups generate separators
+names in the form 'GROUP1 - GROUP2 - ...'
+
 The yaml file must include the following definitions to describe the network topology:
 - sites (useless but required for now, will probably be removed in a near future)
 - pfsenses
@@ -78,11 +87,15 @@ A typical pfsense_aggregate task using the lookup plugin will look like this:
   tasks:
     - name: "setup aliases & rules"
       pfsense_aggregate:
-        purge: true
+        purge_aliases: true
+        purge_rules: true
+        purge_rule_separators: true
         aggregated_aliases: |
-          {{ lookup('pfsense', 'defs.yml', 'aliases')}}
+          {{ lookup('pfsense', 'defs.yml', 'aliases') }}
         aggregated_rules: |
-          {{ lookup('pfsense', 'defs.yml', 'rules')}}
+          {{ lookup('pfsense', 'defs.yml', 'rules') }}
+        aggregated_rule_separators: |
+          {{ lookup('pfsense', 'defs.yml', 'rule_separators') }}
 
 
 Here is an example of yaml file:
@@ -122,12 +135,18 @@ pfsenses:
     }
 
 rules:
-  antilock_out: { src: any, dst: any, protocol: tcp, dst_port: port_ssh port_http 443 }
-  void_conf_tftp: { src: all_ipbx, dst: lan_voip_all, dst_port: 69, protocol: udp }
-  admin_bypass: { src: srv_admin, dst: any }
-  ping_from_poc3: { src: lan_poc3_all, dst: srv_admin, protocol: icmp }
-  ads_to_ads_tcp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap port_ldap_ssl, protocol: tcp }
-  ads_to_ads_udp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap, protocol: udp }
+  ADMIN:
+    antilock_out: { src: any, dst: any, protocol: tcp, dst_port: port_ssh port_http 443 }
+    admin_bypass: { src: srv_admin, dst: any }
+    MISC:
+      ping_from_poc3: { src: lan_poc3_all, dst: srv_admin, protocol: icmp }
+
+  VOIP:
+    void_conf_tftp: { src: all_ipbx, dst: lan_voip_all, dst_port: 69, protocol: udp }
+
+  ACTIVE DIRECTORY:
+    ads_to_ads_tcp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap port_ldap_ssl, protocol: tcp }
+    ads_to_ads_udp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap, protocol: udp }
 
 hosts_aliases:
   # hosts
@@ -759,6 +778,7 @@ class PFSenseRule(object):
     """ Class holding structured pfsense rule declaration """
     def __init__(self):
         self.name = None
+        self.separator = None
         self.src = []
         self.src_port = []
         self.dst = []
@@ -768,6 +788,8 @@ class PFSenseRule(object):
         self.log = "yes"
 
         self.sub_rules = []
+        self.interfaces = None
+        self.generated_names = {}
 
     def to_json(self):
         """ return JSON String containing rule """
@@ -798,6 +820,19 @@ class PFSenseRule(object):
 
         res += " }"
         return res
+
+
+class PFSenseRuleSeparator(object):
+    """ Class holding structured pfsense rule separator declaration """
+    def __init__(self):
+        self.name = None
+        self.interface = None
+
+    def __hash__(self):
+        return hash(self.name + self.interface)
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.name == other.name and self.interface == other.interface
 
 
 class PFSenseInterface(object):
@@ -939,21 +974,43 @@ class PFSenseData(object):
         display.error(error)
         self._errors.append(error)
 
-    def _cleanup_defs(self, defs_name):
+    @staticmethod
+    def is_child_def(values):
+        """ check if values contains more definitions """
+        for value in values.values():
+            if isinstance(value, (OrderedDict, dict, list)):
+                return False
+        return True
+
+    def _cleanup_defs(self, defs_name, rec=False, src_defs=None):
         """ cleaning attribute defs_name """
-        defs = getattr(self, defs_name)
+        if src_defs is None:
+            defs = getattr(self, defs_name)
+        else:
+            defs = src_defs
+        if defs.items() is None:
+            return True
         _defs = OrderedDict()
         ret = True
         for name, _def in defs.items():
-            name = cleanup_def_name(name)
-            if name in self._all_defs:
-                self.set_error("duplicate def " + name + " (" + json.dumps(self._all_defs[name]) + ")")
-                ret = False
+            # if we are not a child node, we are on a separator
+            # todo: do a check about duplicated separators
+            if rec and isinstance(_def, OrderedDict) and not self.is_child_def(_def):
+                if not self._cleanup_defs(name, rec, _def):
+                    ret = False
+            else:
+                name = cleanup_def_name(name)
 
-            self._all_defs[name] = _def
+                if name in self._all_defs:
+                    self.set_error("duplicate def " + name + " (" + json.dumps(self._all_defs[name]) + ")")
+                    ret = False
+
+                self._all_defs[name] = _def
+
             _defs[name] = _def
 
-        setattr(self, defs_name, _defs)
+        if src_defs is None:
+            setattr(self, defs_name, _defs)
         return ret
 
     def cleanup_defs(self):
@@ -969,7 +1026,7 @@ class PFSenseData(object):
         if not self._cleanup_defs('_pfsenses'):
             ret = False
 
-        if not self._cleanup_defs('_rules'):
+        if not self._cleanup_defs('_rules', True):
             ret = False
 
         self._target_name = cleanup_def_name(self._target_name)
@@ -1166,10 +1223,11 @@ class PFSenseDataChecker(object):
 
         return obj
 
-    def create_obj_rule_from_def(self, name, rule):
+    def create_obj_rule_from_def(self, name, rule, separator_name):
         """ Create a PFSenseRule object from yaml definition """
         obj = PFSenseRule()
         obj.name = name
+        obj.separator = separator_name
 
         if 'src_port' in rule:
             if not isinstance(rule['src_port'], str):
@@ -1206,10 +1264,22 @@ class PFSenseDataChecker(object):
 
         return obj
 
-    def check_rules(self):
+    def check_rules(self, parent=None, separator_name=None):
         """ Checking all rules definitions """
         ret = True
-        for name, rule in self._data.rules.items():
+        if parent is None:
+            parent = self._data.rules
+        for name, rule in parent.items():
+            # not a rule
+            if not self._data.is_child_def(rule):
+                if separator_name is None:
+                    sep_name = name
+                else:
+                    sep_name = separator_name + ' - ' + name
+                if not self.check_rules(rule, sep_name):
+                    ret = False
+                continue
+
             # src field is mandatory
             if 'src' not in rule:
                 self._data.set_error("No src field for rule " + name)
@@ -1258,7 +1328,7 @@ class PFSenseDataChecker(object):
                     self._data.set_error(field + " is not a valid field name in rule " + name)
                     ret = False
 
-            self._data.rules_obj[name] = self.create_obj_rule_from_def(name, rule)
+            self._data.rules_obj[name] = self.create_obj_rule_from_def(name, rule, separator_name)
 
         return ret
 
@@ -1638,7 +1708,7 @@ class PFSenseAliasFactory(object):
             self.add_port_alias_rec(alias, aliases)
 
     def generate_aliases(self, rule_filter=None):
-        """ Return aliases definitions for pfsense_aliases_aggregate """
+        """ Return aliases definitions for pfsense_aggregate """
 
         hosts_aliases = {}
         ports_aliases = {}
@@ -1677,7 +1747,7 @@ class PFSenseAliasFactory(object):
 
     @staticmethod
     def output_aliases(aliases):
-        """ Output aliases definitions for pfsense_aliases_aggregate """
+        """ Output aliases definitions for pfsense_aggregate """
         print("          #===========================")
         print("          # Hosts & network aliases")
         print("          # ")
@@ -1837,11 +1907,16 @@ class PFSenseRuleFactory(object):
                 definition['log'] = rule_obj.log
                 definition['interface'] = interface
                 definition['state'] = 'present'
-                if last_name:
+                if interface in last_name and last_name[interface]:
                     definition['after'] = last_name[interface]
                 definition.update(base[0])
                 interfaces[interface].append(definition)
                 last_name[interface] = name
+
+                # todo: create the separators before and set the first rule there
+                # and find a way to generate separators when a filter is used
+                if interface not in rule_obj.generated_names:
+                    rule_obj.generated_names[interface] = name
             else:
                 rule_idx = 1
                 for rule_def in base:
@@ -1852,15 +1927,19 @@ class PFSenseRuleFactory(object):
                     definition['log'] = rule_obj.log
                     definition['interface'] = interface
                     definition['state'] = 'present'
-                    if last_name:
+                    if interface in last_name and last_name[interface]:
                         definition['after'] = last_name[interface]
                     definition.update(rule_def)
                     interfaces[interface].append(definition)
                     last_name[interface] = rule_name
                     rule_idx = rule_idx + 1
+                    # todo: create the separators before and set the first rule there
+                    # and find a way to generate separators when a filter is used
+                    if interface not in rule_obj.generated_names:
+                        rule_obj.generated_names[interface] = rule_name
 
     def generate_rules(self, rule_filter=None):
-        """ Return rules definitions for pfsense_rules_aggregate
+        """ Return rules definitions for pfsense_aggregate
             if rule_filter, process only rules matching rule_filter
         """
 
@@ -1903,7 +1982,7 @@ class PFSenseRuleFactory(object):
 
     @staticmethod
     def output_rules(rules):
-        """ Output aliases definitions for pfsense_aliases_aggregate """
+        """ Output aliases definitions for pfsense_aggregate """
         print("          #===========================")
         print("          # Rules")
         print("          # ")
@@ -1917,9 +1996,67 @@ class PFSenseRuleFactory(object):
                 definition += ", descr: \"" + rule['descr'] + "\""
             if 'log' in rule:
                 definition += ", log: \"" + rule['log'] + "\""
-            if 'after' in rule:
+            if 'after' in rule and rule['after']:
                 definition += ", after: \"" + rule['after'] + "\""
             definition += ", state: \"present\" }"
+            print(definition)
+
+
+class PFSenseRuleSeparatorFactory(object):
+    """ Class generating rule separators definitions """
+
+    def __init__(self, data):
+        self._data = data
+
+    def _find_first_separator_rule(self, separator):
+        """ return the name of the first rule in the separator """
+        for rule in self._data.rules_obj.values():
+            for subrule in rule.sub_rules:
+                if subrule.separator == separator.name and separator.interface in subrule.generated_names:
+                    return subrule.generated_names[separator.interface]
+        return None
+
+    def generate_rule_separators(self, rule_filter=None):
+        """ Return rule_separators definitions for pfsense_aggregate """
+
+        separators = OrderedDict()
+
+        for name, rule in self._data.rules_obj.items():
+            if rule_filter is not None and name != rule_filter:
+                continue
+            for subrule in rule.sub_rules:
+                if subrule.separator is None:
+                    continue
+                for interface in subrule.interfaces:
+                    separator = PFSenseRuleSeparator()
+                    separator.name = subrule.separator
+                    separator.interface = interface
+                    if separator not in separators:
+                        separators[separator] = separator
+
+        ret = []
+        for separator in separators.values():
+            definition = {}
+            definition['name'] = separator.name
+            definition['interface'] = separator.interface
+            definition['before'] = self._find_first_separator_rule(separator)
+            if definition['before'] is None:
+                # for now we don't manage empty separators
+                continue
+            definition['state'] = 'present'
+            ret.append(definition)
+
+        return ret
+
+    @staticmethod
+    def output_rule_separators(separators):
+        """ Output rule separators definitions for pfsense_aggregate """
+        print("          #===========================")
+        print("          # Rule separators")
+        print("          # ")
+        for separator in separators:
+            definition = "          - { name: \"" + separator['name'] + "\", interface: \"" + separator['interface']
+            definition += "\", before: \"" + separator['before'] + "\", state: \"present\" }"
             print(definition)
 
 
@@ -1954,14 +2091,18 @@ class LookupModule(LookupBase):
 
         alias_factory = PFSenseAliasFactory(data)
         rule_factory = PFSenseRuleFactory(data)
+        rule_separator_factory = PFSenseRuleSeparatorFactory(data)
 
         rules = rule_factory.generate_rules()
+        rule_separators = rule_separator_factory.generate_rule_separators()
         aliases = alias_factory.generate_aliases()
 
         if terms[1] == 'aliases':
             return [aliases]
         elif terms[1] == 'rules':
             return [rules]
+        elif terms[1] == 'rule_separators':
+            return [rule_separators]
 
         return []
 
@@ -1988,11 +2129,15 @@ def unit_test_helper(filename, pfname):
         return False
     alias_factory = PFSenseAliasFactory(data)
     rule_factory = PFSenseRuleFactory(data)
+    rule_separator_factory = PFSenseRuleSeparatorFactory(data)
 
     rules = rule_factory.generate_rules(rule_filter)
+    rule_separators = rule_separator_factory.generate_rule_separators()
     aliases = alias_factory.generate_aliases(rule_filter)
+
     alias_factory.output_aliases(aliases)
     rule_factory.output_rules(rules)
+    rule_separator_factory.output_rule_separators(rule_separators)
 
     return (aliases, rules)
 
@@ -2028,15 +2173,24 @@ def main():
         return False
     alias_factory = PFSenseAliasFactory(data)
     rule_factory = PFSenseRuleFactory(data)
+    rule_separator_factory = PFSenseRuleSeparatorFactory(data)
 
     print('Generating rules...')
     rules = rule_factory.generate_rules(rule_filter)
+
+    if rule_filter is None:
+        print('Generating rule separators...')
+        rule_separators = rule_separator_factory.generate_rule_separators(rule_filter)
+    else:
+        print('Filter set. Skipping rule separators...')
 
     print('Generating aliases...')
     aliases = alias_factory.generate_aliases(rule_filter)
 
     alias_factory.output_aliases(aliases)
     rule_factory.output_rules(rules)
+    if rule_filter is None:
+        rule_separator_factory.output_rule_separators(rule_separators)
 
 
 if __name__ == '__main__':

@@ -60,6 +60,11 @@ EXAMPLES = """
 """
 
 RETURN = """
+commands:
+    description: the set of separators commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create rule_separator 'SSH', interface='lan', color='info'", "update rule_separator 'SSH' set color='warning'", "delete rule_separator 'SSH'"]
 """
 
 from ansible.module_utils.basic import AnsibleModule
