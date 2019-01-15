@@ -127,9 +127,8 @@ pfsenses:
   pf3:          {
     site: poc3,
     interfaces: {
-      lan: { ip: 192.168.3.1/24 },
-      lan_100: { ip: 172.16.3.1/24 },
-      vpn: { routed_networks: lan_data_all lan_voip_all},
+      bridge_lan: { ip: 192.168.3.1/24, routed_networks: lan_data_all, bridge: True },
+      bridge_lan_100: { ip: 172.16.3.1/24, routed_networks: lan_voip_all, bridge: True },
       wan: { routed_networks: 0.0.0.0/0 }
       }
     }
@@ -843,6 +842,7 @@ class PFSenseInterface(object):
         self.local_network = None
         self.routed_networks = []
         self.networks = []
+        self.bridge = False
 
 
 class PFSense(object):
@@ -1435,7 +1435,7 @@ class PFSenseDataChecker(object):
         """ Checking all pfsense interfaces definitions """
         ret = {}
         for iname, interface in pfsense['interfaces'].items():
-            # extracting & checking localt network
+            # extracting & checking local network
             local_ip = None
             local_network = None
             if 'ip' in interface:
@@ -1475,6 +1475,7 @@ class PFSenseDataChecker(object):
             obj.name = iname
             obj.local_ip = local_ip
             obj.local_network = local_network
+            obj.bridge = (interface.get('bridge'))
             obj.routed_networks.extend(routed_networks)
             obj.networks.extend(routed_networks)
             if local_network:
@@ -1833,6 +1834,22 @@ class PFSenseRuleFactory(object):
         # - remote to broadcast
         return []
 
+    def bridged_by_interfaces(self, routing_interfaces, dst):
+        """ if all the routing_interfaces are bridged and the destinations are on local bridges too
+            return the destination bridges """
+        for iface in routing_interfaces:
+            if not self._data.target.interfaces[iface].bridge:
+                return None
+
+        if self._data.target.name in dst.interfaces_src:
+            for iface in dst.interfaces_src[self._data.target.name]:
+                if not self._data.target.interfaces[iface].bridge:
+                    return None
+        else:
+            return None
+
+        return dst.interfaces_src[self._data.target.name]
+
     def rule_interfaces(self, rule_obj):
         """ Return interfaces list on which the rule is needed to be defined """
 
@@ -1853,25 +1870,33 @@ class PFSenseRuleFactory(object):
 
         # if source and dst are local, nothing to do
         if src_is_local and dst_is_local:
-            return []
+            return set()
 
         # if source and dst are not local, nothing to do
         # we may have to remove that to allow 2 remote networks to communicate threw us
         if not src_is_local and not dst_is_local:
-            return []
+            return set()
 
         # if the destination is unreachable
         if not dst_is_local and not rule_obj.dst[0].is_routed(self._data.target):
-            return []
+            return set()
 
-        target = rule_obj.src[0]
-        if self._data.target.name in target.interfaces_src:
-            for iface in target.interfaces_src[self._data.target.name]:
+        # we add all the interfaces the source can use to go out
+        if self._data.target.name in rule_obj.src[0].interfaces_src:
+            for iface in rule_obj.src[0].interfaces_src[self._data.target.name]:
                 interfaces.add(iface)
 
+        # we add interfaces the source can use to get in
         if not src_is_local:
-            interfaces.update(rule_obj.src[0].routed_by_interfaces(self._data.target))
-        return list(interfaces)
+            routing_interfaces = rule_obj.src[0].routed_by_interfaces(self._data.target)
+            # if the interfaces we would use are bridged, and the destinations are on local bridges too
+            # we declare the rule on the destination bridges since packets would come from there
+            bridge_interfaces = self.bridged_by_interfaces(routing_interfaces, rule_obj.dst[0])
+            if bridge_interfaces:
+                interfaces.update(bridge_interfaces)
+            else:
+                interfaces.update(routing_interfaces)
+        return interfaces
 
     @staticmethod
     def generate_rule(name, rule_obj, interfaces, last_name):
