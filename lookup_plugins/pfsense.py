@@ -10,7 +10,7 @@ DOCUMENTATION = """
 lookup: pfsense
 author: Frederic Bor (@f-bor)
 version_added: "2.8"
-short_description: Generate pfSense rules and aliases
+short_description: Generate pfSense aliases, rules and rule_separators
 description:
 - This lookup plugin is designed to be used with pfsense_aggregate module.
   It takes a yaml file and generate list of aliases and rules definitions.
@@ -53,11 +53,11 @@ RETURN = """
 """
 
 """
-To determine if a rule and corresponding alias has to be declared on a pfsense
+To determine if a rule and corresponding aliases has to be declared on a pfsense
 and on which interfaces, the plugin check if rule source or destination is
 matching any local or routed network on the pfsense. To avoid having every rule
 declared on a wan interface, 0.0.0.0/0 is considered as an internet only network,
-excluding any local network address. If a network is declared as
+excluding any private network address. If a network is declared as
 routed (accessible thru) on an interface and is also defined as the local network
 on an interface of the target pfsense, it is automaticly removed (it allows easy
 routing declaration).
@@ -141,7 +141,7 @@ rules:
       ping_from_poc3: { src: lan_poc3_all, dst: srv_admin, protocol: icmp }
 
   VOIP:
-    void_conf_tftp: { src: all_ipbx, dst: lan_voip_all, dst_port: 69, protocol: udp }
+    voip_conf_tftp: { src: all_ipbx, dst: lan_voip_all, dst_port: 69, protocol: udp }
 
   ACTIVE DIRECTORY:
     ads_to_ads_tcp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap port_ldap_ssl, protocol: tcp }
@@ -241,26 +241,26 @@ def static_vars(**kwargs):
     classA=ipaddress.IPv4Network((u"10.0.0.0", u"255.0.0.0")),
     classB=ipaddress.IPv4Network((u"172.16.0.0", u"255.240.0.0")),
     classC=ipaddress.IPv4Network((u"192.168.0.0", u"255.255.0.0")))
-def is_local_ip(address):
+def is_private_ip(address):
     """ check if ip address is class A, B or C """
     if not isinstance(address, ipaddress.IPv4Address):
         ip_address = ipaddress.ip_address(to_unicode(address))
     else:
         ip_address = address
-    return ip_address in is_local_ip.classA or ip_address in is_local_ip.classB or ip_address in is_local_ip.classC
+    return ip_address in is_private_ip.classA or ip_address in is_private_ip.classB or ip_address in is_private_ip.classC
 
 
 @static_vars(
     classA=ipaddress.IPv4Network((u"10.0.0.0", u"255.0.0.0")),
     classB=ipaddress.IPv4Network((u"172.16.0.0", u"255.240.0.0")),
     classC=ipaddress.IPv4Network((u"192.168.0.0", u"255.255.0.0")))
-def is_local_network(address):
+def is_private_network(address):
     """ check if network is class A, B or C """
     if not isinstance(address, ipaddress.IPv4Network):
         net = ipaddress.ip_network(to_unicode(address))
     else:
         net = address
-    return net.subnet_of(is_local_ip.classA) or net.subnet_of(is_local_ip.classB) or net.subnet_of(is_local_ip.classC)
+    return net.subnet_of(is_private_network.classA) or net.subnet_of(is_private_network.classB) or net.subnet_of(is_private_network.classC)
 
 
 @static_vars(ip_broadcast=ipaddress.IPv4Address((u"255.255.255.255")))
@@ -318,26 +318,8 @@ def cleanup_def_name(name):
     return name.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
 
 
-def cross_str(tab, rule, field, out_field=None):
-    """ Return cartesian cross between rule[field] and tab as strings """
-    if field not in rule:
-        return tab
-    if not out_field:
-        out_field = field
-    out = []
-    for new_val in rule[field].split(' '):
-        for existing_val in tab:
-            if not existing_val:
-                result = out_field + ": \"" + new_val + "\""
-            else:
-                result = existing_val + ", " + out_field + ": \"" + new_val + "\""
-            out.append(result)
-
-    return out
-
-
-def cross_dict(tab, rule, field, out_field=None):
-    """ Return cartesian cross between rule[field] and tab as dicts """
+def rule_product_dict(tab, rule, field, out_field=None):
+    """ Return cartesian product between rule[field] and tab as dicts """
     if field not in rule:
         return tab
     if not out_field:
@@ -352,8 +334,8 @@ def cross_dict(tab, rule, field, out_field=None):
     return out
 
 
-def cross_ports(rule, field, field_port):
-    """ Return cartesian cross between rule[field] and field_port as string """
+def rule_product_ports(rule, field, field_port):
+    """ Return cartesian product between rule[field] and field_port as string """
     if field_port not in rule:
         return rule[field]
 
@@ -390,9 +372,11 @@ class PFSenseHostAlias(object):
         self.fake_alias_ip = False
         self.fake_alias_network = False
 
-        # define all interfaces on which the alias is to be defined
+        # define all interfaces on which the alias may be defined
         # interfaces['gw_poc1_1'] = ['lan', 'obs']
         self.interfaces = {}
+
+        # define all interfaces on which the alias may be defined as a source
         self.interfaces_src = {}
 
     def compute_any(self, data):
@@ -449,20 +433,20 @@ class PFSenseHostAlias(object):
         for alias_ip in self.ips:
             if is_ip_broadcast(alias_ip):
                 return True
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             snet = interface.local_network
             # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-            local_net = is_local_network(snet)
-            if local_ip and local_net or not local_ip and not local_net:
+            private_net = is_private_network(snet)
+            if private_ip and private_net or not private_ip and not private_net:
                 return alias_ip in snet
             return False
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             snet = interface.local_network
             # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-            local_net = is_local_network(snet)
-            if local_neta and local_net or not local_neta and not local_net:
+            private_net = is_private_network(snet)
+            if private_alias and private_net or not private_alias and not private_net:
                 return alias_net.subnet_of(snet)
         return False
 
@@ -471,54 +455,54 @@ class PFSenseHostAlias(object):
         for alias_ip in self.ips:
             if is_ip_broadcast(alias_ip):
                 return True
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             for snet in interface.routed_networks:
                 # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                local_net = is_local_network(snet)
-                if local_ip and local_net or not local_ip and not local_net:
+                private_net = is_private_network(snet)
+                if private_ip and private_net or not private_ip and not private_net:
                     if alias_ip in snet:
                         return True
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             for snet in interface.routed_networks:
                 # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                local_net = is_local_network(snet)
-                if local_neta and local_net or not local_neta and not local_net:
+                private_net = is_private_network(snet)
+                if private_alias and private_net or not private_alias and not private_net:
                     if alias_net.subnet_of(snet):
                         return True
         return False
 
     def match_interface(self, interface, src=True):
-        """ check if an singleton alias match the src or dst networks of an interface """
+        """ check if an alias match the src or dst networks of an interface """
         if src:
             return self.match_interface_src(interface)
         return self.match_interface_dst(interface)
 
     def compute_interfaces(self, data):
-        """ Find all interfaces on all pfsense where the alias can be used """
+        """ Find all interfaces on all pfsense where the alias may be used """
         interfaces = {}
         for alias_ip in self.ips:
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             for pfsense in data.pfsenses_obj.values():
                 for interface in pfsense.interfaces.values():
                     for snet in interface.networks:
                         # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                        local_net = is_local_network(snet)
-                        if local_ip and local_net or not local_ip and not local_net:
+                        private_net = is_private_network(snet)
+                        if private_ip and private_net or not private_ip and not private_net:
                             if alias_ip in snet:
                                 if pfsense.name not in interfaces:
                                     interfaces[pfsense.name] = []
                                 interfaces[pfsense.name].append(interface.name)
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             for pfsense in data.pfsenses_obj.values():
                 for interface in pfsense.interfaces.values():
                     for snet in interface.networks:
                         # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                        local_net = is_local_network(snet)
-                        if local_neta and local_net or not local_neta and not local_net:
+                        private_net = is_private_network(snet)
+                        if private_alias and private_net or not private_alias and not private_net:
                             if alias_net.subnet_of(snet):
                                 if pfsense.name not in interfaces:
                                     interfaces[pfsense.name] = []
@@ -526,35 +510,35 @@ class PFSenseHostAlias(object):
 
         for key, value in interfaces.items():
             # print(key + ' -> ' + json.dumps(value))
-            self.interfaces[key] = list(set(value))
+            self.interfaces[key] = set(value)
 
         # print(self.name + ' -> ' + json.dumps(self.interfaces))
 
     def compute_interfaces_src(self, data):
-        """ Find all interfaces on all pfsense where the alias can be used """
+        """ Find all interfaces on all pfsense where the alias may be used as a source """
         interfaces = {}
         for alias_ip in self.ips:
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             for pfsense in data.pfsenses_obj.values():
                 for interface in pfsense.interfaces.values():
                     if interface.local_network:
                         snet = interface.local_network
                         # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                        local_net = is_local_network(snet)
-                        if local_ip and local_net or not local_ip and not local_net:
+                        private_net = is_private_network(snet)
+                        if private_ip and private_net or not private_ip and not private_net:
                             if alias_ip in snet:
                                 if pfsense.name not in interfaces:
                                     interfaces[pfsense.name] = []
                                 interfaces[pfsense.name].append(interface.name)
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             for pfsense in data.pfsenses_obj.values():
                 for interface in pfsense.interfaces.values():
                     for snet in interface.networks:
                         # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                        local_net = is_local_network(snet)
-                        if local_neta and local_net or not local_neta and not local_net:
+                        private_net = is_private_network(snet)
+                        if private_alias and private_net or not private_alias and not private_net:
                             if alias_net.subnet_of(snet):
                                 if pfsense.name not in interfaces:
                                     interfaces[pfsense.name] = []
@@ -562,7 +546,7 @@ class PFSenseHostAlias(object):
 
         for key, value in interfaces.items():
             # print(key + ' -> ' + json.dumps(value))
-            self.interfaces_src[key] = list(set(value))
+            self.interfaces_src[key] = set(value)
 
         # print(self.name + ' iface_src -> ' + json.dumps(self.interfaces_src))
 
@@ -572,28 +556,28 @@ class PFSenseHostAlias(object):
             if is_ip_broadcast(alias_ip):
                 continue
 
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
                 if interface.local_network:
                     snet = interface.local_network
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_ip and local_net or not local_ip and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_ip and private_net or not private_ip and not private_net:
                         if alias_ip in snet:
                             found = True
             if not found:
                 return False
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             found = False
             for interface in pfsense.interfaces.values():
                 if interface.local_network:
                     snet = interface.local_network
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_net.exploded + ' ' + str(alias_net.subnet_of(snet)))
-                    local_net = is_local_network(snet)
-                    if local_neta and local_net or not local_neta and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_alias and private_net or not private_alias and not private_net:
                         if alias_net.subnet_of(snet):
                             found = True
             if not found:
@@ -609,11 +593,11 @@ class PFSenseHostAlias(object):
             # we must found a routing network for each ip
             found = False
             for alias_ip in self.ips:
-                local_ip = is_local_ip(alias_ip)
+                private_ip = is_private_ip(alias_ip)
                 for snet in interface.routed_networks:
-                    local_net = is_local_network(snet)
+                    private_net = is_private_network(snet)
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    if local_ip and local_net or not local_ip and not local_net:
+                    if private_ip and private_net or not private_ip and not private_net:
                         if alias_ip in snet:
                             found = True
                 if not found:
@@ -623,11 +607,11 @@ class PFSenseHostAlias(object):
             # we must found a routing network for each network
             found = False
             for alias_net in self.networks:
-                local_neta = is_local_network(alias_net)
+                private_alias = is_private_network(alias_net)
                 for snet in interface.routed_networks:
-                    local_net = is_local_network(snet)
+                    private_net = is_private_network(snet)
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_net.exploded + ' ' + str(alias_net.subnet_of(snet)))
-                    if local_neta and local_net or not local_neta and not local_net:
+                    if private_alias and private_net or not private_alias and not private_net:
                         if alias_net.subnet_of(snet):
                             found = True
                 if not found:
@@ -640,26 +624,26 @@ class PFSenseHostAlias(object):
     def is_routed(self, pfsense):
         """ check if all ips/networks match a routed network in pfense """
         for alias_ip in self.ips:
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
                 for snet in interface.routed_networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_ip and local_net or not local_ip and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_ip and private_net or not private_ip and not private_net:
                         if alias_ip in snet:
                             found = True
             if not found:
                 return False
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             found = False
             for interface in pfsense.interfaces.values():
                 for snet in interface.routed_networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_net.exploded + ' ' + str(alias_net.subnet_of(snet)))
-                    local_net = is_local_network(snet)
-                    if local_neta and local_net or not local_neta and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_alias and private_net or not private_alias and not private_net:
                         if alias_net.subnet_of(snet):
                             found = True
             if not found:
@@ -678,26 +662,26 @@ class PFSenseHostAlias(object):
         for alias_ip in self.ips:
             if is_ip_broadcast(alias_ip):
                 return False
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
                 for snet in interface.networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_ip and local_net or not local_ip and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_ip and private_net or not private_ip and not private_net:
                         if alias_ip in snet:
                             found = True
             if not found:
                 return False
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             found = False
             for interface in pfsense.interfaces.values():
                 for snet in interface.networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_net.exploded + ' ' + str(alias_net.subnet_of(snet)))
-                    local_net = is_local_network(snet)
-                    if local_neta and local_net or not local_neta and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_alias and private_net or not private_alias and not private_net:
                         if alias_net.subnet_of(snet):
                             found = True
             if not found:
@@ -710,26 +694,26 @@ class PFSenseHostAlias(object):
         for alias_ip in self.ips:
             if is_ip_broadcast(alias_ip):
                 return False
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             found = False
             for interface in pfsense.interfaces.values():
                 for snet in interface.networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_ip and local_net or not local_ip and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_ip and private_net or not private_ip and not private_net:
                         if alias_ip in snet:
                             found = True
             if found:
                 return False
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             found = False
             for interface in pfsense.interfaces.values():
                 for snet in interface.networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_neta and local_net or not local_neta and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_alias and private_net or not private_alias and not private_net:
                         if alias_net.subnet_of(snet):
                             found = True
             if found:
@@ -741,13 +725,13 @@ class PFSenseHostAlias(object):
         """ check if all ips/networks have the same interfaces in pfense """
         target_interfaces = None
         for alias_ip in self.ips:
-            local_ip = is_local_ip(alias_ip)
+            private_ip = is_private_ip(alias_ip)
             interfaces = set()
             for interface in pfsense.interfaces.values():
                 for snet in interface.networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_ip and local_net or not local_ip and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_ip and private_net or not private_ip and not private_net:
                         if alias_ip in snet:
                             interfaces.add(interface.name)
             if not target_interfaces:
@@ -756,13 +740,13 @@ class PFSenseHostAlias(object):
                 return False
 
         for alias_net in self.networks:
-            local_neta = is_local_network(alias_net)
+            private_alias = is_private_network(alias_net)
             interfaces = set()
             for interface in pfsense.interfaces.values():
                 for snet in interface.networks:
                     # print(interface.name + ' ' + snet.exploded + ' -> ' + alias_ip.exploded + ' ' + str(alias_ip in snet))
-                    local_net = is_local_network(snet)
-                    if local_neta and local_net or not local_neta and not local_net:
+                    private_net = is_private_network(snet)
+                    if private_alias and private_net or not private_alias and not private_net:
                         if alias_net.subnet_of(snet):
                             interfaces.add(interface.name)
             if not target_interfaces:
@@ -861,29 +845,6 @@ class PFSense(object):
         for interface in self.interfaces.values():
             if interface.local_network:
                 self.local_networks.append(interface.local_network)
-
-    def is_local_ip(self, address):
-        """ Check if address belong to our local networks """
-        try:
-            host_ip = ipaddress.ip_address(to_unicode(address))
-            if not is_local_ip(host_ip):
-                return False
-            for snet in self.local_networks:
-                if host_ip in snet:
-                    return True
-        except ValueError:
-            pass
-
-        try:
-            net = ipaddress.ip_network(to_unicode(address))
-            if not is_local_network(net):
-                return False
-            for snet in self.local_networks:
-                if net.subnet_of(snet):
-                    return True
-        except ValueError:
-            pass
-        return False
 
 
 class PFSenseData(object):
@@ -1917,12 +1878,12 @@ class PFSenseRuleFactory(object):
         if rule_obj.protocol:
             rule['protocol'] = ' '.join(rule_obj.protocol)
 
-        rule['src'] = cross_ports(rule, 'src', 'src_port')
-        rule['dst'] = cross_ports(rule, 'dst', 'dst_port')
+        rule['src'] = rule_product_ports(rule, 'src', 'src_port')
+        rule['dst'] = rule_product_ports(rule, 'dst', 'dst_port')
 
-        base = cross_dict(base, rule, 'src', 'source')
-        base = cross_dict(base, rule, 'dst', 'destination')
-        base = cross_dict(base, rule, 'protocol')
+        base = rule_product_dict(base, rule, 'src', 'source')
+        base = rule_product_dict(base, rule, 'dst', 'destination')
+        base = rule_product_dict(base, rule, 'protocol')
 
         for interface in rule_obj.interfaces:
             if len(base) == 1:
