@@ -343,24 +343,19 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
     ##################
     # public methods
     #
-    def _rule_element_to_dict(self, rule_elt):
+    @staticmethod
+    def _rule_element_to_dict(rule_elt):
         """ convert rule_elt to dictionary like module arguments """
-        rule = self.pfsense.element_to_dict(rule_elt)
+        rule = PFSenseModule.element_to_dict(rule_elt)
 
         # We use 'name' for 'descr'
         rule['name'] = rule.pop('descr', 'UNKNOWN')
+        # We use 'action' for 'type'
+        rule['action'] = rule.pop('type', 'UNKNOWN')
 
         # Convert addresses to argument format
         for addr_item in ['source', 'destination']:
-            elt = rule_elt.find(addr_item)
-            if elt is not None:
-                rule[addr_item] = self.pfsense.addr_normalize(self.pfsense.element_to_dict(elt))
-        # Convert nested elements to dicts
-        for other_item in ['created', 'updated']:
-            elt = rule_elt.find(other_item)
-            if elt is not None:
-                rule[other_item] = self.pfsense.element_to_dict(elt)
-        rule['action'] = rule.pop('type', 'UNKNOWN')
+            rule[addr_item] = PFSenseModule.addr_normalize(rule[addr_item])
 
         return rule
 
