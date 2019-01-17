@@ -393,8 +393,15 @@ if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
                 changed = True
 
             if changed:
-                rule_elt.find('updated').find('time').text = timestamp
-                rule_elt.find('updated').find('username').text = self.pfsense.get_username()
+                updated_elt = rule_elt.find('updated')
+                if updated_elt is None:
+                    updated_elt = self.pfsense.new_element('updated')
+                    updated_elt.append(self.pfsense.new_element('time', timestamp))
+                    updated_elt.append(self.pfsense.new_element('username', self.pfsense.get_username()))
+                    rule_elt.append(updated_elt)
+                else:
+                    updated_elt.find('time').text = timestamp
+                    updated_elt.find('username').text = self.pfsense.get_username()
                 self.diff['after'].update(self._rule_element_to_dict(rule_elt))
                 self.results['modified'].append(self._rule_element_to_dict(rule_elt))
                 self.change_descr = 'ansible pfsense_rule updated "%s" interface %s action %s' % (rule['descr'], rule['interface'], rule['type'])
