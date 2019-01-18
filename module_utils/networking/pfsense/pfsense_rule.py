@@ -97,7 +97,7 @@ class PFSenseRuleModule(object):
             # Remove unmanaged elements
             for unwanted in RULES_UNMANAGED_ELEMENTS:
                 this_rule.pop(unwanted, None)
-            if cmp(this_rule, match_rule) == 0:
+            if this_rule == match_rule:
                 return (rule_elt, i)
             i += 1
 

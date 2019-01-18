@@ -130,7 +130,7 @@ class PFSenseModule(object):
         return None
 
     @staticmethod
-    def new_element(tag, tex='\n\t\t\t'):
+    def new_element(tag, text='\n\t\t\t'):
         """ Create and return new XML configuration element  """
         elt = ET.Element(tag)
         # Attempt to preserve some of the formatting of pfSense's config.xml
@@ -210,7 +210,8 @@ class PFSenseModule(object):
         for elt in list(src_elt):
             if list(elt):
                 res[elt.tag] = PFSenseModule.element_to_dict(elt)
-            res[elt.tag] = elt.text if elt.text is not None else ''
+            else:
+                res[elt.tag] = elt.text if elt.text is not None else ''
         return res
 
     def get_caref(self, name):
