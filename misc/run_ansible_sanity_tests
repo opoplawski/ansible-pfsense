@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ -z "${ANSIBLE_HOME}" ]
+then
+    echo "ANSIBLE_HOME is undefined. Go into ansible directory and run 'source hacking/env-setup'"
+    exit 1
+fi
+
+mkdir -p ./lib/ansible/module_utils/
+mkdir -p ./lib/ansible/modules/networking/
+ln -s module_utils/networking ./lib/ansible/module_utils/networking
+ln -s library ./lib/ansible/modules/networking/pfsense
+
+TO_CHECK='lib/ansible/modules/networking/pfsense/ lib/ansible/module_utils/networking/pfsense/ lib/ansible/plugins/lookup/pfsense.py test/units/modules/networking/pfsense/'
+
+ansible-test sanity --python 3.5 --skip-test symlinks ${TO_CHECK}
+ansible-test sanity --python 2.7 --skip-test symlinks ${TO_CHECK}
+
+rm -f ./lib/ansible/module_utils/networking ./lib/ansible/modules/networking/pfsense
+rmdir lib/ansible/module_utils/
+rmdir -p lib/ansible/modules/networking/

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ -z "${ANSIBLE_HOME}" ]
+then
+    echo "ANSIBLE_HOME is undefined. Go into ansible directory and run 'source hacking/env-setup'"
+    exit 1
+fi
+
+rm -f test/units/compat test/units/modules/utils.py test/units/modules/utils.pyc test/units/module_utils test/units/__init__.py test/units/__init__.pyc test/units/modules/__init__.py test/units/modules/__init__.pyc
+
+ln -s ${ANSIBLE_HOME}/test/units/compat test/units/compat
+ln -s ${ANSIBLE_HOME}/test/units/modules/utils.py test/units/modules/utils.py
+ln -s ${ANSIBLE_HOME}/test/units/module_utils test/units/module_utils
+
+touch test/units/__init__.py
+touch test/units/modules/__init__.py
+
