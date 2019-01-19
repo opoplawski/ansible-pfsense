@@ -741,6 +741,7 @@ class PFSense(object):
         res.update(self.interfaces_local_network_contains(address))
         return res
 
+
 class PFSenseData(object):
     """ Class holding all data """
 
@@ -1635,7 +1636,8 @@ class PFSenseRuleFactory(object):
             else:
                 interfaces.update(routing_interfaces)
         if not interfaces:
-            raise AssertionError('Invalid sub-rule interfaces count ({0}), src={1}, dst={2}'.format(len(interfaces), rule_obj.src[0].name, rule_obj.dst[0].name))
+            msg = 'Invalid sub-rule interfaces count ({0}), src={1}, dst={2}'.format(len(interfaces), rule_obj.src[0].name, rule_obj.dst[0].name)
+            raise AssertionError(msg)
         return interfaces
 
     @staticmethod

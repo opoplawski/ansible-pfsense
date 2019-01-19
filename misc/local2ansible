@@ -6,8 +6,17 @@ then
     exit 1
 fi
 
+mkdir -p ${ANSIBLE_HOME}/test/units/modules/networking/pfsense/fixtures
+mkdir -p ${ANSIBLE_HOME}/lib/ansible/module_utils/networking/pfsense
+mkdir -p ${ANSIBLE_HOME}/lib/ansible/modules/networking/pfsense
+
+
 cp test/units/modules/networking/pfsense/*.py ${ANSIBLE_HOME}/test/units/modules/networking/pfsense/
 cp test/units/modules/networking/pfsense/fixtures/*.xml ${ANSIBLE_HOME}/test/units/modules/networking/pfsense/fixtures/
 cp module_utils/networking/pfsense/*.py ${ANSIBLE_HOME}/lib/ansible/module_utils/networking/pfsense/
 cp library/*.py ${ANSIBLE_HOME}/lib/ansible/modules/networking/pfsense/
+cp lookup_plugins/pfsense.py ${ANSIBLE_HOME}/lib/ansible/plugins/lookup/pfsense.py
 
+touch ${ANSIBLE_HOME}/lib/ansible/module_utils/networking/__init__.py
+touch ${ANSIBLE_HOME}/lib/ansible/modules/networking/__init__.py
+touch ${ANSIBLE_HOME}/lib/ansible/modules/networking/pfsense/__init__.py
