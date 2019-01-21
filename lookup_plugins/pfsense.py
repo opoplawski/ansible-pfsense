@@ -1515,9 +1515,10 @@ class PFSenseAliasFactory(object):
 class PFSenseRuleFactory(object):
     """ Class generating rules definitions """
 
-    def __init__(self, data):
+    def __init__(self, data, display_warnings=True):
         self._data = data
         self._decomposer = PFSenseRuleDecomposer(data)
+        self._display_warnings = display_warnings
 
     def rule_interfaces_any(self, rule_obj):
         """ Return interfaces set on which the rule is needed to be defined
@@ -1619,6 +1620,16 @@ class PFSenseRuleFactory(object):
 
         # if the destination is unreachable
         if not dst_is_local and not rule_obj.dst[0].is_routed(self._data.target):
+            if self._display_warnings:
+                display.warning('Destination {0} is not accessible from this pfSense. Please add the right routed network if it''s not an error'
+                                .format(rule_obj.dst[0].name))
+            return set()
+
+        # if the source is unreachable
+        if not src_is_local and not rule_obj.src[0].is_routed(self._data.target):
+            if self._display_warnings:
+                display.warning('Source {0} can not access to this pfSense. Please add the right routed network if it''s not an error'
+                                .format(rule_obj.src[0].name))
             return set()
 
         # we add all the interfaces the source can use to go out
@@ -1854,7 +1865,7 @@ class LookupModule(LookupBase):
             raise AnsibleError("Error checking pfsense data")
 
         alias_factory = PFSenseAliasFactory(data)
-        rule_factory = PFSenseRuleFactory(data)
+        rule_factory = PFSenseRuleFactory(data, display_warnings=(terms[1] == 'rules'))
         rule_separator_factory = PFSenseRuleSeparatorFactory(data)
 
         rules = rule_factory.generate_rules()
