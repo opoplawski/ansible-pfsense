@@ -1611,6 +1611,13 @@ class PFSenseRuleFactory(object):
         if src_is_local and dst_is_local:
             if len(rule_obj.src[0].local_interfaces[self._data.target.name]) != 1:
                 raise AssertionError('Invalid local interfaces count: {0}'.format(len(rule_obj.src[0].local_interfaces[self._data.target.name])))
+            if len(rule_obj.dst[0].local_interfaces[self._data.target.name]) != 1:
+                raise AssertionError('Invalid local interfaces count: {0}'.format(len(rule_obj.dst[0].local_interfaces[self._data.target.name])))
+            # if they are both on the same interface, we return nothing, unless the interface is a bridge
+            src_interface = ''.join(rule_obj.src[0].local_interfaces[self._data.target.name])
+            dst_interface = ''.join(rule_obj.dst[0].local_interfaces[self._data.target.name])
+            if src_interface == dst_interface and not self._data.target.interfaces[src_interface].bridge:
+                return set()
             return rule_obj.src[0].local_interfaces[self._data.target.name]
 
         # if source and dst are not local, nothing to do
@@ -1621,14 +1628,14 @@ class PFSenseRuleFactory(object):
         # if the destination is unreachable
         if not dst_is_local and not rule_obj.dst[0].is_routed(self._data.target):
             if self._display_warnings:
-                display.warning('Destination {0} is not accessible from this pfSense. Please add the right routed network if it''s not an error'
+                display.warning('Destination {0} is not accessible from this pfSense. Please add the right routed network if it\'s not an error'
                                 .format(rule_obj.dst[0].name))
             return set()
 
         # if the source is unreachable
         if not src_is_local and not rule_obj.src[0].is_routed(self._data.target):
             if self._display_warnings:
-                display.warning('Source {0} can not access to this pfSense. Please add the right routed network if it''s not an error'
+                display.warning('Source {0} can not access to this pfSense. Please add the right routed network if it\'s not an error'
                                 .format(rule_obj.src[0].name))
             return set()
 
