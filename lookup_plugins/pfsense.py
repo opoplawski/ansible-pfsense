@@ -1695,17 +1695,17 @@ class PFSenseRuleFactory(object):
             return rule_obj.src[0].local_interfaces[self._data.target.name]
 
         # if the destination is unreachable
-        if not dst_is_local and not rule_obj.dst[0].is_adjacent_or_routed(self._data.target):
+        if not dst_is_local and src_is_local and not rule_obj.dst[0].is_adjacent_or_routed(self._data.target):
             if self._display_warnings:
-                display.warning('Destination {0} is not accessible from this pfSense. Please add the right routed network if it\'s not an error'
-                                .format(rule_obj.dst[0].name))
+                display.warning('Destination {0} is not accessible from this pfSense for {1}. Please add the right routed network if it\'s not an error'
+                                .format(rule_obj.dst[0].name, rule_obj.name))
             return set()
 
         # if the source is unreachable
-        if not src_is_local and not rule_obj.src[0].is_adjacent_or_routed(self._data.target):
+        if not src_is_local and dst_is_local and not rule_obj.src[0].is_adjacent_or_routed(self._data.target):
             if self._display_warnings:
-                display.warning('Source {0} can not access to this pfSense. Please add the right routed network if it\'s not an error'
-                                .format(rule_obj.src[0].name))
+                display.warning('Source {0} can not access to this pfSense for {1}. Please add the right routed network if it\'s not an error'
+                                .format(rule_obj.src[0].name, rule_obj.name))
             return set()
 
         # we add all the interfaces the source can use to go out
@@ -1730,7 +1730,7 @@ class PFSenseRuleFactory(object):
             else:
                 interfaces.update(routing_interfaces)
 
-        if not interfaces:
+        if not interfaces and (src_is_local or dst_is_local):
             msg = 'Invalid sub-rule interfaces count ({0}), src={1}, dst={2}'.format(len(interfaces), rule_obj.src[0].name, rule_obj.dst[0].name)
             raise AssertionError(msg)
         return interfaces
