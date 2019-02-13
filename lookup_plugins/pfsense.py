@@ -464,11 +464,11 @@ class PFSenseHostAlias(object):
         for pfsense in data.pfsenses_obj.values():
             self.local_interfaces[pfsense.name] = set()
             for alias_ip in self.ips:
-                interfaces = pfsense.interfaces_local_network_contains(alias_ip)
+                interfaces = pfsense.interfaces_local_networks_contains(alias_ip)
                 self.local_interfaces[pfsense.name].update(interfaces)
 
             for alias_net in self.networks:
-                interfaces = pfsense.interfaces_local_network_contains(alias_net)
+                interfaces = pfsense.interfaces_local_networks_contains(alias_net)
                 self.local_interfaces[pfsense.name].update(interfaces)
 
     def is_whole_local(self, pfsense):
@@ -554,22 +554,44 @@ class PFSenseHostAlias(object):
 
         return True
 
-    def is_whole_in_same_ifaces(self, pfsense):
+    def is_whole_in_same_routing_ifaces(self, pfsense):
         """ check if all ips/networks have the same interfaces in pfense """
-        target_interfaces = None
+
+        # first, we check remote networks
+        target_ar_interfaces = None
         for alias_ip in self.ips:
-            interfaces = pfsense.interfaces_networks_contain(alias_ip)
-            if not target_interfaces:
-                target_interfaces = interfaces
-            elif target_interfaces ^ interfaces:
+            interfaces = pfsense.interfaces_adjacent_or_routed_networks_contains(alias_ip)
+            if not target_ar_interfaces:
+                target_ar_interfaces = interfaces
+            elif target_ar_interfaces ^ interfaces:
                 return False
 
         for alias_net in self.networks:
-            interfaces = pfsense.interfaces_networks_contain(alias_net)
-            if not target_interfaces:
-                target_interfaces = interfaces
-            elif target_interfaces ^ interfaces:
+            interfaces = pfsense.interfaces_adjacent_or_routed_networks_contains(alias_net)
+            if not target_ar_interfaces:
+                target_ar_interfaces = interfaces
+            elif target_ar_interfaces ^ interfaces:
                 return False
+
+        # then, local networks
+        target_local_interfaces = None
+        for alias_ip in self.ips:
+            interfaces = pfsense.interfaces_local_networks_contains(alias_ip)
+            if not target_local_interfaces:
+                target_local_interfaces = interfaces
+            elif target_local_interfaces ^ interfaces:
+                return False
+
+        for alias_net in self.networks:
+            interfaces = pfsense.interfaces_local_networks_contains(alias_net)
+            if not target_local_interfaces:
+                target_local_interfaces = interfaces
+            elif target_local_interfaces ^ interfaces:
+                return False
+
+        # if we are on local and remote, split
+        if target_local_interfaces and target_ar_interfaces:
+            return False
 
         return True
 
@@ -724,7 +746,7 @@ class PFSense(object):
 
     def any_local_network_contains(self, address):
         """ return true if address is in the local network of any interface """
-        return len(self.interfaces_local_network_contains(address)) != 0
+        return len(self.interfaces_local_networks_contains(address)) != 0
 
     def any_network_contains(self, address):
         """ return true if address is in the local or routed networks of any interface """
@@ -761,7 +783,7 @@ class PFSense(object):
             raise AssertionError('wrong type in _interfaces_network_contains:' + type(address))
         return res
 
-    def interfaces_local_network_contains(self, address):
+    def interfaces_local_networks_contains(self, address):
         """ return interfaces names where address is in the interface local network  """
         return self._interfaces_network_contains(address, 'local_network')
 
@@ -773,10 +795,10 @@ class PFSense(object):
         """ return interfaces names where address is in the interface adjacent networks  """
         return self._interfaces_network_contains(address, 'adjacent_networks')
 
-    def interfaces_networks_contain(self, address):
+    def interfaces_adjacent_or_routed_networks_contains(self, address):
         """ return interfaces names where address are in the interface local or routed networks """
         res = self.interfaces_routed_networks_contains(address)
-        res.update(self.interfaces_local_network_contains(address))
+        res.update(self.interfaces_adjacent_networks_contains(address))
         return res
 
 
@@ -1216,33 +1238,29 @@ class PFSenseDataParser(object):
         """ Checking all interfaces networks between them """
         for src_name, src in interfaces.items():
             for dst_name, dst in interfaces.items():
-                if src_name == dst_name:
-                    continue
-                if not src.local_network:
-                    continue
-
-                if dst.local_network and src.local_network.overlaps(dst.local_network):
+                if src_name != dst_name and dst.local_network and src.local_network.overlaps(dst.local_network):
                     self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
                     return False
 
                 # we remove the local networks from the routed_networks of other interfaces
-                todo = dst.routed_networks
-                dst.routed_networks = set()
-                while todo:
-                    network = todo.pop()
-                    if network.prefixlen == 0:
-                        dst.routed_networks.add(network)
-                    elif network.compare_networks(src.local_network) == 0:
-                        pass
-                    elif src.local_network.subnet_of(network):
-                        new_networks = set(network.address_exclude(src.local_network))
-                        todo.update(new_networks)
-                    elif network.overlaps(src.local_network):
-                        self._data.set_error("Local network of " + src_name + " overlaps with routed network "
-                                             + network.exploded + " of " + dst_name + " in " + name)
-                        return False
-                    else:
-                        dst.routed_networks.add(network)
+                if src.local_network:
+                    todo = dst.routed_networks
+                    dst.routed_networks = set()
+                    while todo:
+                        network = todo.pop()
+                        if network.prefixlen == 0:
+                            dst.routed_networks.add(network)
+                        elif network.compare_networks(src.local_network) == 0:
+                            pass
+                        elif src.local_network.subnet_of(network):
+                            new_networks = set(network.address_exclude(src.local_network))
+                            todo.update(new_networks)
+                        elif network.overlaps(src.local_network):
+                            self._data.set_error("Local network of " + src_name + " overlaps with routed network "
+                                                 + network.exploded + " of " + dst_name + " in " + name)
+                            return False
+                        else:
+                            dst.routed_networks.add(network)
 
                 # we remove the adjacent networks from the routed_networks of other interfaces
                 todo = dst.routed_networks
@@ -1428,7 +1446,7 @@ class PFSenseRuleDecomposer(object):
         where there is a local and remote network/ip is the host
         host is expanded to sub-aliases if required """
         ret = []
-        if host.is_whole_in_same_ifaces(self._data.target):
+        if host.is_whole_in_same_routing_ifaces(self._data.target):
             ret.append(host)
         else:
             alias = self._data.all_aliases[host.name]
