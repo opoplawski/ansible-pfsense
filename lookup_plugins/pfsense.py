@@ -73,6 +73,11 @@ Rule separators name are taken from parent rules' groups (see 'ADMIN', 'VOIP',
 'MISC' or 'ACTIVE DIRECTORY' in the example below). Nested groups generate separators
 names in the form 'GROUP1 - GROUP2 - ...'
 
+You can define a default value for all rules and subrules of a separator using
+the name 'options'. The parameters supported this way are log, queue, ackqueue,
+in_queue and out_queue. You can override those default values setting other values
+on a deeper options set or inside the rule definition.
+
 The yaml file must include the following definitions to describe the network topology:
 - pfsenses
 - rules
@@ -127,6 +132,8 @@ pfsenses:
     }
 
 rules:
+  options: { log: yes }
+
   ADMIN:
     antilock_out: { src: any, dst: any, protocol: tcp, dst_port: port_ssh port_http 443 }
     admin_bypass: { src: srv_admin, dst: any }
@@ -141,6 +148,7 @@ rules:
     ads_to_ads_udp: { src: all_ads, dst: all_ads, dst_port: port_dns port_ldap, protocol: udp }
 
   DNS:
+    options: { log: no }
     any_to_local_dns: {src: any, dst: all_ads, dst_port: port_dns, protocol: udp }
 
 hosts_aliases:
@@ -193,6 +201,7 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
+OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
 
 try:
     from __main__ import display
@@ -576,11 +585,22 @@ class PFSenseRule(object):
         self.dst_port = []
         self.protocol = []
         self.action = "pass"
-        self.log = "yes"
+        self.options = dict()
 
         self.sub_rules = []
         self.interfaces = None
         self.generated_names = {}
+
+    def get_option(self, name):
+        """ return option value for name """
+        if name in self.options:
+            return self.options[name]
+        separator = self.separator
+        while separator is not None:
+            if separator.options is not None and name in separator.options:
+                return separator.options[name]
+            separator = separator.parent
+        return None
 
     def to_json(self):
         """ return JSON String containing rule """
@@ -606,8 +626,10 @@ class PFSenseRule(object):
         if self.action != "pass":
             res += ", action: " + " ".join(self.action)
 
-        if self.log != "yes":
-            res += ", log: " + " ".join(self.log)
+        for field in OPTION_FIELDS:
+            value = self.get_option(field)
+            if value is not None:
+                res += ', {0}: {1}'.format(field, value)
 
         res += " }"
         return res
@@ -618,6 +640,8 @@ class PFSenseRuleSeparator(object):
     def __init__(self):
         self.name = None
         self.interface = None
+        self.parent = None
+        self.options = None
 
     def __hash__(self):
         return hash(self.name + self.interface)
@@ -764,6 +788,7 @@ class PFSenseData(object):
         self._ports_aliases = ports_aliases
         self._pfsenses = pfsenses
         self._rules = rules
+        self._rules_separators = list()
         self._target_name = target_name
         self._rules_obj = OrderedDict()
         self._pfsenses_obj = {}
@@ -813,6 +838,11 @@ class PFSenseData(object):
     def rules(self):
         """ rules getter """
         return self._rules
+
+    @property
+    def rules_separators(self):
+        """ rules_separators getter """
+        return self._rules_separators
 
     @property
     def target_name(self):
@@ -1050,11 +1080,11 @@ class PFSenseDataParser(object):
 
         return obj
 
-    def create_obj_rule_from_def(self, name, rule, separator_name):
+    def create_obj_rule_from_def(self, name, rule, separator):
         """ Create a PFSenseRule object from yaml definition """
         obj = PFSenseRule()
         obj.name = name
-        obj.separator = separator_name
+        obj.separator = separator
 
         if 'src_port' in rule:
             if not isinstance(rule['src_port'], str):
@@ -1074,8 +1104,9 @@ class PFSenseDataParser(object):
         if 'action' in rule:
             obj.action = rule['action']
 
-        if 'log' in rule:
-            obj.log = rule['log']
+        for field in OPTION_FIELDS:
+            if field in rule:
+                obj.options[field] = rule[field]
 
         for src in rule['src'].split(' '):
             if src not in self._data.hosts_aliases_obj:
@@ -1091,20 +1122,29 @@ class PFSenseDataParser(object):
 
         return obj
 
-    def parse_rules(self, parent=None, separator_name=None):
+    def parse_rules(self, parent=None, parent_separator=None):
         """ Parse all rules definitions """
         ret = True
         if parent is None:
             parent = self._data.rules
+        if parent_separator is None:
+            parent_separator = PFSenseRuleSeparator()
+
         for name, rule in parent.items():
             # not a rule
             if not self._data.is_child_def(rule):
-                if separator_name is None:
-                    sep_name = name
+                separator = PFSenseRuleSeparator()
+                separator.parent = parent_separator
+                if parent_separator.name is None:
+                    separator.name = name
                 else:
-                    sep_name = separator_name + ' - ' + name
-                if not self.parse_rules(rule, sep_name):
+                    separator.name = parent_separator.name + ' - ' + name
+                self._data.rules_separators.append(separator)
+                if not self.parse_rules(rule, separator):
                     ret = False
+                continue
+            elif name == 'options':
+                parent_separator.options = rule
                 continue
 
             # src field is mandatory
@@ -1143,13 +1183,14 @@ class PFSenseDataParser(object):
                     ret = False
 
             # we check that all fields are valid
-            valid_fields = {'src', 'dst', 'src_port', 'dst_port', 'protocol', 'action', 'log'}
+            valid_fields = ['src', 'dst', 'src_port', 'dst_port', 'protocol', 'action']
+            valid_fields.extend(OPTION_FIELDS)
             for field in rule:
                 if field not in valid_fields:
                     self._data.set_error(field + " is not a valid field name in rule " + name)
                     ret = False
 
-            self._data.rules_obj[name] = self.create_obj_rule_from_def(name, rule, separator_name)
+            self._data.rules_obj[name] = self.create_obj_rule_from_def(name, rule, parent_separator)
 
         return ret
 
@@ -1697,15 +1738,17 @@ class PFSenseRuleFactory(object):
         # if the destination is unreachable
         if not dst_is_local and src_is_local and not rule_obj.dst[0].is_adjacent_or_routed(self._data.target):
             if self._display_warnings:
-                display.warning('Destination {0} is not accessible from this pfSense for {1}. Please add the right routed network if it\'s not an error'
-                                .format(rule_obj.dst[0].name, rule_obj.name))
+                display.warning(
+                    'Destination {0} is not accessible from this pfSense for {1}.Please add the right adjacent/routed network if it\'s not an error'
+                    .format(rule_obj.dst[0].name, rule_obj.name))
             return set()
 
         # if the source is unreachable
         if not src_is_local and dst_is_local and not rule_obj.src[0].is_adjacent_or_routed(self._data.target):
             if self._display_warnings:
-                display.warning('Source {0} can not access to this pfSense for {1}. Please add the right routed network if it\'s not an error'
-                                .format(rule_obj.src[0].name, rule_obj.name))
+                display.warning(
+                    'Source {0} can not access to this pfSense for {1}. Please add the right adjacent/routed network if it\'s not an error'
+                    .format(rule_obj.src[0].name, rule_obj.name))
             return set()
 
         # we add all the interfaces the source can use to go out
@@ -1766,7 +1809,8 @@ class PFSenseRuleFactory(object):
                 definition = {}
                 definition['name'] = name
                 definition['action'] = rule_obj.action
-                definition['log'] = rule_obj.log
+                for field in OPTION_FIELDS:
+                    definition[field] = rule_obj.get_option(field)
                 definition['interface'] = interface
                 definition['state'] = 'present'
                 if interface in last_name and last_name[interface]:
@@ -1786,7 +1830,8 @@ class PFSenseRuleFactory(object):
                     rule_name = name + "_" + str(rule_idx)
                     definition['name'] = rule_name
                     definition['action'] = rule_obj.action
-                    definition['log'] = rule_obj.log
+                    for field in OPTION_FIELDS:
+                        definition[field] = rule_obj.get_option(field)
                     definition['interface'] = interface
                     definition['state'] = 'present'
                     if interface in last_name and last_name[interface]:
@@ -1856,8 +1901,11 @@ class PFSenseRuleFactory(object):
                 definition += ", protocol: \"" + rule['protocol'] + "\""
             if rule.get('descr'):
                 definition += ", descr: \"" + rule['descr'] + "\""
-            if rule.get('log'):
-                definition += ", log: \"" + rule['log'] + "\""
+            for field in OPTION_FIELDS:
+                value = rule.get(field)
+                if value is not None:
+                    definition += ', {0}: {1}'.format(field, value)
+
             if rule.get('after'):
                 definition += ", after: \"" + rule['after'] + "\""
             definition += ", state: \"present\" }"
@@ -1874,7 +1922,7 @@ class PFSenseRuleSeparatorFactory(object):
         """ return the name of the first rule in the separator """
         for rule in self._data.rules_obj.values():
             for subrule in rule.sub_rules:
-                if subrule.separator == separator.name and separator.interface in subrule.generated_names:
+                if subrule.separator.name == separator.name and separator.interface in subrule.generated_names:
                     return subrule.generated_names[separator.interface]
         return None
 
@@ -1891,7 +1939,7 @@ class PFSenseRuleSeparatorFactory(object):
                     continue
                 for interface in subrule.interfaces:
                     separator = PFSenseRuleSeparator()
-                    separator.name = subrule.separator
+                    separator.name = subrule.separator.name
                     separator.interface = interface
                     if separator not in separators:
                         separators[separator] = separator
