@@ -1238,7 +1238,7 @@ class PFSenseDataParser(object):
         """ Checking all interfaces networks between them """
         for src_name, src in interfaces.items():
             for dst_name, dst in interfaces.items():
-                if src_name != dst_name and dst.local_network and src.local_network.overlaps(dst.local_network):
+                if src_name != dst_name and dst.local_network is not None and src.local_network.overlaps(dst.local_network):
                     self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
                     return False
 
@@ -1833,6 +1833,8 @@ class PFSenseRuleFactory(object):
                 definition['state'] = 'present'
                 if interface in last_name and last_name[interface]:
                     definition['after'] = last_name[interface]
+                else:
+                    definition['after'] = 'top'
                 definition.update(base[0])
                 interfaces[interface].append(definition)
                 last_name[interface] = name
@@ -1854,6 +1856,8 @@ class PFSenseRuleFactory(object):
                     definition['state'] = 'present'
                     if interface in last_name and last_name[interface]:
                         definition['after'] = last_name[interface]
+                    else:
+                        definition['after'] = 'top'
                     definition.update(rule_def)
                     interfaces[interface].append(definition)
                     last_name[interface] = rule_name
@@ -2028,6 +2032,12 @@ class LookupModule(LookupBase):
             return [rules]
         elif terms[1] == 'rule_separators':
             return [rule_separators]
+        elif terms[1] == 'all_definitions':
+            res = {}
+            res['aggregated_aliases'] = aliases
+            res['aggregated_rules'] = rules
+            res['aggregated_rule_separators'] = rule_separators
+            return [res]
 
         return []
 

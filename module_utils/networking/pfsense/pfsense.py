@@ -65,6 +65,13 @@ class PFSenseModule(object):
                 return interface.tag
         return None
 
+    def get_interface_display_name(self, iface):
+        """ return pfsense interface display name """
+        for interface in self.interfaces:
+            if interface.tag == iface:
+                return interface.find('descr').text.strip()
+        return iface
+
     def is_interface_pfsense(self, name):
         """ determines if arg is a pfsense interface or not """
         for interface in self.interfaces:
@@ -369,26 +376,34 @@ class PFSenseModuleBase(object):
     """ class providing base services for pfSense modules """
 
     @staticmethod
-    def format_cli_field(alias, field, log_none=False, add_comma=True):
+    def fvalue_idem(value):
+        """ dummy value formatting function """
+        return value
+
+    def format_cli_field(self, alias, field, log_none=False, add_comma=True, fvalue=None, default=None):
         """ format field for pseudo-CLI command """
+        if fvalue is None:
+            fvalue = self.fvalue_idem
+
         res = ''
         if field in alias:
             if log_none and alias[field] is None:
                 res = "{0}=none".format(field)
             if alias[field] is not None:
-                if isinstance(alias[field], str):
-                    res = "{0}='{1}'".format(field, alias[field].replace("'", "\\'"))
-                else:
-                    res = "{0}={1}".format(field, alias[field])
+                if default is None or alias[field] != default:
+                    if isinstance(alias[field], str):
+                        res = "{0}='{1}'".format(field, fvalue(alias[field].replace("'", "\\'")))
+                    else:
+                        res = "{0}={1}".format(field, fvalue(alias[field]))
         if add_comma and res:
             return ', ' + res
         return res
 
-    def format_updated_cli_field(self, after, before, field, add_comma=True):
+    def format_updated_cli_field(self, after, before, field, log_none=True, add_comma=True, fvalue=None, default=None):
         """ format field for pseudo-CLI update command """
         if field in after and field in before:
             if after[field] != before[field]:
-                return self.format_cli_field(after, field, log_none=True, add_comma=add_comma)
+                return self.format_cli_field(after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default)
         elif field in after and field not in before or field not in after and field in before:
-            return self.format_cli_field(after, field, log_none=True, add_comma=add_comma)
+            return self.format_cli_field(after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default)
         return ''

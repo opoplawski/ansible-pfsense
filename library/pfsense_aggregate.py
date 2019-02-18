@@ -176,10 +176,6 @@ class PFSenseModuleAggregate(object):
         if want is None:
             return
 
-        # processing aggregated parameters
-        for params in want:
-            self.pfsense_rules.run(params)
-
         # delete every other rule if required
         if self.module.params['purge_rules']:
             todel = []
@@ -195,6 +191,10 @@ class PFSenseModuleAggregate(object):
 
             for params in todel:
                 self.pfsense_rules.run(params)
+
+        # processing aggregated parameters
+        for params in want:
+            self.pfsense_rules.run(params)
 
     def run_aliases(self):
         """ process input params to add/update/delete all aliases """
@@ -260,8 +260,7 @@ class PFSenseModuleAggregate(object):
 
         result = {}
         result['result_aliases'] = self.pfsense_aliases.result['commands']
-        result['aggregated_rules'] = {}
-        result['aggregated_rules'].update(self.pfsense_rules.results)
+        result['result_rules'] = self.pfsense_rules.result['commands']
         result['result_rule_separators'] = self.pfsense_rule_separators.result['commands']
         result['changed'] = changed
         result['stdout'] = stdout
