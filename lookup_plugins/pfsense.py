@@ -595,6 +595,14 @@ class PFSenseHostAlias(object):
 
         return True
 
+    def match_local_interface_ip(self, pfsense):
+        """ Return True if the alias ip match one interface on the pfsense """
+        for alias_ip in self.ips:
+            for iface in pfsense.interfaces.values():
+                if alias_ip == iface.local_ip:
+                    return True
+        return False
+
 
 class PFSenseRule(object):
     """ Class holding structured pfsense rule declaration """
@@ -1746,11 +1754,15 @@ class PFSenseRuleFactory(object):
                 raise AssertionError(
                     'Invalid local interfaces count for {0}: {1}'
                     .format(rule_obj.name, len(rule_obj.dst[0].local_interfaces[self._data.target.name])))
+
             # if they are both on the same interface, we return nothing, unless the interface is a bridge
+            # or the pfsense is the source/destination of the rule
             src_interface = ''.join(rule_obj.src[0].local_interfaces[self._data.target.name])
             dst_interface = ''.join(rule_obj.dst[0].local_interfaces[self._data.target.name])
             if src_interface == dst_interface and not self._data.target.interfaces[src_interface].bridge:
-                return set()
+                if not rule_obj.src[0].match_local_interface_ip(self._data.target) and not rule_obj.dst[0].match_local_interface_ip(self._data.target):
+                    return set()
+
             return rule_obj.src[0].local_interfaces[self._data.target.name]
 
         # if the destination is unreachable
