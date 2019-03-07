@@ -403,6 +403,73 @@ EXAMPLES:
     after: 'Allow proxies out'
     state: present
 ```
+# pfsense_rule_separator
+```
+> PFSENSE_RULE_SEPARATOR    (/home/fbor/ansible/lib/ansible/modules/networking/pfsense/pfsense_rule_separator.py)
+
+        Manage pfSense rule separators
+
+OPTIONS (= is mandatory):
+
+- after
+        Rule to go after, or "top"
+        [Default: (null)]
+
+- before
+        Rule to go before, or "bottom"
+        [Default: (null)]
+
+- color
+        The separator's color
+        (Choices: info, warning, danger, success)[Default: info]
+
+- floating
+        Is the rule on floating tab
+        [Default: (null)]
+        type: bool
+
+= interface
+        The interface for the separator
+
+
+= name
+        The name of the separator
+
+
+= state
+        State in which to leave the separator
+        (Choices: present, absent)[Default: present]
+
+
+AUTHOR: Frederic Bor (@f-bor)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+
+
+EXAMPLES:
+- name: Add rule separator voip
+  pfsense_rule_separator:
+    name: voip
+    state: present
+    interface: lan_100
+
+- name: Remove rule separator voip
+  pfsense_rule_separator:
+    name: voip
+    state: absent
+    interface: lan_100
+
+RETURN VALUES:
+
+
+commands:
+    description: the set of separators commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create rule_separator 'SSH', interface='lan', color='info'", "update rule_separator 'SSH' set color='warning'", "delete rule_separator 'SSH'"]
+```
 # pfsense_aggregate
 ```
 > PFSENSE_AGGREGATE    (/export/home/orion/src/ansible-pfsense/library/pfsense_aggregate.py)
@@ -415,8 +482,16 @@ OPTIONS (= is mandatory):
         Dict of aliases to apply on the target
         [Default: (null)]
 
+- aggregated_rule_separators
+        Dict of rule separators to apply on the target
+        [Default: (null)]
+
 - aggregated_rules
         Dict of rules to apply on the target
+        [Default: (null)]
+
+- aggregated_vlans
+        Dict of vlans to apply on the target
         [Default: (null)]
 
 - purge_aliases
@@ -424,8 +499,18 @@ OPTIONS (= is mandatory):
         [Default: False]
         type: bool
 
+- purge_rule_separators
+        delete all the rule separators that are not defined into aggregated_rule_separators
+        [Default: False]
+        type: bool
+
 - purge_rules
         delete all the rules that are not defined into aggregated_rules
+        [Default: False]
+        type: bool
+
+- purge_vlans
+        delete all the vlans that are not defined into aggregated_vlans
         [Default: False]
         type: bool
 
@@ -438,13 +523,14 @@ AUTHOR: Frederic Bor (@f-bor)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
-- name: "Add three aliases, six rules, and delete everything else"
+- name: "Add three aliases, six rules, four separators, and delete everything else"
   pfsense_aggregate:
     purge_aliases: true
     purge_rules: true
+    purge_rule_separators: true
     aggregated_aliases:
       - { name: port_ssh, type: port, address: 22, state: present }
       - { name: port_http, type: port, address: 80, state: present }
@@ -456,6 +542,11 @@ EXAMPLES:
       - { name: "allow_all_ssh", source: any, destination: "any:port_ssh", protocol: tcp, interface: wan, state: present }
       - { name: "allow_all_http", source: any, destination: "any:port_http", protocol: tcp, interface: wan, state: present }
       - { name: "allow_all_https", source: any, destination: "any:port_https", protocol: tcp, interface: wan, state: present }
+    aggregated_rule_separators:
+      - { name: "SSH", interface: lan, state: present, before: allow_all_ssh }
+      - { name: "HTTP", interface: lan, state: present, before: allow_all_http }
+      - { name: "SSH", interface: wan, state: present, before: allow_all_ssh }
+      - { name: "HTTP", interface: wan, state: present, before: allow_all_http }
 
 RETURN VALUES:
 
@@ -470,6 +561,75 @@ aggregated_rules:
     returned: success
     type: list
     sample: []
+result_separators:
+    description: the set of separators commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create rule_separator 'SSH', interface='lan', color='info'", "update rule_separator 'SSH' set color='warning'", "delete rule_separator 'SSH'"]
+result_vlans:
+    description: the set of commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create vlan 'mvneta.100', descr='voice', priority='5'", "update vlan 'mvneta.100', set priority='6'", "delete vlan 'mvneta.100'"]
+```
+# pfsense_vlan
+```
+> PFSENSE_VLAN    (/home/fbor/ansible/lib/ansible/modules/networking/pfsense/pfsense_vlan.py)
+
+        Manage pfSense vlans
+
+OPTIONS (= is mandatory):
+
+- descr
+        The description of the vlan
+        [Default: None]
+
+= interface
+        The interface on which to declare the vlan. Friendly name (assignments) can be used.
+
+
+- priority
+        802.1Q VLAN Priority code point. Must be between 0 and 7.
+        [Default: (null)]
+
+= state
+        State in which to leave the vlan
+        (Choices: present, absent)[Default: present]
+
+= vlan_id
+        The vlan tag. Must be between 1 and 4094.
+
+
+
+AUTHOR: Frederic Bor (@f-bor)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+
+
+EXAMPLES:
+- name: Add voice vlan
+  pfsense_vlan:
+    interface: mvneta0
+    vlan_id: 100
+    descr: voice
+    priority: 5
+    state: present
+
+- name: Remove voice vlan
+  pfsense_vlan:
+    interface: mvneta0
+    vlan_id: 100
+
+RETURN VALUES:
+
+
+commands:
+    description: the set of commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: always
+    type: list
+    sample: ["create vlan 'mvneta.100', descr='voice', priority='5'", "update vlan 'mvneta.100', set priority='6'", "delete vlan 'mvneta.100'"]
 ```
 # operation
 
