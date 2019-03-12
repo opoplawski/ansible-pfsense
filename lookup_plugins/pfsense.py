@@ -319,11 +319,6 @@ def is_valid_network(address):
     return False
 
 
-def cleanup_def_name(name):
-    """ return a valid alias name """
-    return name.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
-
-
 def rule_product_dict(tab, rule, field, out_field=None):
     """ Return cartesian product between rule[field] and tab as dicts """
     if field not in rule:
@@ -947,25 +942,19 @@ class PFSenseDataParser(object):
 
         # we check that all exists
         net_defs = 0
-        clean = []
         for value in values:
             if is_valid_ip(value):
                 self._data.hosts_aliases_obj[value] = self.create_obj_host_alias(value)
-                clean.append(value)
                 continue
 
             if is_valid_network(value):
                 self._data.hosts_aliases_obj[value] = self.create_obj_host_alias(value)
-                clean.append(value)
                 net_defs = net_defs + 1
                 continue
 
-            clean_name = cleanup_def_name(value)
-            if clean_name not in self._data.hosts_aliases and (value != 'any' or not allow_any):
+            if value not in self._data.hosts_aliases and (value != 'any' or not allow_any):
                 self._data.set_error(value + " is not a valid alias, ip address or network in " + type_name + " " + name)
                 ret = False
-            clean.append(clean_name)
-        obj[src_name] = ' '.join(clean)
 
         # if it's a real alias, we must check for mixed network definitions
         if not allow_any:
@@ -1033,7 +1022,7 @@ class PFSenseDataParser(object):
 
         # we check that all exists
         for value in values:
-            if not is_valid_port(value) and not is_valid_port_range(value) and cleanup_def_name(value) not in self._data.ports_aliases:
+            if not is_valid_port(value) and not is_valid_port_range(value) and value not in self._data.ports_aliases:
                 self._data.set_error(value + " is not a valid alias, port or port range in " + type_name + " " + name)
                 ret = False
 
@@ -1228,6 +1217,7 @@ class PFSenseDataParser(object):
         """ Parse target's name definition """
         if self._data.target_name not in self._data.pfsenses:
             self._data.set_error(self._data.target_name + " does not exist in pfsenses section")
+            return False
         self._data.target = self._data.pfsenses_obj[self._data.target_name]
         return True
 
@@ -1788,11 +1778,11 @@ class PFSenseRuleFactory(object):
         # we add interfaces the source can use to get in
         if not src_is_local:
             routing_interfaces = rule_obj.src[0].routed_by_interfaces(self._data.target)
-
-            # if they are both not local and on the same interface, we return nothing
+            # if they are both not local and on the same interface or with an unreachable destination
+            # we return nothing
             if not dst_is_local:
                 dst_routing_interfaces = rule_obj.dst[0].routed_by_interfaces(self._data.target)
-                if len(routing_interfaces) == 1 and routing_interfaces == dst_routing_interfaces:
+                if len(routing_interfaces) == 1 and routing_interfaces == dst_routing_interfaces or not dst_routing_interfaces:
                     return set()
 
             # if the interfaces we would use are bridged, and the destinations are on local bridges too
@@ -1969,7 +1959,7 @@ class PFSenseRuleSeparatorFactory(object):
             if rule_filter is not None and name != rule_filter:
                 continue
             for subrule in rule.sub_rules:
-                if subrule.separator is None:
+                if subrule.separator is None or subrule.separator.name is None:
                     continue
                 for interface in subrule.interfaces:
                     separator = PFSenseRuleSeparator()
