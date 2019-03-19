@@ -399,7 +399,7 @@ class PFSenseModule(object):
         # xml_declaration does not appear to be working
         (tmp_handle, tmp_name) = mkstemp()
         os.close(tmp_handle)
-        self.tree.write(tmp_name, xml_declaration=True, method='html')
+        self.tree.write(tmp_name, xml_declaration=True, method='xml')
         shutil.move(tmp_name, self.config)
         try:
             os.remove('/tmp/config.cache')
