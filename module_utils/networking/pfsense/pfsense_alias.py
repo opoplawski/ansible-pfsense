@@ -131,6 +131,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
                 if params['type'] != alias_elt.find('type').text:
                     self.module.fail_json(msg='An alias with this name and a different type already exists')
 
+            if self.pfsense.get_interface_pfsense_by_name(params['name']) is not None:
+                self.module.fail_json(msg='An interface description with this name already exists')
+
             missings = ['type', 'address']
             for param, value in params.items():
                 if param in missings and value is not None and value != '':

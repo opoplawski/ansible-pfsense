@@ -395,10 +395,10 @@ class PFSenseModule(object):
         revdescr.text = descr
         username = self.get_username()
         revision.find('username').text = username
-        # Use 'html' to have explicit close tags - 3.4 has short_empty_elements
-        # xml_declaration does not appear to be working
         (tmp_handle, tmp_name) = mkstemp()
         os.close(tmp_handle)
+        # TODO: when pfsense will adopt python3
+        # detect python version and use 3.4 short_empty_elements parameter to try to preserve format
         self.tree.write(tmp_name, xml_declaration=True, method='xml')
         shutil.move(tmp_name, self.config)
         try:

@@ -255,6 +255,11 @@ class TestPFSenseAliasModule(TestPFSenseModule):
         alias = dict(name='ads-ervers', address='10.0.0.1 10.0.0.2', type='host')
         self.do_alias_creation_test(alias, failed=True, msg='The name of the alias may only consist of the characters "a-z, A-Z, 0-9 and _"')
 
+    def test_create_alias_invalid_name_interface(self):
+        """ test creation of a new alias with invalid name """
+        alias = dict(name='lan_100', address='10.0.0.1 10.0.0.2', type='host')
+        self.do_alias_creation_test(alias, failed=True, msg='An interface description with this name already exists')
+
     def test_create_alias_invalid_updatefreq(self):
         """ test creation of a new host alias with incoherent params """
         alias = dict(name='adservers', address='10.0.0.1 10.0.0.2', type='host', updatefreq=10)
