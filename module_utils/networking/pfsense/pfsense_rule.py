@@ -18,7 +18,7 @@ RULES_ARGUMENT_SPEC = dict(
     floating=dict(required=False, type='bool'),
     direction=dict(required=False, choices=["any", "in", "out"]),
     ipprotocol=dict(required=False, default='inet', choices=['inet', 'inet46', 'inet6']),
-    protocol=dict(default='any', required=False, choices=["any", "tcp", "udp", "tcp/udp", "icmp"]),
+    protocol=dict(default='any', required=False, choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp"]),
     source=dict(required=False, type='str'),
     destination=dict(required=False, type='str'),
     log=dict(required=False, type='bool'),

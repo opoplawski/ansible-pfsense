@@ -55,7 +55,7 @@ options:
   protocol:
     description: The protocol
     default: any
-    choices: [ "any", "tcp", "udp", "tcp/udp", "icmp" ]
+    choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
   source:
     description: The source address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
     required: true
