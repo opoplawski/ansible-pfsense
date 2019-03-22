@@ -179,7 +179,8 @@ def main():
         pfca.remove(ca)
     elif state == 'present':
         ca['crt'] = module.params['certificate']
-        ca['crl'] = module.params['crl']
+        if module.params['crl'] is not None:
+            ca['crl'] = module.params['crl']
         pfca.add(ca)
 
 
