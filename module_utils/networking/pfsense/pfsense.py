@@ -27,6 +27,7 @@ class PFSenseModule(object):
         self.shapers = self.get_element('shaper')
         self.dnshapers = self.get_element('dnshaper')
         self.vlans = self.get_element('vlans')
+        self.ipsec = self.get_element('ipsec')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -113,6 +114,9 @@ class PFSenseModule(object):
 
     def parse_interface(self, interface, fail=True):
         """ validate param interface field """
+        if (interface == 'enc0' or interface == 'IPsec') and self.is_ipsec_enabled():
+            return 'enc0'
+
         if self.is_interface_name(interface):
             return self.get_interface_pfsense_by_name(interface)
         elif self.is_interface_pfsense(interface):
@@ -121,6 +125,16 @@ class PFSenseModule(object):
         if fail:
             self.module.fail_json(msg='%s is not a valid interface' % (interface))
         return None
+
+    def is_ipsec_enabled(self):
+        """ return True if ipsec is enabled """
+        if self.ipsec is None:
+            return False
+
+        for elt in self.ipsec:
+            if elt.tag == 'phase1' and elt.find('disabled') is None:
+                return True
+        return False
 
     @staticmethod
     def rule_match_interface(rule_elt, interface, floating):

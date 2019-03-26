@@ -1236,7 +1236,7 @@ class PFSenseDataParser(object):
         """ Checking all interfaces networks between them """
         for src_name, src in interfaces.items():
             for dst_name, dst in interfaces.items():
-                if src_name != dst_name and dst.local_network is not None and src.local_network.overlaps(dst.local_network):
+                if src_name != dst_name and src.local_network is not None and dst.local_network is not None and src.local_network.overlaps(dst.local_network):
                     self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
                     return False
 
