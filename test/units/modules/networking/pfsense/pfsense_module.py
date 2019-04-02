@@ -66,6 +66,9 @@ class TestPFSenseModule(ModuleTestCase):
         self.mkstemp.return_value = mkstemp()
         self.tmp_file = self.mkstemp.return_value[1]
 
+        self.mock_chmod = patch('ansible.module_utils.networking.pfsense.pfsense.os.chmod')
+        self.chmod = self.mock_chmod.start()
+
         self.maxDiff = None
 
     def tearDown(self):
@@ -77,6 +80,7 @@ class TestPFSenseModule(ModuleTestCase):
         self.mock_php.stop()
         self.mock_phpshell.stop()
         self.mock_mkstemp.stop()
+        self.mock_chmod.stop()
 
         try:
             if self.tmp_file is not None:
