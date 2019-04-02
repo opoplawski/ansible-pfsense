@@ -63,7 +63,8 @@ class PFSenseModule(object):
     def get_interface_pfsense_by_name(self, name):
         """ return pfsense interface by name """
         for interface in self.interfaces:
-            if interface.find('descr').text.strip() == name:
+            descr_elt = interface.find('descr')
+            if descr_elt is not None and descr_elt.text.strip() == name:
                 return interface.tag
         return None
 
