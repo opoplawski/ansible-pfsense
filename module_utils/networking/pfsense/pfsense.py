@@ -79,7 +79,10 @@ class PFSenseModule(object):
         """ return pfsense interface display name """
         for interface in self.interfaces:
             if interface.tag == iface:
-                return interface.find('descr').text.strip()
+                descr_elt = interface.find('descr')
+                if descr_elt is not None:
+                    return descr_elt.text.strip()
+                break
         return iface
 
     def get_interface_physical_name(self, iface):
@@ -92,7 +95,8 @@ class PFSenseModule(object):
     def get_interface_physical_name_by_name(self, name):
         """ return pfsense interface physical name by name """
         for interface in self.interfaces:
-            if interface.find('descr').text.strip() == name:
+            descr_elt = interface.find('descr')
+            if descr_elt is not None and descr_elt.text.strip() == name:
                 return interface.find('if').text.strip()
         return None
 
