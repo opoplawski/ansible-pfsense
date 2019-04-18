@@ -28,6 +28,7 @@ class PFSenseModule(object):
         self.dnshapers = self.get_element('dnshaper')
         self.vlans = self.get_element('vlans')
         self.ipsec = self.get_element('ipsec')
+        self.openvpn = self.get_element('openvpn')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -121,6 +122,8 @@ class PFSenseModule(object):
         """ validate param interface field """
         if (interface == 'enc0' or interface == 'IPsec') and self.is_ipsec_enabled():
             return 'enc0'
+        if (interface == 'openvpn' or interface == 'OpenVPN') and self.is_openvpn_enabled():
+            return 'openvpn'
 
         if self.is_interface_name(interface):
             return self.get_interface_pfsense_by_name(interface)
@@ -138,6 +141,16 @@ class PFSenseModule(object):
 
         for elt in self.ipsec:
             if elt.tag == 'phase1' and elt.find('disabled') is None:
+                return True
+        return False
+
+    def is_openvpn_enabled(self):
+        """ return True if openvpn is enabled """
+        if self.openvpn is None:
+            return False
+
+        for elt in self.openvpn:
+            if elt.tag == 'openvpn-server' or elt.tag('openvpn-client'):
                 return True
         return False
 
