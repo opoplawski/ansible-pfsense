@@ -150,7 +150,7 @@ class PFSenseModule(object):
             return False
 
         for elt in self.openvpn:
-            if elt.tag == 'openvpn-server' or elt.tag('openvpn-client'):
+            if elt.tag == 'openvpn-server' or elt.tag == 'openvpn-client':
                 return True
         return False
 
