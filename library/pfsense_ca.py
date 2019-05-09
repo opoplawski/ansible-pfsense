@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright: (c) 2018, Orion Poplawski <orion@nwra.com>
+# Copyright: (c) 2018-2019, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -30,10 +30,16 @@ options:
     required: true
     choices: [ "present", "absent" ]
   certificate:
-    description: The certificate for the Certificate Authority
+    description:
+      >
+        The certificate for the Certificate Authority.  This can be in PEM form or Base64
+        encoded PEM as a single string (which is how pfSense stores it).
     required: true
   crl:
-    description: The Certificate Revocation List for the Certificate Authority
+    description:
+      >
+        The Certificate Revocation List for the Certificate Authority.  This can be in PEM
+        form or Base64 encoded PEM as a single string (which is how pfSense stores it).
     required: false
 """
 
@@ -42,6 +48,22 @@ EXAMPLES = """
   pfsense_ca:
     name: AD CA
     certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dB...
+    crl: |
+      -----BEGIN X509 CRL-----
+      MIICazCCAVMCAQEwDQYJKoZIhvcNAQELBQAwGjEYMBYGA1UEAxMPTldSQSBPcGVu
+      VlBOIENBFw0xOTA1MDkxNDQ0MDhaFw0xOTExMDUxNDQ0MDhaMIG0MBICAQQXDTE3
+      MDkxMjE5NTIzNFowEgIBExcNMTcwNDEwMTk1ODAxWjASAgEWFw0xNzExMzAxNzIz
+      MDNaMBICASEXDTE4MDEwNTE1NTUxMlowEgIBMRcNMTgxMTAyMTYwODQwWjASAgEy
+      Fw0xODEyMDYxNTEyMDdaMBICATMXDTE5MDMwNDE4NTQzN1owEgIBNhcNMTkwNTA5
+      MTQzNjM1WjASAgE6Fw0xODExMDIxNjM0MDVaoE4wTDBKBgNVHSMEQzBBgBSXityI
+      WsEBxL+r4HLeokLGcWx2IqEepBwwGjEYMBYGA1UEAxMPTldSQSBPcGVuVlBOIENB
+      ggkAki75AC+w+wwwDQYJKoZIhvcNAQELBQADggEBAJos7Pj9EKbm80jODXC7FVji
+      yrdCQ1RQNh+j74WEicZ5aZvCy3KmZwvfQEUfU4GyMaMoTsmU69AUiFMqYScTyUHO
+      W4feBBpu5h0NxAxWZeIAkunVILvYjURO3Ig+fSoB8pdLTCLBXDheJvCPQR0md03S
+      zfrUVKqqhzBfysq/u0S6RlJe3Vgj5MCwlrJfjiy9IaFF7opn11WeW7t4hWz0bH4G
+      9FvoZW4wwI0K/xt5hAFWdANfYd5uWYe4XkrQulqm8zFNQZMrj2frDl5fQC+QwF4W
+      r0hUUy3w1trKtymlyhmd5XmYzINYp8p/Ws+boST+Fcw3chWTep/J8nKMeKESO0w=
+      -----END X509 CRL-----
     state: present
 
 - name: Remove AD Certificate Authority
@@ -53,6 +75,9 @@ EXAMPLES = """
 RETURN = """
 
 """
+
+import base64
+import re
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule
@@ -85,6 +110,24 @@ class pfSenseCA(object):
                 found = crl
                 break
         return (found, i)
+
+    def validate_cert(self, cert):
+        lines = cert.splitlines()
+        if lines[0] == '-----BEGIN CERTIFICATE-----' and lines[-1] == '-----END CERTIFICATE-----':
+            return base64.b64encode(cert)
+        elif re.match('LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t', cert):
+            return cert
+        else:
+            self.module.fail_json(msg='Could not recognize certificate format: %s' % (cert))
+
+    def validate_crl(self, crl):
+        lines = crl.splitlines()
+        if lines[0] == '-----BEGIN X509 CRL-----' and lines[-1] == '-----END X509 CRL-----':
+            return base64.b64encode(crl)
+        elif re.match('LS0tLS1CRUdJTiBYNTA5IENSTC0tLS0t', crl):
+            return crl
+        else:
+            self.module.fail_json(msg='Could not recognize CRL format: %s' % (crl))
 
     def add(self, ca):
         ca_elt, i = self._find_ca(ca['descr'])
@@ -178,9 +221,9 @@ def main():
     if state == 'absent':
         pfca.remove(ca)
     elif state == 'present':
-        ca['crt'] = module.params['certificate']
+        ca['crt'] = pfca.validate_cert(module.params['certificate'])
         if module.params['crl'] is not None:
-            ca['crl'] = module.params['crl']
+            ca['crl'] = pfca.validate_crl(module.params['crl'])
         pfca.add(ca)
 
 
