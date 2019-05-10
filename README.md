@@ -204,11 +204,13 @@ EXAMPLES:
 OPTIONS (= is mandatory):
 
 = certificate
-        The certificate for the Certificate Authority
+        The certificate for the Certificate Authority.  This can be in PEM form or Base64
+        encoded PEM as a single string (which is how pfSense stores it).
 
 
 - crl
-        The Certificate Revocation List for the Certificate Authority
+        The Certificate Revocation List for the Certificate Authority.  This can be in PEM
+        form or Base64 encoded PEM as a single string (which is how pfSense stores it).
         [Default: (null)]
 
 = name
@@ -232,6 +234,12 @@ EXAMPLES:
   pfsense_ca:
     name: AD CA
     certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlGcXpDQ0E1T2dB...
+    crl: |
+      -----BEGIN X509 CRL-----
+      MIICazCCAVMCAQEwDQYJKoZIhvcNAQELBQAwGjEYMBYGA1UEAxMPTldSQSBPcGVu
+      ...
+      r0hUUy3w1trKtymlyhmd5XmYzINYp8p/Ws+boST+Fcw3chWTep/J8nKMeKESO0w=
+      -----END X509 CRL-----
     state: present
 
 - name: Remove AD Certificate Authority
