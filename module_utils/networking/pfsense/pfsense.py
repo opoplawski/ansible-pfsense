@@ -234,7 +234,7 @@ class PFSenseModule(object):
                     if subchanged:
                         changed = True
                 elif isinstance(value, list):
-                    this_list = value
+                    this_list = list(value)
                     # Remove existing items not in the new list
                     for list_elt in top_elt.findall(key):
                         if list_elt.text in this_list:
@@ -272,7 +272,12 @@ class PFSenseModule(object):
             if list(elt):
                 res[elt.tag] = PFSenseModule.element_to_dict(elt)
             else:
-                res[elt.tag] = elt.text if elt.text is not None else ''
+                if elt.tag in res:
+                    if isinstance(res[elt.tag], str):
+                        res[elt.tag] = [ res[elt.tag] ]
+                    res[elt.tag].append(elt.text)
+                else:
+                    res[elt.tag] = elt.text if elt.text is not None else ''
         return res
 
     def get_caref(self, name):
