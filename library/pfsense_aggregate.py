@@ -136,7 +136,7 @@ class PFSenseModuleAggregate(object):
             cmd += 'clear_subsystem_dirty(\'aliases\');\n'
         if self.pfsense_rules.changed or self.pfsense_rule_separators.result['changed']:
             run = True
-            cmd += 'clear_subsystem_dirty(\'rules\');\n'
+            cmd += 'clear_subsystem_dirty(\'filter\');\n'
         cmd += '}'
         if run:
             return self.pfsense.phpshell(cmd)

@@ -128,7 +128,7 @@ class PFSenseRuleSeparatorModule(PFSenseModuleBase):
     def _update(self):
         """ make the target pfsense reload separators """
         return self.pfsense.phpshell('''require_once("filter.inc");
-if (filter_configure() == 0) { clear_subsystem_dirty('rules'); }''')
+if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
 
     def commit_changes(self):
         """ apply changes and exit module """
