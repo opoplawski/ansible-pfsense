@@ -580,6 +580,80 @@ result_vlans:
     type: list
     sample: ["create vlan 'mvneta.100', descr='voice', priority='5'", "update vlan 'mvneta.100', set priority='6'", "delete vlan 'mvneta.100'"]
 ```
+# pfsense_user
+```
+> PFSENSE_USER    (/export/home/orion/src/ansible-pfsense/library/pfsense_user.py)
+
+        Manage pfSense users
+
+  * This module is maintained by The Ansible Community
+OPTIONS (= is mandatory):
+
+- authorizedkeys
+        Contents of ~/.ssh/authorized_keys.  Can be base64 encoded.
+        [Default: (null)]
+
+- descr
+        Description of the user
+        [Default: (null)]
+
+- groupname
+        Group of the user.
+        [Default: (null)]
+
+= name
+        The name of the user
+
+
+- password
+        bcrypt encrypted password of the user.
+        [Default: (null)]
+
+- priv
+        A list of priveleges to assign.
+        Allowed values include page-all, user-shell-access.
+        [Default: (null)]
+        type: list
+
+- scope
+        Scope of the user ('system' is 'Local')
+        (Choices: system, remote)[Default: system]
+
+- state
+        State in which to leave the user
+        (Choices: present, absent)[Default: present]
+
+- uid
+        UID of the user.
+        Will use next available UID if not specified.
+        [Default: (null)]
+
+
+AUTHOR: Orion Poplawski (@opoplawski)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+        
+
+EXAMPLES:
+
+- name: Add operator user
+  pfsense_user:
+    name: operator
+    descr: Operator
+    scope: system
+    groupname: Operators
+    priv: [ 'page-all', 'user-shell-access' ]
+
+- name: Remove user
+  pfsense_user:
+    name: operator
+    state: absent
+
+
+RETURN VALUES:
+```
 # pfsense_vlan
 ```
 > PFSENSE_VLAN    (/home/fbor/ansible/lib/ansible/modules/networking/pfsense/pfsense_vlan.py)
