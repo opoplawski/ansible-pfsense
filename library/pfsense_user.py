@@ -32,9 +32,9 @@ options:
   descr:
     description: Description of the user
   scope:
-    description: Scope of the user ('system' is 'Local')
-    default: system
-    choices: [ "system", "remote" ]
+    description: Scope of the user ('user' is a normal user)
+    default: user
+    choices: [ "user", "system" ]
   uid:
     description:
     - UID of the user.
@@ -60,7 +60,7 @@ EXAMPLES = """
   pfsense_user:
     name: operator
     descr: Operator
-    scope: system
+    scope: user
     groupname: Operators
     priv: [ 'page-all', 'user-shell-access' ]
 
@@ -80,13 +80,25 @@ import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule
 
-USER_PHP_COMMAND = """
+USER_PHP_COMMAND_PREFIX = """
 require_once('auth.inc');
 init_config_arr(array('system', 'user'));
 $a_user = &$config['system']['user'];
-$userent = $a_user[{id}];
-local_user_{cmd}($userent);
+$userent = $a_user[{idx}];
 """
+
+# local_user_set_groups($userent, {groups});
+USER_PHP_COMMAND_SET = USER_PHP_COMMAND_PREFIX + """
+local_user_set($userent);
+if (is_dir("/etc/inc/privhooks")) {{
+    run_plugins("/etc/inc/privhooks");
+}}
+"""
+
+USER_PHP_COMMAND_DEL = USER_PHP_COMMAND_PREFIX + """
+local_user_del($userent);
+"""
+
 
 class pfSenseUser(object):
 
@@ -103,20 +115,20 @@ class pfSenseUser(object):
         found = None
         i = 0
         for user in self.users:
-            i = list(self.system).index(user)
             if user.find('name').text == name:
                 found = user
                 break
+            i += 1
         return (found, i)
 
     def _find_group(self, name):
         found = None
         i = 0
         for group in self.groups:
-            i = list(self.system).index(group)
             if group.find('name').text == name:
                 found = group
                 break
+            i += 1
         return (found, i)
 
     def _nextuid(self):
@@ -149,7 +161,7 @@ class pfSenseUser(object):
             if group_elt is None:
                 self.module.fail_json(msg='Group (%s) does not exist' % user['groupname'])
         
-        user_elt, i = self._find_user(user['name'])
+        user_elt, user_idx = self._find_user(user['name'])
         if user_elt is None:
             changed = True
             self.diff['before'] = ''
@@ -163,21 +175,22 @@ class pfSenseUser(object):
             self.change_descr = 'ansible pfsense_user added %s' % (user['name'])
         else:
             self.diff['before'] = self.pfsense.element_to_dict(user_elt)
-            self.diff['before']['priv'] = self._format_diff_priv(self.diff['before']['priv'])
+            if 'priv' in self.diff['before']:
+                self.diff['before']['priv'] = self._format_diff_priv(self.diff['before']['priv'])
             changed = self.pfsense.copy_dict_to_element(user, user_elt)
             self.diff['after'] = self.pfsense.element_to_dict(user_elt)
-            self.diff['after']['priv'] = self._format_diff_priv(self.diff['after']['priv'])
+            if 'priv' in self.diff['after']:
+                self.diff['after']['priv'] = self._format_diff_priv(self.diff['after']['priv'])
             self.change_descr = 'ansible pfsense_user updated "%s"' % (user['name'])
 
         if changed and not self.module.check_mode:
             self.pfsense.write_config(descr=self.change_descr)
-            if user['scope'] == 'system':
-                (dummy, stdout, stderr) = self.pfsense.phpshell(
-                    USER_PHP_COMMAND.format(cmd='set', id=self.diff['after']['uid']))
+            (dummy, stdout, stderr) = self.pfsense.phpshell(
+                USER_PHP_COMMAND_SET.format(idx=user_idx))
         self.module.exit_json(changed=changed, diff=self.diff, stdout=stdout, stderr=stderr)
 
     def remove(self, user):
-        user_elt, dummy = self._find_user(user['name'])
+        user_elt, user_idx = self._find_user(user['name'])
         changed = False
         stdout = None
         stderr = None
@@ -188,10 +201,9 @@ class pfSenseUser(object):
             changed = True
 
         if changed and not self.module.check_mode:
+            (dummy, stdout, stderr) = self.pfsense.phpshell(
+                USER_PHP_COMMAND_DEL.format(cmd='del', idx=user_idx))
             self.pfsense.write_config(descr='ansible pfsense_user removed "%s"' % (user['name']))
-            if user['scope'] == 'system':
-                (dummy, stdout, stderr) = self.pfsense.phpshell(
-                    USER_PHP_COMMAND.format(cmd='del', id=self.diff['before']['uid']))
         self.module.exit_json(changed=changed, diff=self.diff, stdout=stdout, stderr=stderr)
 
 
@@ -207,8 +219,8 @@ def main():
             'descr': {'type': 'str'},
             'scope': {
                 'type': 'str',
-                'default': 'system',
-                'choices': ['system', 'remote']
+                'default': 'user',
+                'choices': ['user', 'system']
             },
             'uid': {'type': 'str'},
             'password': {'type': 'str'},

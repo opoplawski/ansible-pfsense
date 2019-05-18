@@ -616,8 +616,8 @@ OPTIONS (= is mandatory):
         type: list
 
 - scope
-        Scope of the user ('system' is 'Local')
-        (Choices: system, remote)[Default: system]
+        Scope of the user ('user' is a normal user)
+        (Choices: user, system)[Default: user]
 
 - state
         State in which to leave the user
@@ -642,7 +642,7 @@ EXAMPLES:
   pfsense_user:
     name: operator
     descr: Operator
-    scope: system
+    scope: user
     groupname: Operators
     priv: [ 'page-all', 'user-shell-access' ]
 
