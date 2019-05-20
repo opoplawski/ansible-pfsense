@@ -7,7 +7,7 @@
 import time
 import re
 
-from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
 RULES_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),

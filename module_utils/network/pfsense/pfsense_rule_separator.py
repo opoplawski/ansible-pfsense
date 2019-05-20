@@ -6,7 +6,7 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
 RULE_SEPARATORS_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),

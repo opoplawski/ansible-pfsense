@@ -9,7 +9,7 @@ import sys
 from xml.etree.ElementTree import fromstring, ElementTree
 import pytest
 from units.modules.utils import set_module_args
-from ansible.modules.networking.pfsense import pfsense_rule_separator
+from ansible.modules.network.pfsense import pfsense_rule_separator
 from .pfsense_module import TestPFSenseModule, load_fixture
 
 if sys.version_info < (2, 7):

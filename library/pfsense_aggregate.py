@@ -104,14 +104,14 @@ result_vlans:
     sample: ["create vlan 'mvneta.100', descr='voice', priority='5'", "update vlan 'mvneta.100', set priority='6'", "delete vlan 'mvneta.100'"]
 """
 
-from ansible.module_utils.networking.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.networking.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
-from ansible.module_utils.networking.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
-from ansible.module_utils.networking.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.networking.pfsense.pfsense_rule_separator import RULE_SEPARATORS_ARGUMENT_SPEC
-from ansible.module_utils.networking.pfsense.pfsense_rule_separator import RULE_SEPARATORS_REQUIRED_ONE_OF
-from ansible.module_utils.networking.pfsense.pfsense_rule_separator import RULE_SEPARATORS_MUTUALLY_EXCLUSIVE
-from ansible.module_utils.networking.pfsense.pfsense_vlan import PFSenseVlanModule, VLANS_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_REQUIRED_ONE_OF
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_MUTUALLY_EXCLUSIVE
+from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLANS_ARGUMENT_SPEC
 
 from ansible.module_utils.basic import AnsibleModule
 

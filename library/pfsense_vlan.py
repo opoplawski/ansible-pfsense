@@ -65,7 +65,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.networking.pfsense.pfsense_vlan import PFSenseVlanModule, VLANS_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLANS_ARGUMENT_SPEC
 
 
 def main():
