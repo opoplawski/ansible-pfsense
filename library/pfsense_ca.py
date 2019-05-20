@@ -162,6 +162,11 @@ class pfSenseCA(object):
             descr = 'ansible pfsense_ca updated "%s"' % (ca['descr'])
         if changed and not self.module.check_mode:
             self.pfsense.write_config(descr=descr)
+            if 'text' in crl:
+                self.pfsense.phpshell("""
+                    openvpn_refresh_crls();
+                    vpn_ipsec_configure();""")
+
         diff['after'] = self.pfsense.element_to_dict(ca_elt)
         if 'text' in crl:
             diff['after']['crl'] = crl['text']
