@@ -274,7 +274,7 @@ class PFSenseModule(object):
             else:
                 if elt.tag in res:
                     if isinstance(res[elt.tag], str):
-                        res[elt.tag] = [ res[elt.tag] ]
+                        res[elt.tag] = [res[elt.tag]]
                     res[elt.tag].append(elt.text)
                 else:
                     res[elt.tag] = elt.text if elt.text is not None else ''
@@ -438,7 +438,7 @@ class PFSenseModule(object):
         # detect python version and use 3.4 short_empty_elements parameter to try to preserve format
         self.tree.write(tmp_name, xml_declaration=True, method='xml')
         shutil.move(tmp_name, self.config)
-        os.chmod(self.config, 0644)
+        os.chmod(self.config, 0o644)
         try:
             os.remove('/tmp/config.cache')
         except OSError as exception:

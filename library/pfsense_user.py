@@ -139,7 +139,7 @@ class pfSenseUser(object):
 
     def _format_diff_priv(self, priv):
         if isinstance(priv, str):
-            return [ priv ]
+            return [priv]
         else:
             return priv
 
@@ -147,7 +147,7 @@ class pfSenseUser(object):
         changed = False
         stdout = None
         stderr = None
-        if re.match('\$2b\$',user['password']):
+        if re.match(r'\$2b\$', user['password']):
             user['bcrypt-hash'] = user['password']
         else:
             self.module.fail_json(msg='Password (%s) does not appear to be a bcrypt hash' % user['password'])
@@ -160,14 +160,14 @@ class pfSenseUser(object):
             group_elt, i = self._find_group(user['groupname'])
             if group_elt is None:
                 self.module.fail_json(msg='Group (%s) does not exist' % user['groupname'])
-        
+
         user_elt, user_idx = self._find_user(user['name'])
         if user_elt is None:
             changed = True
             self.diff['before'] = ''
 
             if 'uid' not in user:
-                 user['uid'] = self._nextuid()
+                user['uid'] = self._nextuid()
             self.diff['after'] = user
             user_elt = self.pfsense.new_element('user')
             self.pfsense.copy_dict_to_element(user, user_elt)
