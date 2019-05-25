@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_aggregate
-version_added: "2.8"
+version_added: "2.9"
 author: Frederic Bor (@f-bor)
 short_description: Manage multiple pfSense rules or aliases
 description:
