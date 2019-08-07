@@ -223,7 +223,7 @@ def main():
                 'choices': ['user', 'system']
             },
             'uid': {'type': 'str'},
-            'password': {'type': 'str'},
+            'password': {'type': 'str', 'no_log': True},
             'groupname': {'type': 'str'},
             'priv': {'type': 'list'},
             'authorizedkeys': {'type': 'str'},
