@@ -269,7 +269,7 @@ OPTIONS (= is mandatory):
 
 
 - priv
-        A list of priveleges to assign.
+        A list of privileges to assign.
         Allowed values include page-all, user-shell-access.
         [Default: (null)]
         type: list
@@ -610,7 +610,7 @@ OPTIONS (= is mandatory):
         [Default: (null)]
 
 - priv
-        A list of priveleges to assign.
+        A list of privileges to assign.
         Allowed values include page-all, user-shell-access.
         [Default: (null)]
         type: list

@@ -41,7 +41,7 @@ options:
     - Will use next available GID if not specified.
   priv:
     description:
-    - A list of priveleges to assign.
+    - A list of privileges to assign.
     - Allowed values include page-all, user-shell-access.
     type: list
 """
