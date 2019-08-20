@@ -131,6 +131,17 @@ class pfSenseUser(object):
             i += 1
         return (found, i)
 
+    def _find_last_user_idx(self):
+        found = False
+        i = 0
+        for elt in self.system:
+            if elt.tag == 'user':
+                i += 1
+                found = True
+            if not found:
+                i += 1
+        return i
+
     def _nextuid(self):
         nextuid_elt = self.system.find('nextuid')
         nextuid = nextuid_elt.text
@@ -171,7 +182,7 @@ class pfSenseUser(object):
             self.diff['after'] = user
             user_elt = self.pfsense.new_element('user')
             self.pfsense.copy_dict_to_element(user, user_elt)
-            self.system.insert(user_idx + 1, user_elt)
+            self.system.insert(self._find_last_user_idx(), user_elt)
             self.change_descr = 'ansible pfsense_user added %s' % (user['name'])
         else:
             self.diff['before'] = self.pfsense.element_to_dict(user_elt)
