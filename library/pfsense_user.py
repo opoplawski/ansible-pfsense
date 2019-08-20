@@ -157,7 +157,7 @@ class pfSenseUser(object):
             user['authorizedkeys'] = base64.b64encode(user['authorizedkeys'])
 
         if 'groupname' in user:
-            group_elt, i = self._find_group(user['groupname'])
+            group_elt, group_idx = self._find_group(user['groupname'])
             if group_elt is None:
                 self.module.fail_json(msg='Group (%s) does not exist' % user['groupname'])
 
@@ -171,7 +171,7 @@ class pfSenseUser(object):
             self.diff['after'] = user
             user_elt = self.pfsense.new_element('user')
             self.pfsense.copy_dict_to_element(user, user_elt)
-            self.system.insert(i + 1, user_elt)
+            self.system.insert(user_idx + 1, user_elt)
             self.change_descr = 'ansible pfsense_user added %s' % (user['name'])
         else:
             self.diff['before'] = self.pfsense.element_to_dict(user_elt)
@@ -182,6 +182,11 @@ class pfSenseUser(object):
             if 'priv' in self.diff['after']:
                 self.diff['after']['priv'] = self._format_diff_priv(self.diff['after']['priv'])
             self.change_descr = 'ansible pfsense_user updated "%s"' % (user['name'])
+
+        # Decode keys for diff
+        for k in self.diff:
+            if 'authorizedkeys' in self.diff[k]:
+                self.diff[k]['authorizedkeys'] = base64.b64decode(self.diff[k]['authorizedkeys'])
 
         if changed and not self.module.check_mode:
             self.pfsense.write_config(descr=self.change_descr)
