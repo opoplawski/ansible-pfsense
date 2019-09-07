@@ -8,10 +8,11 @@ fi
 
 misc/local2ansible
 
-TO_CHECK='lib/ansible/modules/networking/pfsense/
-    lib/ansible/module_utils/networking/pfsense/
+TO_CHECK='lib/ansible/modules/network/pfsense/
+    lib/ansible/module_utils/network/pfsense/
     lib/ansible/plugins/lookup/pfsense.py
-    test/units/modules/networking/pfsense/'
+    test/units/modules/network/pfsense/'
 
+cd ${ANSIBLE_HOME}
 ansible-test sanity --python 3.5 ${TO_CHECK}
 ansible-test sanity --python 2.7 ${TO_CHECK}
