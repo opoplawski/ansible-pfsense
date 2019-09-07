@@ -31,6 +31,9 @@ class PFSenseRuleSeparatorModule(PFSenseModuleBase):
         self.module = module
         self.pfsense = pfsense
         self.separators = self.pfsense.rules.find('separator')
+        if self.separators is None:
+            self.separators = self.pfsense.new_element('separator')
+            self.pfsense.rules.append(self.separators)
 
         self.change_descr = None
         self.result = {}
