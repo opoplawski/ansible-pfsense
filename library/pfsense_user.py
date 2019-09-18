@@ -25,26 +25,33 @@ options:
   name:
     description: The name of the user
     required: true
+    type: str
   state:
     description: State in which to leave the user
     default: present
     choices: [ "present", "absent" ]
+    type: str
   descr:
     description: Description of the user
+    type: str
   scope:
     description: Scope of the user ('user' is a normal user)
     default: user
     choices: [ "user", "system" ]
+    type: str
   uid:
     description:
     - UID of the user.
     - Will use next available UID if not specified.
+    type: str
   groupname:
     description:
     - Group of the user.
+    type: str
   password:
     description:
     - bcrypt encrypted password of the user.
+    type: str
   priv:
     description:
     - A list of privileges to assign.
@@ -53,6 +60,7 @@ options:
   authorizedkeys:
     description:
     - Contents of ~/.ssh/authorized_keys.  Can be base64 encoded.
+    type: str
 """
 
 EXAMPLES = """

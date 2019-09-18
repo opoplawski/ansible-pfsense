@@ -25,22 +25,26 @@ options:
   name:
     description: The name of the Certificate Authority
     required: true
+    type: str
   state:
     description: State in which to leave the Certificate Authority
     required: true
     choices: [ "present", "absent" ]
+    type: str
   certificate:
     description:
       >
         The certificate for the Certificate Authority.  This can be in PEM form or Base64
         encoded PEM as a single string (which is how pfSense stores it).
     required: true
+    type: str
   crl:
     description:
       >
         The Certificate Revocation List for the Certificate Authority.  This can be in PEM
         form or Base64 encoded PEM as a single string (which is how pfSense stores it).
     required: false
+    type: str
 """
 
 EXAMPLES = """

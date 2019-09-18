@@ -25,51 +25,68 @@ options:
   name:
     description: The name of the authentication server
     required: true
+    type: str
   state:
     description: State in which to leave the authentication server
     required: true
     choices: [ "present", "absent" ]
+    type: str
   host:
     description: The hostname or IP address of the authentication server
     required: true
+    type: str
   port:
     description: Port to connect to
     default: 389
+    type: str
   transport:
     description: Transport to use
     choices: [ "tcp", "starttls", "ssl" ]
+    type: str
   ca:
     description: Certificat Authority
+    type: str
   protver:
     description: LDAP protocol version
     default: 3
     choices: [ "2", "3" ]
+    type: str
   timeout:
     description: Server timeout in seconds
     default: 25
+    type: str
   scope:
     description: Search scope
     choices: [ 'one', 'subtree' ]
+    type: str
   basedn:
     description: Search base DN
+    type: str
   authcn:
     description: Authentication containers added to basedn
+    type: str
   binddn:
     description: Search bind DN
+    type: str
   bindpw:
     description: Search bind password
+    type: str
   attr_user:
     description: LDAP User naming attribute
     default: cn
+    type: str
   attr_group:
     description: LDAP Group naming attribute
     default: cn
+    type: str
   attr_member:
     description: LDAP Group member naming attribute
     default: member
+    type: str
   attr_groupobj:
     description: LDAP Group objectClass naming attribute
     default: posixGroup
+    type: str
 
 """
 

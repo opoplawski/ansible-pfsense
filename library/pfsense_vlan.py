@@ -25,20 +25,25 @@ options:
   vlan_id:
     description: The vlan tag. Must be between 1 and 4094.
     required: true
+    type: int
   interface:
     description: The interface on which to declare the vlan. Friendly name (assignments) can be used.
     required: true
+    type: str
   priority:
     description: 802.1Q VLAN Priority code point. Must be between 0 and 7.
     required: false
+    type: int
   descr:
     description: The description of the vlan
     default: null
+    type: str
   state:
     description: State in which to leave the vlan
     required: true
     choices: [ "present", "absent" ]
     default: present
+    type: str
 """
 
 EXAMPLES = """

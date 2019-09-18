@@ -26,63 +26,79 @@ options:
     description: The name the rule
     required: true
     default: null
+    type: str
   action:
     description: The action of the rule
     required: true
     default: pass
     choices: [ "pass", "block", "reject" ]
+    type: str
   state:
     description: State in which to leave the rule
     default: present
     choices: [ "present", "absent" ]
+    type: str
   disabled:
     description: Is the rule disabled
-    type: bool
     default: false
+    type: bool
   interface:
     description: The interface for the rule
     required: true
+    type: str
   floating:
     description: Is the rule floating
     type: bool
   direction:
     description: Direction floating rule applies to
     choices: [ "any", "in", "out" ]
+    type: str
   ipprotocol:
     description: The IP protocol
     default: inet
     choices: [ "inet", "inet46", "inet6" ]
+    type: str
   protocol:
     description: The protocol
     default: any
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
+    type: str
   source:
     description: The source address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
     required: true
     default: null
+    type: str
   destination:
     description: The destination address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
     required: true
     default: null
+    type: str
   log:
     description: Log packets matched by rule
     type: bool
   after:
     description: Rule to go after, or "top"
+    type: str
   before:
     description: Rule to go before, or "bottom"
+    type: str
   statetype:
     description: State type
     default: keep state
     choices: ["keep state", "sloppy state", "synproxy state", "none"]
+    type: str
   queue:
     description: QOS default queue
+    type: str
   ackqueue:
     description: QOS acknowledge queue
+    type: str
   in_queue:
     description: Limiter queue for traffic coming into the chosen interface
+    type: str
   out_queue:
     description: Limiter queue for traffic leaving the chosen interface
+    type: str
 """
 
 EXAMPLES = """

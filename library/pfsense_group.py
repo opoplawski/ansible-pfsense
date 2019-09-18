@@ -25,20 +25,25 @@ options:
   name:
     description: The name of the group
     required: true
+    type: str
   state:
     description: State in which to leave the group
     required: true
     choices: [ "present", "absent" ]
+    type: str
   descr:
     description: Description of the group
+    type: str
   scope:
     description: Scope of the group ('system' is 'Local')
     default: system
     choices: [ "system", "remote" ]
+    type: str
   gid:
     description:
     - GID of the group.
     - Will use next available GID if not specified.
+    type: str
   priv:
     description:
     - A list of privileges to assign.

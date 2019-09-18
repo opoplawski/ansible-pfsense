@@ -25,27 +25,34 @@ options:
   name:
     description: The name of the alias
     required: true
+    type: str
   state:
     description: State in which to leave the alias
     required: true
     choices: [ "present", "absent" ]
     default: present
+    type: str
   type:
     description: The type of the alias
     choices: [ "host", "network", "port", "urltable", "urltable_ports" ]
     default: null
+    type: str
   address:
     description: The address of the alias. Use a space separator for multiple values
     default: null
+    type: str
   descr:
     description: The description of the alias
     default: null
+    type: str
   detail:
     description: The descriptions of the items. Use || separator between items
     default: null
+    type: str
   updatefreq:
     description: Update frequency in days for urltable
     default: null
+    type: int
 """
 
 EXAMPLES = """

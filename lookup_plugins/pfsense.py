@@ -191,6 +191,7 @@ ports_aliases:
 
 from copy import copy, deepcopy
 from collections import OrderedDict
+from ansible.utils.display import Display
 
 import json
 import re
@@ -203,11 +204,7 @@ from ansible.module_utils.compat import ipaddress
 
 OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
 
-try:
-    from __main__ import display
-except ImportError:
-    from ansible.utils.display import Display
-    display = Display()
+display = Display()
 
 
 def to_unicode(string):

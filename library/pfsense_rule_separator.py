@@ -24,25 +24,31 @@ options:
   name:
     description: The name of the separator
     required: true
+    type: str
   state:
     description: State in which to leave the separator
     required: true
     choices: [ "present", "absent" ]
     default: present
+    type: str
   interface:
     description: The interface for the separator
     required: true
+    type: str
   floating:
     description: Is the rule on floating tab
     type: bool
   after:
     description: Rule to go after, or "top"
+    type: str
   before:
     description: Rule to go before, or "bottom"
+    type: str
   color:
     description: The separator's color
     default: info
     choices: [ 'info', 'warning', 'danger', 'success' ]
+    type: str
 """
 
 EXAMPLES = """

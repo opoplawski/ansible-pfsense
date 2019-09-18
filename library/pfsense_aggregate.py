@@ -20,41 +20,206 @@ short_description: Manage multiple pfSense rules or aliases
 description:
   - Manage multiple pfSense rules or aliases
 notes:
-  - aggregated_aliases and aggregated_rules use the same options definitions
-    than pfsense_alias and pfsense_rule modules.
+  - aggregated_* use the same options definitions than pfsense corresponding module
 options:
   aggregated_aliases:
     description: Dict of aliases to apply on the target
     required: False
+    type: list
+    suboptions:
+      name:
+        description: The name of the alias
+        required: true
+        type: str
+      state:
+        description: State in which to leave the alias
+        required: true
+        choices: [ "present", "absent" ]
+        default: present
+        type: str
+      type:
+        description: The type of the alias
+        choices: [ "host", "network", "port", "urltable", "urltable_ports" ]
+        default: null
+        type: str
+      address:
+        description: The address of the alias. Use a space separator for multiple values
+        default: null
+        type: str
+      descr:
+        description: The description of the alias
+        default: null
+        type: str
+      detail:
+        description: The descriptions of the items. Use || separator between items
+        default: null
+        type: str
+      updatefreq:
+        description: Update frequency in days for urltable
+        default: null
+        type: int
   aggregated_rules:
     description: Dict of rules to apply on the target
     required: False
+    type: list
+    suboptions:
+      name:
+        description: The name the rule
+        required: true
+        default: null
+        type: str
+      action:
+        description: The action of the rule
+        required: true
+        default: pass
+        choices: [ "pass", "block", "reject" ]
+        type: str
+      state:
+        description: State in which to leave the rule
+        default: present
+        choices: [ "present", "absent" ]
+        type: str
+      disabled:
+        description: Is the rule disabled
+        default: false
+        type: bool
+      interface:
+        description: The interface for the rule
+        required: true
+        type: str
+      floating:
+        description: Is the rule floating
+        type: bool
+      direction:
+        description: Direction floating rule applies to
+        choices: [ "any", "in", "out" ]
+        type: str
+      ipprotocol:
+        description: The IP protocol
+        default: inet
+        choices: [ "inet", "inet46", "inet6" ]
+        type: str
+      protocol:
+        description: The protocol
+        default: any
+        choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
+        type: str
+      source:
+        description: The source address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
+        required: true
+        default: null
+        type: str
+      destination:
+        description: The destination address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
+        required: true
+        default: null
+        type: str
+      log:
+        description: Log packets matched by rule
+        type: bool
+      after:
+        description: Rule to go after, or "top"
+        type: str
+      before:
+        description: Rule to go before, or "bottom"
+        type: str
+      statetype:
+        description: State type
+        default: keep state
+        choices: ["keep state", "sloppy state", "synproxy state", "none"]
+        type: str
+      queue:
+        description: QOS default queue
+        type: str
+      ackqueue:
+        description: QOS acknowledge queue
+        type: str
+      in_queue:
+        description: Limiter queue for traffic coming into the chosen interface
+        type: str
+      out_queue:
+        description: Limiter queue for traffic leaving the chosen interface
+        type: str
   aggregated_rule_separators:
     description: Dict of rule separators to apply on the target
     required: False
+    type: list
+    suboptions:
+      name:
+        description: The name of the separator
+        required: true
+        type: str
+      state:
+        description: State in which to leave the separator
+        required: true
+        choices: [ "present", "absent" ]
+        default: present
+        type: str
+      interface:
+        description: The interface for the separator
+        required: true
+        type: str
+      floating:
+        description: Is the rule on floating tab
+        type: bool
+      after:
+        description: Rule to go after, or "top"
+        type: str
+      before:
+        description: Rule to go before, or "bottom"
+        type: str
+      color:
+        description: The separator's color
+        default: info
+        choices: [ 'info', 'warning', 'danger', 'success' ]
+        type: str
   aggregated_vlans:
     description: Dict of vlans to apply on the target
     required: False
+    type: list
+    suboptions:
+      vlan_id:
+        description: The vlan tag. Must be between 1 and 4094.
+        required: true
+        type: int
+      interface:
+        description: The interface on which to declare the vlan. Friendly name (assignments) can be used.
+        required: true
+        type: str
+      priority:
+        description: 802.1Q VLAN Priority code point. Must be between 0 and 7.
+        required: false
+        type: int
+      descr:
+        description: The description of the vlan
+        default: null
+        type: str
+      state:
+        description: State in which to leave the vlan
+        required: true
+        choices: [ "present", "absent" ]
+        default: present
+        type: str
   purge_aliases:
     description: delete all the aliases that are not defined into aggregated_aliases
     required: False
-    type: bool
     default: False
+    type: bool
   purge_rules:
     description: delete all the rules that are not defined into aggregated_rules
     required: False
-    type: bool
     default: False
+    type: bool
   purge_rule_separators:
     description: delete all the rule separators that are not defined into aggregated_rule_separators
     required: False
-    type: bool
     default: False
+    type: bool
   purge_vlans:
     description: delete all the vlans that are not defined into aggregated_vlans
     required: False
-    type: bool
     default: False
+    type: bool
 """
 
 EXAMPLES = """
