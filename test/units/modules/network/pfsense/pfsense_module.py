@@ -212,7 +212,10 @@ class TestPFSenseModule(ModuleTestCase):
         if elt is None:
             self.fail('Element not found: ' + elt_name)
         if elt.text != elt_value:
-            self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: \'' + elt.text + '\'')
+            if elt.text is None:
+                self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: None')
+            else:
+                self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: \'' + elt.text + '\'')
         return elt
 
     def assert_xml_elt_is_none_or_empty(self, tag, elt_name):

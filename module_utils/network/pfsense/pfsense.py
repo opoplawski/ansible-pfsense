@@ -30,6 +30,7 @@ class PFSenseModule(object):
         self.shapers = self.get_element('shaper')
         self.dnshapers = self.get_element('dnshaper')
         self.vlans = self.get_element('vlans')
+        self.gateways = self.get_element('gateways')
         self.ipsec = self.get_element('ipsec')
         self.openvpn = self.get_element('openvpn')
         self.debug = open('/tmp/pfsense.debug', 'w')
@@ -63,6 +64,17 @@ class PFSenseModule(object):
     def get_index(self, elt):
         """ Get elt index  """
         return list(self.root).index(elt)
+
+    @staticmethod
+    def remove_deleted_param_from_elt(elt, param, params):
+        """ Remove from a deleted param from an xml elt """
+        changed = False
+        if param not in params:
+            param_elt = elt.find(param)
+            if param_elt is not None:
+                changed = True
+                elt.remove(param_elt)
+        return changed
 
     def get_interface_pfsense_by_name(self, name):
         """ return pfsense interface by name """
@@ -320,11 +332,8 @@ class PFSenseModule(object):
             return True
 
         # Is it an IP address?
-        try:
-            ip_address(u'{0}'.format(address))
+        if self.is_ip(address):
             return True
-        except ValueError:
-            pass
 
         # Is it an IP network?
         try:
@@ -334,6 +343,16 @@ class PFSenseModule(object):
             pass
 
         # None of the above
+        return False
+
+    @staticmethod
+    def is_ip(address):
+        """ test if address is a valid ip address """
+        try:
+            ip_address(u'{0}'.format(address))
+            return True
+        except ValueError:
+            pass
         return False
 
     def is_port_or_alias(self, port):
@@ -404,6 +423,16 @@ class PFSenseModule(object):
 
         return None
 
+    def find_ipv4_gateway_elt(self, name, interface):
+        """ return gateway elt if found """
+        for gw_elt in self.gateways:
+            if gw_elt.tag != 'gateway_item' or gw_elt.find('ipprotocol').text != 'inet':
+                continue
+            if gw_elt.find('name').text == name and gw_elt.find('interface').text == interface:
+                return gw_elt
+
+        return None
+
     @staticmethod
     def uniqid(prefix=''):
         """ return an identifier based on time """
@@ -471,7 +500,7 @@ class PFSenseModuleBase(object):
         res = ''
         if field in after:
             if log_none and after[field] is None:
-                res = "{0}=none".format(fname)
+                res = "{0}={1}".format(fname, fvalue('none'))
             if after[field] is not None:
                 if default is None or after[field] != default:
                     if isinstance(after[field], str):
@@ -479,7 +508,7 @@ class PFSenseModuleBase(object):
                     else:
                         res = "{0}={1}".format(fname, fvalue(after[field]))
         elif log_none:
-            res = "{0}=none".format(fname)
+            res = "{0}={1}".format(fname, fvalue('none'))
 
         if add_comma and res:
             return ', ' + res

@@ -634,7 +634,7 @@ AUTHOR: Orion Poplawski (@opoplawski)
           status:
           - preview
           supported_by: community
-        
+
 
 EXAMPLES:
 
@@ -712,6 +712,133 @@ commands:
     returned: always
     type: list
     sample: ["create vlan 'mvneta.100', descr='voice', priority='5'", "update vlan 'mvneta.100', set priority='6'", "delete vlan 'mvneta.100'"]
+```
+# pfsense_interface
+```
+> PFSENSE_INTERFACE    (/home/fbor/ansible/lib/ansible/modules/network/pfsense/pfsense_interface.py)
+
+        Manage pfSense interfaces
+
+  * This module is maintained by The Ansible Community
+OPTIONS (= is mandatory):
+
+- blockbogons
+        Blocks traffic from reserved IP addresses (but not RFC 1918) or not yet assigned by IANA.
+        [Default: (null)]
+        type: bool
+
+- blockpriv
+        Blocks traffic from IP addresses that are reserved for private networks.
+        [Default: (null)]
+        type: bool
+
+- create_ipv4_gateway
+        Create the specified IPv4 gateway if it does not exist
+        [Default: (null)]
+        type: bool
+
+= descr
+        Description (name) for the interface.
+
+        type: str
+
+= enable
+        Enable interface.
+
+        type: bool
+
+= interface
+        Network port to which assign the interface.
+
+        type: str
+
+- ipv4_address
+        IPv4 Address.
+        [Default: (null)]
+        type: str
+
+- ipv4_gateway
+        IPv4 gateway for this interface.
+        [Default: (null)]
+        type: str
+
+- ipv4_gateway_address
+        IPv4 gateway address to set on the interface
+        [Default: (null)]
+        type: str
+
+- ipv4_prefixlen
+        IPv4 subnet prefix length.
+        [Default: 24]
+        type: int
+
+- ipv4_type
+        IPv4 Configuration Type.
+        (Choices: none, static)[Default: none]
+        type: str
+
+- mac
+        Used to modify ("spoof") the MAC address of this interface.
+        [Default: (null)]
+        type: str
+
+- mss
+        MSS clamping for TCP connections.
+        [Default: (null)]
+        type: int
+
+- mtu
+        Maximum transmission unit
+        [Default: (null)]
+        type: int
+
+- speed_duplex
+        Set speed and duplex mode for this interface.
+        [Default: autoselect]
+        type: str
+
+= state
+        State in which to leave the interface.
+        (Choices: present, absent)[Default: present]
+        type: str
+
+
+NOTES:
+      * EXPERIMENTAL MODULE, not suited for production.
+
+
+AUTHOR: Frederic Bor (@f-bor)
+        METADATA:
+          status:
+          - preview
+          supported_by: community
+
+
+EXAMPLES:
+
+- name: Add interface
+  pfsense_interface:
+    descr: voice
+    interface: mvneta0.100
+    enable: True
+    ipv4_type: static
+    ipv4_address: 10.20.30.40
+    ipv4_prefixlen: 24
+
+- name: Remove interface
+  pfsense_interface:
+    state: absent
+    descr: voice
+    interface: mvneta0.100
+
+
+RETURN VALUES:
+
+commands:
+    description: the set of commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: always
+    type: list
+    sample: ["create interface 'voice', port='mvneta0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen='24', speed_duplex='autoselect', enable='True'", "delete interface 'voice'"]
 ```
 # operation
 
