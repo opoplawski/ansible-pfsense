@@ -250,3 +250,21 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
                          ipv4_address='172.16.151.210', ipv4_prefixlen=24, ipv4_gateway='voice_gw')
         msg = "vmx1.1200 can't be assigned. Interface may only be one the following: ['vmx0', 'vmx1', 'vmx2', 'vmx3', 'vmx0.100', 'vmx1.1100']"
         self.do_interface_test(interface, failed=True, msg=msg)
+
+    def test_interface_error_eq(self):
+        """ test error same ipv4 address """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.242', ipv4_prefixlen=32)
+        msg = "IPv4 address 192.168.1.242/32 is being used by or overlaps with: lan (192.168.1.242/24)"
+        self.do_interface_test(interface, failed=True, msg=msg)
+
+    def test_interface_error_overlaps1(self):
+        """ test error same ipv4 address """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.1', ipv4_prefixlen=30)
+        msg = "IPv4 address 192.168.1.1/30 is being used by or overlaps with: lan (192.168.1.242/24)"
+        self.do_interface_test(interface, failed=True, msg=msg)
+
+    def test_interface_error_overlaps2(self):
+        """ test error same ipv4 address """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.1', ipv4_prefixlen=22)
+        msg = "IPv4 address 192.168.1.1/22 is being used by or overlaps with: lan (192.168.1.242/24)"
+        self.do_interface_test(interface, failed=True, msg=msg)

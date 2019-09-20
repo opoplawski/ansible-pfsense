@@ -8,6 +8,7 @@ __metaclass__ = type
 import re
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule
+from ansible.module_utils.compat.ipaddress import ip_network
 
 INTERFACES_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -289,9 +290,44 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
             cmd = 'create gateway \'{0}\', interface=\'{1}\', ip=\'{2}\''.format(interface['gateway'], interface_elt.tag, self._params['ipv4_gateway_address'])
             self.result['commands'].append(cmd)
 
+    def _check_overlaps(self, interface, interface_elt):
+        """ check new address does not overlaps with one existing """
+
+        if not interface.get('ipaddr'):
+            return
+
+        our_addr = ip_network(u'{0}/{1}'.format(interface['ipaddr'], interface['subnet']), strict=False)
+
+        for iface in self.interfaces:
+            if iface == interface_elt:
+                continue
+
+            ipaddr_elt = iface.find('ipaddr')
+            subnet_elt = iface.find('subnet')
+            if ipaddr_elt is None or subnet_elt is None:
+                continue
+
+            other_addr = ip_network(u'{0}/{1}'.format(ipaddr_elt.text, subnet_elt.text), strict=False)
+            if our_addr.overlaps(other_addr):
+                descr_elt = iface.find('descr')
+                if descr_elt is not None and descr_elt.text:
+                    ifname = descr_elt.text
+                else:
+                    ifname = iface.tag
+                msg = 'IPv4 address {0}/{1} is being used by or overlaps with: {2} ({3}/{4})'.format(
+                    interface['ipaddr'],
+                    interface['subnet'],
+                    ifname,
+                    ipaddr_elt.text,
+                    subnet_elt.text
+                )
+                self.module.fail_json(msg=msg)
+
     def _add(self, interface):
         """ add or update interface """
         interface_elt = self._find_matching_interface(interface)
+
+        self._check_overlaps(interface, interface_elt)
 
         if interface_elt is None:
             interface_elt = self._create_interface_elt()
