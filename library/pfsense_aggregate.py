@@ -58,6 +58,80 @@ options:
         description: Update frequency in days for urltable
         default: null
         type: int
+  aggregated_interfaces:
+    description: Dict of interfaces to apply on the target
+    required: False
+    type: list
+    suboptions:
+      state:
+        description: State in which to leave the interface.
+        required: true
+        choices: [ "present", "absent" ]
+        default: present
+        type: str
+      descr:
+        description: Description (name) for the interface.
+        required: true
+        type: str
+      interface:
+        description: Network port to which assign the interface.
+        required: true
+        type: str
+      enable:
+        description: Enable interface.
+        required: true
+        type: bool
+      ipv4_type:
+        description: IPv4 Configuration Type.
+        choices: [ "none", "static" ]
+        default: 'none'
+        type: str
+      mac:
+        description: Used to modify ("spoof") the MAC address of this interface.
+        required: false
+        type: str
+      mtu:
+        description: Maximum transmission unit
+        required: false
+        type: int
+      mss:
+        description: MSS clamping for TCP connections.
+        required: false
+        type: int
+      speed_duplex:
+        description: Set speed and duplex mode for this interface.
+        required: false
+        default: autoselect
+        type: str
+      ipv4_address:
+        description: IPv4 Address.
+        required: false
+        type: str
+      ipv4_prefixlen:
+        description: IPv4 subnet prefix length.
+        required: false
+        default: 24
+        type: int
+      ipv4_gateway:
+        description: IPv4 gateway for this interface.
+        required: false
+        type: str
+      blockpriv:
+        description: Blocks traffic from IP addresses that are reserved for private networks.
+        required: false
+        type: bool
+      blockbogons:
+        description: Blocks traffic from reserved IP addresses (but not RFC 1918) or not yet assigned by IANA.
+        required: false
+        type: bool
+      create_ipv4_gateway:
+        description: Create the specified IPv4 gateway if it does not exist
+        required: false
+        type: bool
+      ipv4_gateway_address:
+        description: IPv4 gateway address to set on the interface
+        required: false
+        type: str
   aggregated_rules:
     description: Dict of rules to apply on the target
     required: False
@@ -205,6 +279,11 @@ options:
     required: False
     default: False
     type: bool
+  purge_interfaces:
+    description: delete all the interfaces that are not defined into aggregated_interfaces
+    required: False
+    default: False
+    type: bool
   purge_rules:
     description: delete all the rules that are not defined into aggregated_rules
     required: False
@@ -223,11 +302,12 @@ options:
 """
 
 EXAMPLES = """
-- name: "Add three aliases, six rules, four separators, and delete everything else"
+- name: "Setup two vlans, three aliases, six rules, four separators, and delete everything else"
   pfsense_aggregate:
     purge_aliases: true
     purge_rules: true
     purge_rule_separators: true
+    purge_vlans: true
     aggregated_aliases:
       - { name: port_ssh, type: port, address: 22, state: present }
       - { name: port_http, type: port, address: 80, state: present }
@@ -244,6 +324,9 @@ EXAMPLES = """
       - { name: "HTTP", interface: lan, state: present, before: allow_all_http }
       - { name: "SSH", interface: wan, state: present, before: allow_all_ssh }
       - { name: "HTTP", interface: wan, state: present, before: allow_all_http }
+    aggregated_vlans:
+      - { descr: voice, vlan_id: 100, interface: mvneta0, state: present }
+      - { descr: video, vlan_id: 200, interface: mvneta0, state: present }
 """
 
 RETURN = """
@@ -252,6 +335,11 @@ result_aliases:
     returned: success
     type: list
     sample: ["create alias 'adservers', type='host', address='10.0.0.1 10.0.0.2'", "update alias 'one_host' set address='10.9.8.7'", "delete alias 'one_alias'"]
+result_interfaces:
+    description: the set of interfaces commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create interface 'VOICE', port='mvneta1.100'", "create interface 'VIDEO', port='mvneta1.200'"]
 aggregated_rules:
     description: final set of rules
     returned: success
@@ -271,6 +359,9 @@ result_vlans:
 
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
 from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_interface import PFSenseInterfaceModule
+from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACES_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACES_REQUIRED_IF
 from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
 from ansible.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
 from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_ARGUMENT_SPEC
@@ -288,6 +379,7 @@ class PFSenseModuleAggregate(object):
         self.module = module
         self.pfsense = PFSenseModule(module)
         self.pfsense_aliases = PFSenseAliasModule(module, self.pfsense)
+        self.pfsense_interfaces = PFSenseInterfaceModule(module, self.pfsense)
         self.pfsense_rules = PFSenseRuleModule(module, self.pfsense)
         self.pfsense_rule_separators = PFSenseRuleSeparatorModule(module, self.pfsense)
         self.pfsense_vlans = PFSenseVlanModule(module, self.pfsense)
@@ -299,6 +391,9 @@ class PFSenseModuleAggregate(object):
         if self.pfsense_aliases.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'aliases\');\n'
+        if self.pfsense_interfaces.result['changed']:
+            run = True
+            cmd += 'clear_subsystem_dirty(\'interfaces\');\n'
         if self.pfsense_rules.changed or self.pfsense_rule_separators.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'filter\');\n'
@@ -352,6 +447,21 @@ class PFSenseModuleAggregate(object):
             if alias['state'] == 'absent':
                 continue
             if alias['name'] == name.text and alias['type'] == alias_type.text:
+                return True
+        return False
+
+    def want_interface(self, interface_elt, interfaces):
+        """ return True if we want to keep interface_elt """
+        descr_elt = interface_elt.find('descr')
+        if descr_elt is not None and descr_elt.text:
+            name = descr_elt.text
+        else:
+            name = interface_elt.tag
+
+        for interface in interfaces:
+            if interface['state'] == 'absent':
+                continue
+            if interface['descr'] == name:
                 return True
         return False
 
@@ -419,6 +529,32 @@ class PFSenseModuleAggregate(object):
             for params in todel:
                 self.pfsense_aliases.run(params)
 
+    def run_interfaces(self):
+        """ process input params to add/update/delete all interfaces """
+        want = self.module.params['aggregated_interfaces']
+
+        if want is None:
+            return
+
+        # processing aggregated parameter
+        for param in want:
+            self.pfsense_interfaces.run(param)
+
+        # delete every other vlans if required
+        if self.module.params['purge_interfaces']:
+            todel = []
+            for interface_elt in self.pfsense_interfaces.interfaces:
+                if not self.want_interface(interface_elt, want):
+                    params = {}
+                    params['state'] = 'absent'
+                    descr_elt = interface_elt.find('descr')
+                    if descr_elt is not None and descr_elt.text:
+                        params['descr'] = descr_elt.text
+                        todel.append(params)
+
+            for params in todel:
+                self.pfsense_interfaces.run(params)
+
     def run_rule_separators(self):
         """ process input params to add/update/delete all separators """
         want = self.module.params['aggregated_rule_separators']
@@ -478,7 +614,7 @@ class PFSenseModuleAggregate(object):
         stdout = ''
         stderr = ''
         changed = (
-            self.pfsense_aliases.result['changed'] or self.pfsense_rules.changed
+            self.pfsense_aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_rules.changed
             or self.pfsense_rule_separators.result['changed'] or self.pfsense_vlans.result['changed']
         )
 
@@ -488,6 +624,7 @@ class PFSenseModuleAggregate(object):
 
         result = {}
         result['result_aliases'] = self.pfsense_aliases.result['commands']
+        result['result_interfaces'] = self.pfsense_interfaces.result['commands']
         result['result_rules'] = self.pfsense_rules.result['commands']
         result['result_rule_separators'] = self.pfsense_rule_separators.result['commands']
         result['result_vlans'] = self.pfsense_vlans.result['commands']
@@ -500,18 +637,20 @@ class PFSenseModuleAggregate(object):
 def main():
     argument_spec = dict(
         aggregated_aliases=dict(type='list', elements='dict', options=ALIASES_ARGUMENT_SPEC, required_if=ALIASES_REQUIRED_IF),
+        aggregated_interfaces=dict(type='list', elements='dict', options=INTERFACES_ARGUMENT_SPEC, required_if=INTERFACES_REQUIRED_IF),
         aggregated_rules=dict(type='list', elements='dict', options=RULES_ARGUMENT_SPEC, required_if=RULES_REQUIRED_IF),
         aggregated_rule_separators=dict(
             type='list', elements='dict',
             options=RULE_SEPARATORS_ARGUMENT_SPEC, required_one_of=RULE_SEPARATORS_REQUIRED_ONE_OF, mutually_exclusive=RULE_SEPARATORS_MUTUALLY_EXCLUSIVE),
         aggregated_vlans=dict(type='list', elements='dict', options=VLANS_ARGUMENT_SPEC),
         purge_aliases=dict(default=False, type='bool'),
+        purge_interfaces=dict(default=False, type='bool'),
         purge_rules=dict(default=False, type='bool'),
         purge_rule_separators=dict(default=False, type='bool'),
         purge_vlans=dict(default=False, type='bool'),
     )
 
-    required_one_of = [['aggregated_aliases', 'aggregated_rules', 'aggregated_rule_separators', 'aggregated_vlans']]
+    required_one_of = [['aggregated_aliases', 'aggregated_interfaces', 'aggregated_rules', 'aggregated_rule_separators', 'aggregated_vlans']]
 
     module = AnsibleModule(
         argument_spec=argument_spec,
@@ -520,10 +659,13 @@ def main():
 
     pfmodule = PFSenseModuleAggregate(module)
 
+    pfmodule.run_vlans()
+    pfmodule.run_interfaces()
+
     pfmodule.run_aliases()
     pfmodule.run_rules()
     pfmodule.run_rule_separators()
-    pfmodule.run_vlans()
+
     pfmodule.commit_changes()
 
 
