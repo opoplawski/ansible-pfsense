@@ -190,7 +190,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
             descr_elt = iface.find('descr')
             if descr_elt is None:
                 continue
-            if iface.find('if').text.strip() == interface and descr_elt.text.strip() == name:
+            if iface.find('if').text.strip() == interface and descr_elt.text.strip().lower() == name.lower():
                 return iface
         return None
 
@@ -200,7 +200,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
             descr_elt = iface.find('descr')
             if descr_elt is None:
                 continue
-            if descr_elt.text.strip() == name:
+            if descr_elt.text.strip().lower() == name.lower():
                 return iface
         return None
 
