@@ -78,6 +78,9 @@ the name 'options'. The parameters supported this way are log, queue, ackqueue,
 in_queue and out_queue. You can override those default values setting other values
 on a deeper options set or inside the rule definition.
 
+You can use an extra parameter in rules and options, filter, to restrict the rule
+generation only to the pfsenses set in this parameter.
+
 The yaml file must include the following definitions to describe the network topology:
 - pfsenses
 - rules
@@ -202,7 +205,8 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
-OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
+OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'filter']
+OUTPUT_OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
 
 display = Display()
 
@@ -648,7 +652,7 @@ class PFSenseRule(object):
         if self.action != "pass":
             res += ", action: " + " ".join(self.action)
 
-        for field in OPTION_FIELDS:
+        for field in OUTPUT_OPTION_FIELDS:
             value = self.get_option(field)
             if value is not None:
                 res += ', {0}: {1}'.format(field, value)
@@ -1636,6 +1640,7 @@ class PFSenseRuleFactory(object):
     def rule_interfaces_any(self, rule_obj):
         """ Return interfaces set on which the rule is needed to be defined
             Manage rules with any src or dst """
+
         src = rule_obj.src[0]
         dst = rule_obj.dst[0]
 
@@ -1705,6 +1710,12 @@ class PFSenseRuleFactory(object):
     def rule_interfaces(self, rule_obj):
         """ Return interfaces list on which the rule is needed to be defined """
 
+        # if the rule has a filter, apply it
+        # TODO: better filters (regex)
+        rule_filter = rule_obj.get_option('filter')
+        if rule_filter and self._data.target.name not in rule_filter.split(' '):
+            return set()
+
         if len(rule_obj.src) != 1 or len(rule_obj.dst) != 1:
             raise AssertionError()
 
@@ -1727,7 +1738,7 @@ class PFSenseRuleFactory(object):
             else:
                 interfaces.update(rule_obj.src[0].routed_by_interfaces(self._data.target))
 
-            if len(interfaces) != 1:
+            if len(interfaces) > 1:
                 raise AssertionError('Invalid local interfaces count for {0}: {1}'.format(rule_obj.name, len(interfaces)))
             return interfaces
 
@@ -1826,7 +1837,7 @@ class PFSenseRuleFactory(object):
                 definition = {}
                 definition['name'] = name
                 definition['action'] = rule_obj.action
-                for field in OPTION_FIELDS:
+                for field in OUTPUT_OPTION_FIELDS:
                     definition[field] = rule_obj.get_option(field)
                 definition['interface'] = interface
                 definition['state'] = 'present'
@@ -1849,7 +1860,7 @@ class PFSenseRuleFactory(object):
                     rule_name = name + "_" + str(rule_idx)
                     definition['name'] = rule_name
                     definition['action'] = rule_obj.action
-                    for field in OPTION_FIELDS:
+                    for field in OUTPUT_OPTION_FIELDS:
                         definition[field] = rule_obj.get_option(field)
                     definition['interface'] = interface
                     definition['state'] = 'present'
@@ -1922,7 +1933,7 @@ class PFSenseRuleFactory(object):
                 definition += ", protocol: \"" + rule['protocol'] + "\""
             if rule.get('descr'):
                 definition += ", descr: \"" + rule['descr'] + "\""
-            for field in OPTION_FIELDS:
+            for field in OUTPUT_OPTION_FIELDS:
                 value = rule.get(field)
                 if value is not None:
                     definition += ', {0}: {1}'.format(field, value)
