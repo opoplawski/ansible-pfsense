@@ -345,6 +345,12 @@ OPTIONS (= is mandatory):
         [Default: (null)]
         type: bool
 
+- gateway
+        Leave as 'default' to use the system routing table or choose a gateway to utilize policy based
+        routing.
+        [Default: default]
+        type: str
+
 - in_queue
         Limiter queue for traffic coming into the chosen interface
         [Default: (null)]
@@ -539,6 +545,7 @@ EXAMPLES:
     purge_aliases: true
     purge_rules: true
     purge_rule_separators: true
+    purge_vlans: true
     aggregated_aliases:
       - { name: port_ssh, type: port, address: 22, state: present }
       - { name: port_http, type: port, address: 80, state: present }
@@ -555,6 +562,9 @@ EXAMPLES:
       - { name: "HTTP", interface: lan, state: present, before: allow_all_http }
       - { name: "SSH", interface: wan, state: present, before: allow_all_ssh }
       - { name: "HTTP", interface: wan, state: present, before: allow_all_http }
+    aggregated_vlans:
+      - { descr: voice, vlan_id: 100, interface: mvneta0, state: present }
+      - { descr: video, vlan_id: 200, interface: mvneta0, state: present }
 
 RETURN VALUES:
 
@@ -564,6 +574,11 @@ result_aliases:
     returned: success
     type: list
     sample: ["create alias 'adservers', type='host', address='10.0.0.1 10.0.0.2'", "update alias 'one_host' set address='10.9.8.7'", "delete alias 'one_alias'"]
+result_interfaces:
+    description: the set of interfaces commands that would be pushed to the remote device (if pfSense had a CLI)
+    returned: success
+    type: list
+    sample: ["create interface 'VOICE', port='mvneta1.100'", "create interface 'VIDEO', port='mvneta1.200'"]
 aggregated_rules:
     description: final set of rules
     returned: success

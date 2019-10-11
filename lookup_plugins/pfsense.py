@@ -74,7 +74,7 @@ Rule separators name are taken from parent rules' groups (see 'ADMIN', 'VOIP',
 names in the form 'GROUP1 - GROUP2 - ...'
 
 You can define a default value for all rules and subrules of a separator using
-the name 'options'. The parameters supported this way are log, queue, ackqueue,
+the name 'options'. The parameters supported this way are gateway, log, queue, ackqueue,
 in_queue and out_queue. You can override those default values setting other values
 on a deeper options set or inside the rule definition.
 
@@ -205,8 +205,8 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
-OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'filter']
-OUTPUT_OPTION_FIELDS = ['log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
+OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'filter']
+OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
 
 display = Display()
 

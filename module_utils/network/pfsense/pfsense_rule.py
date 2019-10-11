@@ -32,6 +32,7 @@ RULES_ARGUMENT_SPEC = dict(
     ackqueue=dict(required=False, type='str'),
     in_queue=dict(required=False, type='str'),
     out_queue=dict(required=False, type='str'),
+    gateway=dict(required=False, type='str', default='default'),
 )
 
 RULES_REQUIRED_IF = [
@@ -274,6 +275,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
         log += self.format_cli_field(self._params, 'ackqueue')
         log += self.format_cli_field(self._params, 'in_queue')
         log += self.format_cli_field(self._params, 'out_queue')
+        log += self.format_cli_field(self._params, 'default', default='default')
 
         self.result['commands'].append(log)
 
@@ -342,6 +344,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
         values += self.format_updated_cli_field(rule, before, 'ackqueue', add_comma=(values))
         values += self.format_updated_cli_field(rule, before, 'in_queue', add_comma=(values))
         values += self.format_updated_cli_field(rule, before, 'out_queue', add_comma=(values))
+        values += self.format_updated_cli_field(rule, before, 'gateway', add_comma=(values))
 
         self.result['commands'].append(log + ' set ' + values)
 
@@ -439,6 +442,17 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             if params['before'] == params['name']:
                 self.module.fail_json(msg='Cannot specify the current rule in before')
 
+        # gateway
+        if params.get('gateway') is not None and params['gateway'] != 'default':
+            if params['ipprotocol'] == 'inet46':
+                self.module.fail_json(msg='Gateway selection is not valid for "IPV4+IPV6" address family.')
+            elif (self.pfsense.find_gateway_group_elt(params['gateway'], params['ipprotocol']) is None
+                  and self.pfsense.find_gateway_elt(params['gateway'], None, params['ipprotocol']) is None):
+                self.module.fail_json(msg='Gateway "%s" does not exist or does not match target rule ip protocol.' % params['gateway'])
+
+            if params.get('floating') and params.get('direction') == 'any':
+                self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
+
     def _remove_deleted_rule_param(self, rule_elt, param):
         """ Remove from rule a deleted rule param """
         changed = False
@@ -452,7 +466,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
     def _remove_deleted_rule_params(self, rule_elt):
         """ Remove from rule a few deleted rule params """
         changed = False
-        for param in ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe']:
+        for param in ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway']:
             if self._remove_deleted_rule_param(rule_elt, param):
                 changed = True
 
@@ -583,6 +597,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             param_to_rule('ackqueue', 'ackqueue')
             param_to_rule('in_queue', 'dnpipe')
             param_to_rule('out_queue', 'pdnpipe')
+
+            if params['gateway'] != 'default':
+                rule['gateway'] = params['gateway']
 
         return rule
 

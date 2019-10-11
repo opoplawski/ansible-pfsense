@@ -214,6 +214,10 @@ options:
       out_queue:
         description: Limiter queue for traffic leaving the chosen interface
         type: str
+      gateway:
+        description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
+        type: str
+        default: default
   aggregated_rule_separators:
     description: Dict of rule separators to apply on the target
     required: False

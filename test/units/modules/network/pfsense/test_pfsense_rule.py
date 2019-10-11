@@ -20,7 +20,7 @@ def args_from_var(var, state='present', **kwargs):
     """ return arguments for pfsense_rule module from var """
     args = {}
     fields = ['name', 'source', 'destination', 'descr', 'interface', 'action']
-    fields.extend(['log', 'disabled', 'floating', 'direction', 'ipprotocol'])
+    fields.extend(['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway'])
     fields.extend(['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue'])
     for field in fields:
         if field in var:
@@ -173,6 +173,12 @@ class TestPFSenseRuleModule(TestPFSenseModule):
             self.assert_xml_elt_is_none_or_empty(rule_elt, 'disabled')
         elif 'disabled' not in rule or rule['disabled'] == 'no':
             self.assert_not_find_xml_elt(rule_elt, 'disabled')
+
+        # checking gateway option
+        if 'gateway' in rule and rule['gateway'] != 'default':
+            self.assert_xml_elt_equal(rule_elt, 'gateway', rule['gateway'])
+        else:
+            self.assert_not_find_xml_elt(rule_elt, 'gateway')
 
     def check_rule_idx(self, rule, target_idx):
         """ test the xml position of rule """

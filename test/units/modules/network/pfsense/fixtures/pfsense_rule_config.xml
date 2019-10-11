@@ -540,6 +540,7 @@
 			<ipprotocol>inet</ipprotocol>
 			<type>pass</type>
 			<id></id>
+			<gateway>GW_LAN</gateway>
 		</rule>
 		<rule>
 			<updated>
@@ -2009,6 +2010,13 @@
 			<descr>Interface lan Gateway</descr>
 		</gateway_item>
 		<defaultgw4>GW_WAN</defaultgw4>
+		<gateway_group>
+						<name>GWGroup</name>
+						<item>GW_WAN|1|address</item>
+						<item>GW_LAN|2|address</item>
+						<trigger>down</trigger>
+						<descr>Failover group</descr>
+		</gateway_group>
 	</gateways>
 	<installedpackages>
 		<package>

@@ -272,7 +272,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
         """ create gateway is required """
 
         # todo: maybe it would be better to create a module to manage gateways and to call it there
-        if interface.get('gateway') and not self.pfsense.find_ipv4_gateway_elt(interface['gateway'], interface_elt.tag):
+        if interface.get('gateway') and not self.pfsense.find_gateway_elt(interface['gateway'], interface_elt.tag, 'inet'):
             if not self._params.get('create_ipv4_gateway'):
                 self.module.fail_json(msg='Gateway {0} does not exist on {1}'.format(interface['gateway'], interface['descr']))
 

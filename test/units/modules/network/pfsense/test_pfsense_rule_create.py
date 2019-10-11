@@ -415,3 +415,38 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         """ test creation of a new rule with in_queue and invalid out_queue """
         rule = dict(name='one_rule', source='any', destination='any', interface='lan', in_queue='one_limiter', floating='yes', direction='any')
         self.do_rule_creation_test(rule, failed=True, msg='Limiters can not be used in Floating rules without choosing a direction')
+
+    def test_rule_create_gateway(self):
+        """ test creation of a new rule with gateway """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', gateway='GW_LAN')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_gateway_invalid(self):
+        """ test creation of a new rule with invalid gateway """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', gateway='GW_WLAN')
+        self.do_rule_creation_test(rule, failed=True, msg='Gateway "GW_WLAN" does not exist or does not match target rule ip protocol.')
+
+    def test_rule_create_gateway_invalid_ipprotocol(self):
+        """ test creation of a new rule with gateway """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', ipprotocol='inet6', gateway='GW_LAN')
+        self.do_rule_creation_test(rule, failed=True, msg='Gateway "GW_LAN" does not exist or does not match target rule ip protocol.')
+
+    def test_rule_create_gateway_floating(self):
+        """ test creation of a new floating rule with gateway """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', floating='yes', direction='in', gateway='GW_LAN')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_gateway_floating_any(self):
+        """ test creation of a new floating rule with gateway """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', floating='yes', direction='any', gateway='GW_LAN')
+        self.do_rule_creation_test(rule, failed=True, msg='Gateways can not be used in Floating rules without choosing a direction')
+
+    def test_rule_create_gateway_group(self):
+        """ test creation of a new rule with gateway group """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', gateway='GWGroup')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_gateway_group_invalid_ipprotocol(self):
+        """ test creation of a new rule with gateway group """
+        rule = dict(name='one_rule', source='any', destination='any', interface='lan', ipprotocol='inet6', gateway='GWGroup')
+        self.do_rule_creation_test(rule, failed=True, msg='Gateway "GWGroup" does not exist or does not match target rule ip protocol.')

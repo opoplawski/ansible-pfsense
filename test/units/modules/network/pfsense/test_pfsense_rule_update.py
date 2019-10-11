@@ -243,3 +243,13 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         """ test updating limiter of a rule """
         rule = dict(name='test_lan_100_5', source='any', destination='any', interface='lan_100', protocol='tcp')
         self.do_rule_update_test(rule)
+
+    def test_rule_update_gateway_set(self):
+        """ test updating gateway of a rule """
+        rule = dict(name='test_rule_3', source='any', destination='any:port_http', interface='wan', protocol='tcp', gateway='GW_WAN')
+        self.do_rule_update_test(rule)
+
+    def test_rule_update_gateway_unset(self):
+        """ test updating gateway of a rule """
+        rule = dict(name='antilock_out_1', source='any', destination='any:port_ssh', interface='lan', protocol='tcp')
+        self.do_rule_update_test(rule)
