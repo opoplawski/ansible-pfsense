@@ -1786,11 +1786,12 @@ class PFSenseRuleFactory(object):
         # we add interfaces the source can use to get in
         if not src_is_local:
             routing_interfaces = rule_obj.src[0].routed_by_interfaces(self._data.target)
-            # if they are both not local and on the same interface or with an unreachable destination
+            # if they are both not local and on the same interfaces or with an unreachable destination
             # we return nothing
             if not dst_is_local:
                 dst_routing_interfaces = rule_obj.dst[0].routed_by_interfaces(self._data.target)
-                if len(routing_interfaces) == 1 and routing_interfaces == dst_routing_interfaces or not dst_routing_interfaces:
+                routing_interfaces = routing_interfaces.difference(dst_routing_interfaces)
+                if not routing_interfaces or not dst_routing_interfaces:
                     return set()
 
             # if the interfaces we would use are bridged, and the destinations are on local bridges too
@@ -1919,29 +1920,33 @@ class PFSenseRuleFactory(object):
 
         return ret
 
-    @staticmethod
-    def output_rules(rules):
+    def output_rules(self, rules):
         """ Output aliases definitions for pfsense_aggregate """
         print("          #===========================")
         print("          # Rules")
         print("          # ")
-        for rule in rules:
-            definition = ("          - { name: \"" + rule['name'] + "\", source: \""
-                          + rule['source'] + "\", destination: \"" + rule['destination']
-                          + "\", interface: \"" + rule['interface'] + "\", action: \"" + rule['action'] + "\"")
-            if rule.get('protocol'):
-                definition += ", protocol: \"" + rule['protocol'] + "\""
-            if rule.get('descr'):
-                definition += ", descr: \"" + rule['descr'] + "\""
-            for field in OUTPUT_OPTION_FIELDS:
-                value = rule.get(field)
-                if value is not None:
-                    definition += ', {0}: {1}'.format(field, value)
+        interfaces = list(self._data.target.interfaces.keys())
+        interfaces.sort()
+        for interface in interfaces:
+            for rule in rules:
+                if interface != rule['interface']:
+                    continue
+                definition = ("          - { name: \"" + rule['name'] + "\", source: \""
+                              + rule['source'] + "\", destination: \"" + rule['destination']
+                              + "\", interface: \"" + rule['interface'] + "\", action: \"" + rule['action'] + "\"")
+                if rule.get('protocol'):
+                    definition += ", protocol: \"" + rule['protocol'] + "\""
+                if rule.get('descr'):
+                    definition += ", descr: \"" + rule['descr'] + "\""
+                for field in OUTPUT_OPTION_FIELDS:
+                    value = rule.get(field)
+                    if value is not None:
+                        definition += ', {0}: {1}'.format(field, value)
 
-            if rule.get('after'):
-                definition += ", after: \"" + rule['after'] + "\""
-            definition += ", state: \"present\" }"
-            print(definition)
+                if rule.get('after'):
+                    definition += ", after: \"" + rule['after'] + "\""
+                definition += ", state: \"present\" }"
+                print(definition)
 
 
 class PFSenseRuleSeparatorFactory(object):
@@ -1990,16 +1995,20 @@ class PFSenseRuleSeparatorFactory(object):
 
         return ret
 
-    @staticmethod
-    def output_rule_separators(separators):
+    def output_rule_separators(self, separators):
         """ Output rule separators definitions for pfsense_aggregate """
         print("          #===========================")
         print("          # Rule separators")
         print("          # ")
-        for separator in separators:
-            definition = "          - { name: \"" + separator['name'] + "\", interface: \"" + separator['interface']
-            definition += "\", before: \"" + separator['before'] + "\", state: \"present\" }"
-            print(definition)
+        interfaces = list(self._data.target.interfaces.keys())
+        interfaces.sort()
+        for interface in interfaces:
+            for separator in separators:
+                if interface != separator['interface']:
+                    continue
+                definition = "          - { name: \"" + separator['name'] + "\", interface: \"" + separator['interface']
+                definition += "\", before: \"" + separator['before'] + "\", state: \"present\" }"
+                print(definition)
 
 
 class LookupModule(LookupBase):
