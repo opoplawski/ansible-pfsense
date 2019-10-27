@@ -144,7 +144,7 @@ class PFSenseAuthserverLDAP(object):
 
         # Replace the text CA name with the caref id
         authserver['ldap_caref'] = self.pfsense.get_caref(authserver['ca'])
-        if authserver['ldap_caref'] is None:
+        if authserver['ldap_caref'] is None and authserver['transport'] != 'tcp':
             self.module.fail_json(msg="could not find CA '%s'" % (authserver['ca']))
         del authserver['ca']
         if authserver_elt is None:
@@ -209,6 +209,10 @@ def main():
             'attr_member': {'default': 'member', 'type': 'str'},
             'attr_groupobj': {'default': 'posixGroup', 'type': 'str'},
         },
+        required_if=[
+            ["transport", "starttls", ["ca"]],
+            ["transport", "ssl", ["ca"]],
+        ],
         supports_check_mode=True)
 
     pfauthserverldap = PFSenseAuthserverLDAP(module)
