@@ -179,11 +179,12 @@ class pfSenseCA(object):
                 ca_import($ca, '{cert}');
                 print_r($ca);
                 print_r($config['ca']);
-                write_config();""".format(refid=ca['refid'], cert=base64.b64decode(ca['crt'])))
-                #ca_import($ca, '{cert}', '{key}', '{serial}');""".format(refid=ca['refid'], cert=base64.b64decode(ca['crt']), key=ca['key'], serial=ca['serial']))
+                write_config();""".format(refid=ca_elt.find('refid').text, cert=base64.b64decode(ca_elt.find('crt').text)))
             if 'text' in crl:
                 self.pfsense.phpshell("""
+                    require_once("openvpn.inc");
                     openvpn_refresh_crls();
+                    require_once("vpn.inc");
                     vpn_ipsec_configure();""")
 
         diff['after'] = self.pfsense.element_to_dict(ca_elt)
