@@ -19,6 +19,9 @@ There are currently the following modules:
 * pfsense_ca for managing Certificate Authorities
 * pfsense_group for managing groups
 * pfsense_rule for managing rules
+* pfsense_rule_separator for managing rule separators
+* pfsense_user for managing users
+* pfsense_vlan for managing vlans
 
 # pfsense_alias
 ```
