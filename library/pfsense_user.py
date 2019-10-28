@@ -162,15 +162,17 @@ class pfSenseUser(object):
         else:
             return priv
 
-    def add(self, user):
-        changed = False
-        stdout = None
-        stderr = None
+    def _validate_password(self, user):
         if re.match(r'\$2b\$', user['password']):
             user['bcrypt-hash'] = user['password']
         else:
             self.module.fail_json(msg='Password (%s) does not appear to be a bcrypt hash' % user['password'])
         del user['password']
+
+    def add(self, user):
+        changed = False
+        stdout = None
+        stderr = None
         # Allow authorizedkeys to be clear or base64 encoded
         if 'authorizedkeys' in user and 'ssh-' in user['authorizedkeys']:
             user['authorizedkeys'] = base64.b64encode(user['authorizedkeys'])
@@ -185,6 +187,10 @@ class pfSenseUser(object):
             changed = True
             self.diff['before'] = ''
 
+            if 'password' in user:
+                self._validate_password(user)
+            else:
+                self.module.fail_json(msg='Password is required when adding a user')
             if 'uid' not in user:
                 user['uid'] = self._nextuid()
             self.diff['after'] = user
@@ -193,6 +199,8 @@ class pfSenseUser(object):
             self.system.insert(self._find_last_user_idx(), user_elt)
             self.change_descr = 'ansible pfsense_user added %s' % (user['name'])
         else:
+            if 'password' in user:
+                self._validate_password(user)
             self.diff['before'] = self.pfsense.element_to_dict(user_elt)
             if 'priv' in self.diff['before']:
                 self.diff['before']['priv'] = self._format_diff_priv(self.diff['before']['priv'])
