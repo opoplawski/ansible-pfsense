@@ -117,7 +117,10 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
         """ do some extra checks on input parameters """
         # check name
         if re.match('^[a-zA-Z0-9_]+$', params['name']) is None:
-            self.module.fail_json(msg='The name of the alias may only consist of the characters "a-z, A-Z, 0-9 and _"')
+            self.module.fail_json(msg='The alias name may only consist of the characters "a-z, A-Z, 0-9 and _"')
+
+        if len(params['name']) >= 32:
+            self.module.fail_json(msg='The alias name must be less than 32 characters long')
 
         # when deleting, only name is allowed
         if params['state'] == 'absent':
