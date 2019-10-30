@@ -453,21 +453,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             if params.get('floating') and params.get('direction') == 'any':
                 self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
 
-    def _remove_deleted_rule_param(self, rule_elt, param):
-        """ Remove from rule a deleted rule param """
-        changed = False
-        if param not in self._rule:
-            param_elt = rule_elt.find(param)
-            if param_elt is not None:
-                changed = True
-                rule_elt.remove(param_elt)
-        return changed
-
     def _remove_deleted_rule_params(self, rule_elt):
-        """ Remove from rule a few deleted rule params """
+        """ Remove from rule a few deleted params """
         changed = False
         for param in ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway']:
-            if self._remove_deleted_rule_param(rule_elt, param):
+            if self.pfsense.remove_deleted_param_from_elt(rule_elt, param, self._rule):
                 changed = True
 
         return changed

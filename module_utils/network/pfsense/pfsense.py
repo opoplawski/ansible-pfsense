@@ -169,6 +169,18 @@ class PFSenseModule(object):
                 return True
         return False
 
+    def find_ipsec_phase1(self, descr):
+        """ return ipsec phase1 elt if found """
+        for ipsec_elt in self.ipsec:
+            if ipsec_elt.tag != 'phase1':
+                continue
+
+            descr_elt = ipsec_elt.find('descr')
+            if descr_elt is not None and descr_elt.text == descr:
+                return ipsec_elt
+
+        return None
+
     @staticmethod
     def rule_match_interface(rule_elt, interface, floating):
         """ check if a rule elt match the targeted interface
@@ -459,6 +471,24 @@ class PFSenseModule(object):
 
         return None
 
+    def find_ca_elt(self, descr, search_field='descr'):
+        """ return certificate authority elt if found """
+        cas_elt = self.get_elements('ca')
+        for ca_elt in cas_elt:
+            descr_elt = ca_elt.find(search_field)
+            if descr_elt is not None and descr_elt.text == descr:
+                return ca_elt
+        return None
+
+    def find_cert_elt(self, descr, search_field='descr'):
+        """ return certificate elt if found """
+        certs_elt = self.get_elements('cert')
+        for cert_elt in certs_elt:
+            descr_elt = cert_elt.find(search_field)
+            if descr_elt is not None and descr_elt.text == descr:
+                return cert_elt
+        return None
+
     @staticmethod
     def uniqid(prefix=''):
         """ return an identifier based on time """
@@ -514,6 +544,14 @@ class PFSenseModuleBase(object):
     def fvalue_idem(value):
         """ dummy value formatting function """
         return value
+
+    @staticmethod
+    def fvalue_bool(value):
+        """ boolean value formatting function """
+        if value is None or value is False or value == 'none':
+            return '\'False\''
+
+        return 'True'
 
     def format_cli_field(self, after, field, log_none=False, add_comma=True, fvalue=None, default=None, fname=None):
         """ format field for pseudo-CLI command """

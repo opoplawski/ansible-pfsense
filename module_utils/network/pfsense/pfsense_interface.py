@@ -136,18 +136,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
             ""
             "echo json_encode(array_keys($portlist), JSON_PRETTY_PRINT);")
 
-    @staticmethod
-    def _bool_format(value):
-        if value is None or value is False or value == 'none':
-            return '\'False\''
-
-        return 'True'
-
     def _log_create(self, interface):
         """ generate pseudo-CLI command to create an interface """
         log = "create interface '{0}'".format(interface['descr'])
         log += self.format_cli_field(interface, 'if', fname='port')
-        log += self.format_cli_field(interface, 'enable', fvalue=self._bool_format)
+        log += self.format_cli_field(interface, 'enable', fvalue=self.fvalue_bool)
         log += self.format_cli_field(self._params, 'ipv4_type')
         log += self.format_cli_field(self._params, 'mac')
         log += self.format_cli_field(interface, 'mtu')
@@ -155,8 +148,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
         log += self.format_cli_field(interface, 'ipaddr', fname='ipv4_address')
         log += self.format_cli_field(interface, 'subnet', fname='ipv4_prefixlen')
         log += self.format_cli_field(interface, 'gateway', fname='ipv4_gateway')
-        log += self.format_cli_field(interface, 'blockpriv', fvalue=self._bool_format)
-        log += self.format_cli_field(interface, 'blockbogons', fvalue=self._bool_format)
+        log += self.format_cli_field(interface, 'blockpriv', fvalue=self.fvalue_bool)
+        log += self.format_cli_field(interface, 'blockbogons', fvalue=self.fvalue_bool)
         log += self.format_cli_field(self._params, 'speed_duplex', fname='speed_duplex')
         self.result['commands'].append(log)
 
@@ -171,7 +164,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
         values = ''
         values += self.format_updated_cli_field(interface, before, 'descr', add_comma=(values), fname='interface')
         values += self.format_updated_cli_field(interface, before, 'if', add_comma=(values), fname='port')
-        values += self.format_updated_cli_field(interface, before, 'enable', add_comma=(values), fvalue=self._bool_format)
+        values += self.format_updated_cli_field(interface, before, 'enable', add_comma=(values), fvalue=self.fvalue_bool)
         values += self.format_updated_cli_field(interface, before, 'ipv4_type', add_comma=(values), log_none='True')
         values += self.format_updated_cli_field(interface, before, 'spoofmac', add_comma=(values), fname='mac')
         values += self.format_updated_cli_field(interface, before, 'mtu', add_comma=(values))
@@ -180,8 +173,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
         values += self.format_updated_cli_field(interface, before, 'ipaddr', add_comma=(values), fname='ipv4_address')
         values += self.format_updated_cli_field(interface, before, 'subnet', add_comma=(values), fname='ipv4_prefixlen')
         values += self.format_updated_cli_field(interface, before, 'gateway', add_comma=(values), fname='ipv4_gateway')
-        values += self.format_updated_cli_field(interface, before, 'blockpriv', add_comma=(values), fvalue=self._bool_format)
-        values += self.format_updated_cli_field(interface, before, 'blockbogons', add_comma=(values), fvalue=self._bool_format)
+        values += self.format_updated_cli_field(interface, before, 'blockpriv', add_comma=(values), fvalue=self.fvalue_bool)
+        values += self.format_updated_cli_field(interface, before, 'blockbogons', add_comma=(values), fvalue=self.fvalue_bool)
         self.result['commands'].append(log + ' set ' + values)
 
     def _find_interface_elt(self, interface, name):
@@ -353,7 +346,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
             self.result['changed'] = changed
 
     def _remove_deleted_interface_params(self, interface_elt, interface):
-        """ Remove from rule a few deleted rule params """
+        """ Remove from rule a few deleted params """
         changed = False
         for param in ['mtu', 'mss', 'gateway', 'enable', 'mac', 'media', 'ipaddr', 'subnet', 'blockpriv', 'blockbogons']:
             if self.pfsense.remove_deleted_param_from_elt(interface_elt, param, interface):
