@@ -212,8 +212,8 @@ class pfSenseUser(object):
             if group_elt is None:
                 self.module.fail_json(msg='Group (%s) does not exist' % user['groupname'])
             member_found = False
-            for member in group_elt.findall('member'):
-                if member.text == user_elt.find('uid').text:
+            for member_elt in group_elt.findall('member'):
+                if member_elt.text == user_elt.find('uid').text:
                     member_found = True
             if not member_found:
                 changed = True
@@ -237,9 +237,17 @@ class pfSenseUser(object):
         stderr = None
         self.diff['after'] = ''
         if user_elt is not None:
-            self.diff['before'] = self.pfsense.element_to_dict(user_elt)
-            self.users.remove(user_elt)
             changed = True
+            self.diff['before'] = self.pfsense.element_to_dict(user_elt)
+
+            # Remove uid from all group member elements
+            for group_elt in self.groups:
+                member_found = False
+                for member_elt in group_elt.findall('member'):
+                    if member_elt.text == user_elt.find('uid').text:
+                        group_elt.remove(member_elt)
+
+            self.system.remove(user_elt)
 
         if changed and not self.module.check_mode:
             (dummy, stdout, stderr) = self.pfsense.phpshell(
