@@ -161,7 +161,7 @@ class pfSenseCA(object):
                     crl['caref'] = ca_elt.find('refid').text
                     self.pfsense.copy_dict_to_element(crl, crl_elt)
                     # Add after the existing ca entry
-                    self.pfsense.root.insert(ca_index + 1, crl_elt)
+                    self.pfsense.root.insert(ca_idx + 1, crl_elt)
                 else:
                     diff['before']['crl'] = crl_elt.find('text').text
                     changed = self.pfsense.copy_dict_to_element(crl, crl_elt)
