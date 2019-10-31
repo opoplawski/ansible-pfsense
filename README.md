@@ -23,6 +23,7 @@ There are currently the following modules:
 * [pfsense_group](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_group) for managing groups
 * [pfsense_interface](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_interface) for managing interfaces (EXPERIMENTAL)
 * [pfsense_ipsec](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec) for managing ipsec tunnels and phase 1 options
+* [pfsense_ipsec_proposal](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_proposal) for managing ipsec proposals
 * [pfsense_rule](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule) for managing rules
 * [pfsense_rule_separator](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule_separator) for managing rule separators
 * [pfsense_user](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_user) for managing users
