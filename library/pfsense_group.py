@@ -116,7 +116,7 @@ class pfSenseGroup(object):
         if group_elt is not None:
             if self.module.check_mode:
                 self.module.exit_json(changed=True)
-            self.groups.remove(group_elt)
+            self.system.remove(group_elt)
             changed = True
             self.pfsense.write_config(descr='ansible pfsense_group removed "%s"' % (group['name']))
         self.module.exit_json(changed=changed)
