@@ -173,14 +173,10 @@ class pfSenseUser(object):
         changed = False
         stdout = None
         stderr = None
+
         # Allow authorizedkeys to be clear or base64 encoded
         if 'authorizedkeys' in user and 'ssh-' in user['authorizedkeys']:
             user['authorizedkeys'] = base64.b64encode(user['authorizedkeys'])
-
-        if 'groupname' in user:
-            group_elt, group_idx = self._find_group(user['groupname'])
-            if group_elt is None:
-                self.module.fail_json(msg='Group (%s) does not exist' % user['groupname'])
 
         user_elt, user_idx = self._find_user(user['name'])
         if user_elt is None:
@@ -209,6 +205,19 @@ class pfSenseUser(object):
             if 'priv' in self.diff['after']:
                 self.diff['after']['priv'] = self._format_diff_priv(self.diff['after']['priv'])
             self.change_descr = 'ansible pfsense_user updated "%s"' % (user['name'])
+
+        # Handle group member element - need uid set or retrieved above
+        if 'groupname' in user:
+            group_elt, group_idx = self._find_group(user['groupname'])
+            if group_elt is None:
+                self.module.fail_json(msg='Group (%s) does not exist' % user['groupname'])
+            member_found = False
+            for member in group_elt.findall('member'):
+                if member.text == user_elt.find('uid').text:
+                    member_found = True
+            if not member_found:
+                changed = True
+                group_elt.append(self.pfsense.new_element('member', user_elt.find('uid').text))
 
         # Decode keys for diff
         for k in self.diff:
