@@ -6,11 +6,12 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from ansible.module_utils.compat.ipaddress import ip_address, ip_network
+from ansible.module_utils.compat.ipaddress import ip_address, ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 import json
 import shutil
 import os
 import pwd
+import re
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
@@ -343,22 +344,15 @@ class PFSenseModule(object):
                 or self.find_alias(address, 'urltable_ports') is not None):
             return True
 
-        # Is it an IP address?
-        if self.is_ip(address):
+        # Is it an IP address or network?
+        if self.is_ip_address(address) or self.is_ip_network(address):
             return True
-
-        # Is it an IP network?
-        try:
-            ip_network(u'{0}'.format(address))
-            return True
-        except ValueError:
-            pass
 
         # None of the above
         return False
 
     @staticmethod
-    def is_ip(address):
+    def is_ip_address(address):
         """ test if address is a valid ip address """
         try:
             ip_address(u'{0}'.format(address))
@@ -366,6 +360,73 @@ class PFSenseModule(object):
         except ValueError:
             pass
         return False
+
+    @staticmethod
+    def is_ipv4_address(address):
+        """ test if address is a valid ipv4 address """
+        try:
+            addr = ip_address(u'{0}'.format(address))
+            return isinstance(addr, IPv4Address)
+        except ValueError:
+            pass
+        return False
+
+    @staticmethod
+    def is_ipv6_address(address):
+        """ test if address is a valid ipv6 address """
+        try:
+            addr = ip_address(u'{0}'.format(address))
+            return isinstance(addr, IPv6Address)
+        except ValueError:
+            pass
+        return False
+
+    @staticmethod
+    def is_ip_network(address, strict=True):
+        """ test if address is a valid ip network """
+        try:
+            ip_network(u'{0}'.format(address), strict=strict)
+            return True
+        except ValueError:
+            pass
+        return False
+
+    @staticmethod
+    def is_ipv4_network(address, strict=True):
+        """ test if address is a valid ipv4 network """
+        try:
+            addr = ip_network(u'{0}'.format(address), strict=strict)
+            return isinstance(addr, IPv4Network)
+        except ValueError:
+            pass
+        return False
+
+    @staticmethod
+    def is_ipv6_network(address, strict=True):
+        """ test if address is a valid ipv6 network """
+        try:
+            addr = ip_network(u'{0}'.format(address), strict=strict)
+            return isinstance(addr, IPv6Network)
+        except ValueError:
+            pass
+        return False
+
+    @staticmethod
+    def parse_ip_network(address, strict=True):
+        """ return cidr parts of address """
+        try:
+            addr = ip_network(u'{0}'.format(address), strict=strict)
+            if strict:
+                return (str(addr.network_address), addr.prefixlen)
+            else:
+                # we parse the address with ipaddr just for type checking
+                # but we use a regex to return the result as it dont kept the address bits
+                group = re.match(r'(.*)/(.*)', address)
+                if group:
+                    return (group.group(1), group.group(2))
+        except ValueError:
+            pass
+        return None
 
     def is_port_or_alias(self, port):
         """ return True if port is a valid port number or an alias """
@@ -549,7 +610,7 @@ class PFSenseModuleBase(object):
     def fvalue_bool(value):
         """ boolean value formatting function """
         if value is None or value is False or value == 'none':
-            return '\'False\''
+            return 'False'
 
         return 'True'
 
@@ -567,7 +628,7 @@ class PFSenseModuleBase(object):
                 res = "{0}={1}".format(fname, fvalue('none'))
             if after[field] is not None:
                 if default is None or after[field] != default:
-                    if isinstance(after[field], str):
+                    if isinstance(after[field], str) and fvalue != self.fvalue_bool:
                         res = "{0}='{1}'".format(fname, fvalue(after[field].replace("'", "\\'")))
                     else:
                         res = "{0}={1}".format(fname, fvalue(after[field]))
@@ -580,9 +641,20 @@ class PFSenseModuleBase(object):
 
     def format_updated_cli_field(self, after, before, field, log_none=True, add_comma=True, fvalue=None, default=None, fname=None):
         """ format field for pseudo-CLI update command """
+        log = False
         if field in after and field in before:
-            if after[field] != before[field]:
-                return self.format_cli_field(after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default, fname=fname)
-        elif field in after and field not in before or field not in after and field in before:
+            if fvalue is None and after[field] != before[field]:
+                log = True
+            elif fvalue is not None and fvalue(after[field]) != fvalue(before[field]):
+                log = True
+        elif fvalue is None:
+            if field in after and field not in before or field not in after and field in before:
+                log = True
+        elif field in after and field not in before and fvalue(after[field]) != fvalue('none'):
+            log = True
+        elif field not in after and field in before and fvalue(before[field]) != fvalue('none'):
+            log = True
+
+        if log:
             return self.format_cli_field(after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default, fname=fname)
         return ''

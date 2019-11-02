@@ -29,7 +29,7 @@ options:
     choices: [ 'aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', '3des', 'cast128' ]
     type: str
   key_length:
-    description: Encryption key_length
+    description: Encryption key length
     required: False
     choices: [ 64, 96, 128, 192, 256 ]
     type: int
@@ -39,7 +39,7 @@ options:
     choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'aesxcbc' ]
     type: str
   dhgroup:
-    description: DH group. , DH groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.
+    description: DH group. DH groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.
     required: True
     choices: [ 1, 2, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 30 ]
     type: int
@@ -72,7 +72,7 @@ EXAMPLES = """
     apply: False
 
 - name: Remove proposal
-  pfsense_ipsec:
+  pfsense_ipsec_proposal:
     descr: test_tunnel
     state: absent
     encryption: aes128gcm

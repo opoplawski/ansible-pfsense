@@ -213,7 +213,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         command = (
             "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
-            "disable_rekey='False', margintime='', mobike='off', responderonly='False', nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
+            "disable_rekey=False, margintime='', mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_ipsec_test(ipsec, command=command)
 
     def test_ipsec_create_ikev1(self):
@@ -224,7 +224,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         command = (
             "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
-            "disable_rekey='False', margintime='', responderonly='False', nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
+            "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_ipsec_test(ipsec, command=command)
 
     def test_ipsec_create_auto(self):
@@ -235,7 +235,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         command = (
             "create ipsec 'new_tunnel', iketype='auto', mode='main', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
-            "disable_rekey='False', margintime='', responderonly='False', nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
+            "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_ipsec_test(ipsec, command=command)
 
     def test_ipsec_create_auto_rsasig(self):
@@ -246,7 +246,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         command = (
             "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='rsasig', certificate='webConfigurator default (5c00e5f9029df)', certificate_authority='test ca', "
-            "myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey='False', margintime='', mobike='off', responderonly='False', "
+            "myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', mobike='off', responderonly=False, "
             "nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_ipsec_test(ipsec, command=command)
 

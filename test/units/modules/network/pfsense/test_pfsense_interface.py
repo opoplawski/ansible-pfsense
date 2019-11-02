@@ -208,13 +208,13 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     def test_interface_update_enable(self):
         """ test disabling interface """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=False, ipv4_type='static', ipv4_address='172.16.151.210', ipv4_prefixlen=24)
-        command = "update interface 'lan_1100' set enable='False'"
+        command = "update interface 'lan_1100' set enable=False"
         self.do_interface_test(interface, changed=True, command=command)
 
     def test_interface_update_enable2(self):
         """ test enabling interface """
         interface = dict(descr='vt1', interface='vmx3', enable=True)
-        command = "update interface 'vt1' set enable='True'"
+        command = "update interface 'vt1' set enable=True"
         self.do_interface_test(interface, changed=True, command=command)
 
     def test_interface_update_mac(self):
@@ -228,7 +228,7 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         """ test updating block fields """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=True, ipv4_type='static',
                          ipv4_address='172.16.151.210', ipv4_prefixlen=24, blockpriv=True, blockbogons=True)
-        command = "update interface 'lan_1100' set blockpriv='True', blockbogons='True'"
+        command = "update interface 'lan_1100' set blockpriv=True, blockbogons=True"
         self.do_interface_test(interface, changed=True, command=command)
 
     def test_interface_error_used(self):

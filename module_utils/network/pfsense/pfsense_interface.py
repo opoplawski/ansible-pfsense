@@ -459,11 +459,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
                 self.module.fail_json(msg='For this interface, media mode may only be one the following: {0}'.format(media_modes))
 
             if params['ipv4_type'] == 'static':
-                if params.get('ipv4_address') and not self.pfsense.is_ip(params['ipv4_address']):
+                if params.get('ipv4_address') and not self.pfsense.is_ip_address(params['ipv4_address']):
                     self.module.fail_json(msg='{0} is not a valid ip address'.format(params['ipv4_address']))
 
             if params.get('create_ipv4_gateway'):
-                if params.get('ipv4_gateway_address') and not self.pfsense.is_ip(params['ipv4_gateway_address']):
+                if params.get('ipv4_gateway_address') and not self.pfsense.is_ip_address(params['ipv4_gateway_address']):
                     self.module.fail_json(msg='{0} is not a valid ip address'.format(params['ipv4_gateway_address']))
 
     def _params_to_interface(self, params):
