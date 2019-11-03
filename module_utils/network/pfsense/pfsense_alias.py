@@ -9,7 +9,7 @@ __metaclass__ = type
 import re
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
-ALIASES_ARGUMENT_SPEC = dict(
+ALIAS_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     state=dict(default='present', choices=['present', 'absent']),
     type=dict(default=None, required=False, choices=['host', 'network', 'port', 'urltable', 'urltable_ports']),
@@ -19,7 +19,7 @@ ALIASES_ARGUMENT_SPEC = dict(
     updatefreq=dict(default=None, required=False, type='int'),
 )
 
-ALIASES_REQUIRED_IF = [
+ALIAS_REQUIRED_IF = [
     ["type", "urltable", ["updatefreq"]],
     ["type", "urltable_ports", ["updatefreq"]],
 ]

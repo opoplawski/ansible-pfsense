@@ -172,13 +172,13 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec import PFSenseIpsecModule, IPSECS_ARGUMENT_SPEC, IPSECS_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=IPSECS_ARGUMENT_SPEC,
-        required_if=IPSECS_REQUIRED_IF,
+        argument_spec=IPSEC_ARGUMENT_SPEC,
+        required_if=IPSEC_REQUIRED_IF,
         supports_check_mode=True)
 
     pfipsec = PFSenseIpsecModule(module)

@@ -12,7 +12,7 @@ import re
 
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
-RULES_ARGUMENT_SPEC = dict(
+RULE_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     action=dict(default='pass', required=False, choices=['pass', "block", 'reject']),
     state=dict(default='present', choices=['present', 'absent']),
@@ -35,13 +35,13 @@ RULES_ARGUMENT_SPEC = dict(
     gateway=dict(required=False, type='str', default='default'),
 )
 
-RULES_REQUIRED_IF = [
+RULE_REQUIRED_IF = [
     ["floating", True, ["direction"]],
     ["state", "present", ["source", "destination"]]
 ]
 
 # These are rule elements that are (currently) unmanaged by this module
-RULES_UNMANAGED_ELEMENTS = [
+RULE_UNMANAGED_ELEMENTS = [
     'created', 'id', 'max', 'max-src-conn', 'max-src-nodes', 'max-src-states', 'os',
     'statetimeout', 'statetype', 'tag', 'tagged', 'tracker', 'updated'
 ]
@@ -102,7 +102,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
             this_rule = self.pfsense.element_to_dict(rule_elt)
             this_rule.pop('descr', None)
             # Remove unmanaged elements
-            for unwanted in RULES_UNMANAGED_ELEMENTS:
+            for unwanted in RULE_UNMANAGED_ELEMENTS:
                 this_rule.pop(unwanted, None)
             if this_rule == match_rule:
                 return (rule_elt, i)

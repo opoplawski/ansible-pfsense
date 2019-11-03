@@ -430,9 +430,15 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
                     return True
             return False
 
-        self._phase1 = self.pfsense.find_ipsec_phase1(params['p1_descr'])
-        if self._phase1 is None:
-            self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['p1_descr']))
+        # called from ipsec_aggregate
+        if params.get('ikeid') is not None:
+            self._phase1 = self.pfsense.find_ipsec_phase1(params['ikeid'], 'ikeid')
+            if self._phase1 is None:
+                self.module.fail_json(msg='No ipsec tunnel with ikeid {0}'.format(params['ikeid']))
+        else:
+            self._phase1 = self.pfsense.find_ipsec_phase1(params['p1_descr'])
+            if self._phase1 is None:
+                self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['p1_descr']))
 
         if params['state'] == 'present':
             encs = ['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128']

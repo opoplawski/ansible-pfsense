@@ -75,16 +75,16 @@ commands:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_MUTUALLY_EXCLUSIVE
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=RULE_SEPARATORS_ARGUMENT_SPEC,
-        required_one_of=RULE_SEPARATORS_REQUIRED_ONE_OF,
-        mutually_exclusive=RULE_SEPARATORS_MUTUALLY_EXCLUSIVE,
+        argument_spec=RULE_SEPARATOR_ARGUMENT_SPEC,
+        required_one_of=RULE_SEPARATOR_REQUIRED_ONE_OF,
+        mutually_exclusive=RULE_SEPARATOR_MUTUALLY_EXCLUSIVE,
         supports_check_mode=True)
 
     pfseparator = PFSenseRuleSeparatorModule(module)

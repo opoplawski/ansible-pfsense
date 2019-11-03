@@ -8,7 +8,7 @@ __metaclass__ = type
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
 
-IPSECS_ARGUMENT_SPEC = dict(
+IPSEC_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
     descr=dict(required=True, type='str'),
     iketype=dict(choices=['ikev1', 'ikev2', 'auto'], type='str'),
@@ -43,7 +43,7 @@ IPSECS_ARGUMENT_SPEC = dict(
     apply=dict(default=True, type='bool'),
 )
 
-IPSECS_REQUIRED_IF = [
+IPSEC_REQUIRED_IF = [
     ["state", "present", ["remote_gateway", "interface", "iketype", "authentication_method"]],
 
     ["enable_dpd", True, ["dpd_delay", "dpd_maxfail"]],
@@ -214,7 +214,11 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
     def _add(self, ipsec):
         """ add or update ipsec """
-        ipsec_elt = self.pfsense.find_ipsec_phase1(ipsec['descr'])
+        # called from ipsec_aggregate
+        if self._params.get('ikeid') is not None:
+            ipsec_elt = self.pfsense.find_ipsec_phase1(self._params['ikeid'], 'ikeid')
+        else:
+            ipsec_elt = self.pfsense.find_ipsec_phase1(ipsec['descr'])
         if ipsec_elt is None:
             ipsec_elt = self.pfsense.new_element('phase1')
             ipsec['ikeid'] = str(self._find_free_ikeid())

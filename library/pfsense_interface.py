@@ -119,13 +119,13 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_interface import PFSenseInterfaceModule, INTERFACES_ARGUMENT_SPEC, INTERFACES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_interface import PFSenseInterfaceModule, INTERFACE_ARGUMENT_SPEC, INTERFACE_REQUIRED_IF
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=INTERFACES_ARGUMENT_SPEC,
-        required_if=INTERFACES_REQUIRED_IF,
+        argument_spec=INTERFACE_ARGUMENT_SPEC,
+        required_if=INTERFACE_REQUIRED_IF,
         supports_check_mode=True)
 
     pfvlan = PFSenseInterfaceModule(module)

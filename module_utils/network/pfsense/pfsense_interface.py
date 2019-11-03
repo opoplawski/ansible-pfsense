@@ -10,7 +10,7 @@ from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseM
 from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule
 from ansible.module_utils.compat.ipaddress import ip_network
 
-INTERFACES_ARGUMENT_SPEC = dict(
+INTERFACE_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
     descr=dict(required=True, type='str'),
     interface=dict(required=False, type='str'),
@@ -29,7 +29,7 @@ INTERFACES_ARGUMENT_SPEC = dict(
     blockbogons=dict(required=False, type='bool'),
 )
 
-INTERFACES_REQUIRED_IF = [
+INTERFACE_REQUIRED_IF = [
     ["state", "present", ["interface", "ipv4_type"]],
     ["ipv4_type", "static", ["ipv4_address", "ipv4_prefixlen"]],
     ["create_ipv4_gateway", True, ["ipv4_gateway_address"]],

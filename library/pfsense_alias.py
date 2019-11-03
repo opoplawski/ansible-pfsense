@@ -82,13 +82,13 @@ diff:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=ALIASES_ARGUMENT_SPEC,
-        required_if=ALIASES_REQUIRED_IF,
+        argument_spec=ALIAS_ARGUMENT_SPEC,
+        required_if=ALIAS_REQUIRED_IF,
         supports_check_mode=True)
 
     pfalias = PFSenseAliasModule(module)

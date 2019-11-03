@@ -70,12 +70,12 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLANS_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=VLANS_ARGUMENT_SPEC,
+        argument_spec=VLAN_ARGUMENT_SPEC,
         supports_check_mode=True)
 
     pfvlan = PFSenseVlanModule(module)

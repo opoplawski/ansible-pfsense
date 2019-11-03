@@ -170,14 +170,14 @@ class PFSenseModule(object):
                 return True
         return False
 
-    def find_ipsec_phase1(self, descr):
+    def find_ipsec_phase1(self, field_value, field='descr'):
         """ return ipsec phase1 elt if found """
         for ipsec_elt in self.ipsec:
             if ipsec_elt.tag != 'phase1':
                 continue
 
-            descr_elt = ipsec_elt.find('descr')
-            if descr_elt is not None and descr_elt.text == descr:
+            field_elt = ipsec_elt.find(field)
+            if field_elt is not None and field_elt.text == field_value:
                 return ipsec_elt
 
         return None

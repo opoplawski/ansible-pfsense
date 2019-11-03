@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
-RULE_SEPARATORS_ARGUMENT_SPEC = dict(
+RULE_SEPARATOR_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     state=dict(default='present', choices=['present', 'absent']),
     interface=dict(required=False, type='str'),
@@ -18,8 +18,8 @@ RULE_SEPARATORS_ARGUMENT_SPEC = dict(
     before=dict(default=None, required=False, type='str'),
 )
 
-RULE_SEPARATORS_REQUIRED_ONE_OF = [['interface', 'floating']]
-RULE_SEPARATORS_MUTUALLY_EXCLUSIVE = [['interface', 'floating']]
+RULE_SEPARATOR_REQUIRED_ONE_OF = [['interface', 'floating']]
+RULE_SEPARATOR_MUTUALLY_EXCLUSIVE = [['interface', 'floating']]
 
 
 class PFSenseRuleSeparatorModule(PFSenseModuleBase):

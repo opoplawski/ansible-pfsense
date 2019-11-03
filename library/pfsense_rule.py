@@ -124,13 +124,13 @@ RETURN = """
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=RULES_ARGUMENT_SPEC,
-        required_if=RULES_REQUIRED_IF,
+        argument_spec=RULE_ARGUMENT_SPEC,
+        required_if=RULE_REQUIRED_IF,
         supports_check_mode=True)
 
     pfrule = PFSenseRuleModule(module)

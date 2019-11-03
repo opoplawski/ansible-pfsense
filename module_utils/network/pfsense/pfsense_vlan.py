@@ -8,7 +8,7 @@ __metaclass__ = type
 import re
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
-VLANS_ARGUMENT_SPEC = dict(
+VLAN_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
     interface=dict(required=True, type='str'),
     vlan_id=dict(required=True, type='int'),

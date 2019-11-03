@@ -18,20 +18,6 @@ from ansible.modules.network.pfsense import pfsense_aggregate
 from .pfsense_module import TestPFSenseModule, load_fixture
 
 
-def args_from_var(var, state='present', **kwargs):
-    """ return arguments for pfsense_alias module from var """
-    args = {}
-    for field in ['name', 'address', 'descr', 'type', 'updatefreq', 'detail']:
-        if field in var and (state == 'present' or field == 'name'):
-            args[field] = var[field]
-
-    args['state'] = state
-    for key, value in kwargs.items():
-        args[key] = value
-
-    return args
-
-
 class TestPFSenseAggregateModule(TestPFSenseModule):
 
     module = pfsense_aggregate

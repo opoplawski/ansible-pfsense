@@ -8,17 +8,17 @@ __metaclass__ = type
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
 
 
-IPSEC_PROPOSALS_ARGUMENT_SPEC = dict(
+IPSEC_PROPOSAL_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
-    descr=dict(required=True, type='str'),
+    descr=dict(required=False, type='str'),
     encryption=dict(required=True, choices=['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', '3des', 'cast128'], type='str'),
     key_length=dict(required=False, choices=[64, 96, 128, 192, 256], type='int'),
-    hash=dict(required=True, choices=['md5', 'sha1', 'sha256', 'sha384', 'aesxcbc'], type='str'),
+    hash=dict(required=True, choices=['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc'], type='str'),
     dhgroup=dict(required=True, choices=[1, 2, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 30], type='int'),
     apply=dict(default=True, type='bool'),
 )
 
-IPSECS_REQUIRED_IF = [
+IPSEC_PROPOSAL_REQUIRED_IF = [
     ["encryption", "aes", ["key_length"]],
     ["encryption", "aes128-gcm", ["key_length"]],
     ["encryption", "aes192-gcm", ["key_length"]],
@@ -127,9 +127,15 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
             msg = 'key_length for encryption {0} must be one of: {1}.'.format(params['encryption'], ', '.join(key_length[params['encryption']]))
             self.module.fail_json(msg=msg)
 
-        self._phase1 = self.pfsense.find_ipsec_phase1(params['descr'])
-        if self._phase1 is None:
-            self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['descr']))
+        # called from ipsec_aggregate
+        if params.get('ikeid') is not None:
+            self._phase1 = self.pfsense.find_ipsec_phase1(params['ikeid'], 'ikeid')
+            if self._phase1 is None:
+                self.module.fail_json(msg='No ipsec tunnel with ikeid {0}'.format(params['ikeid']))
+        else:
+            self._phase1 = self.pfsense.find_ipsec_phase1(params['descr'])
+            if self._phase1 is None:
+                self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['descr']))
 
         if params['encryption'] in ['aes128gcm', 'aes192gcm', 'aes256gcm']:
             iketype_elt = self._phase1.find('iketype')

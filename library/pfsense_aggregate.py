@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_aggregate
 version_added: "2.9"
 author: Frederic Bor (@f-bor)
-short_description: Manage multiple pfSense rules or aliases
+short_description: Manage multiple pfSense aliases, rules, rule separators, interfaces and vlans
 description:
-  - Manage multiple pfSense rules or aliases
+  - Manage multiple pfSense aliases, rules, rule separators, interfaces and vlans
 notes:
   - aggregated_* use the same options definitions than pfsense corresponding module
 options:
@@ -362,22 +362,22 @@ result_vlans:
 """
 
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIASES_ARGUMENT_SPEC, ALIASES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
 from ansible.module_utils.network.pfsense.pfsense_interface import PFSenseInterfaceModule
-from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACES_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACES_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULES_ARGUMENT_SPEC, RULES_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACE_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACE_REQUIRED_IF
+from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
 from ansible.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATORS_MUTUALLY_EXCLUSIVE
-from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLANS_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 from ansible.module_utils.basic import AnsibleModule
 
 
 class PFSenseModuleAggregate(object):
-    """ module managing pfsense aggregated aliases and rules """
+    """ module managing pfsense aggregated aliases, rules, rule separators, interfaces and vlans """
 
     def __init__(self, module):
         self.module = module
@@ -544,7 +544,7 @@ class PFSenseModuleAggregate(object):
         for param in want:
             self.pfsense_interfaces.run(param)
 
-        # delete every other vlans if required
+        # delete every other if required
         if self.module.params['purge_interfaces']:
             todel = []
             for interface_elt in self.pfsense_interfaces.interfaces:
@@ -570,7 +570,7 @@ class PFSenseModuleAggregate(object):
         for param in want:
             self.pfsense_rule_separators.run(param)
 
-        # delete every other alias if required
+        # delete every other if required
         if self.module.params['purge_rule_separators']:
             todel = []
             for interface_elt in self.pfsense_rule_separators.separators:
@@ -599,7 +599,7 @@ class PFSenseModuleAggregate(object):
         for param in want:
             self.pfsense_vlans.run(param)
 
-        # delete every other vlans if required
+        # delete every other if required
         if self.module.params['purge_vlans']:
             todel = []
             for vlan_elt in self.pfsense_vlans.vlans:
@@ -640,13 +640,13 @@ class PFSenseModuleAggregate(object):
 
 def main():
     argument_spec = dict(
-        aggregated_aliases=dict(type='list', elements='dict', options=ALIASES_ARGUMENT_SPEC, required_if=ALIASES_REQUIRED_IF),
-        aggregated_interfaces=dict(type='list', elements='dict', options=INTERFACES_ARGUMENT_SPEC, required_if=INTERFACES_REQUIRED_IF),
-        aggregated_rules=dict(type='list', elements='dict', options=RULES_ARGUMENT_SPEC, required_if=RULES_REQUIRED_IF),
+        aggregated_aliases=dict(type='list', elements='dict', options=ALIAS_ARGUMENT_SPEC, required_if=ALIAS_REQUIRED_IF),
+        aggregated_interfaces=dict(type='list', elements='dict', options=INTERFACE_ARGUMENT_SPEC, required_if=INTERFACE_REQUIRED_IF),
+        aggregated_rules=dict(type='list', elements='dict', options=RULE_ARGUMENT_SPEC, required_if=RULE_REQUIRED_IF),
         aggregated_rule_separators=dict(
             type='list', elements='dict',
-            options=RULE_SEPARATORS_ARGUMENT_SPEC, required_one_of=RULE_SEPARATORS_REQUIRED_ONE_OF, mutually_exclusive=RULE_SEPARATORS_MUTUALLY_EXCLUSIVE),
-        aggregated_vlans=dict(type='list', elements='dict', options=VLANS_ARGUMENT_SPEC),
+            options=RULE_SEPARATOR_ARGUMENT_SPEC, required_one_of=RULE_SEPARATOR_REQUIRED_ONE_OF, mutually_exclusive=RULE_SEPARATOR_MUTUALLY_EXCLUSIVE),
+        aggregated_vlans=dict(type='list', elements='dict', options=VLAN_ARGUMENT_SPEC),
         purge_aliases=dict(default=False, type='bool'),
         purge_interfaces=dict(default=False, type='bool'),
         purge_rules=dict(default=False, type='bool'),

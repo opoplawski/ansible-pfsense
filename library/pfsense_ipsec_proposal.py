@@ -36,7 +36,7 @@ options:
   hash:
     description: Hash algorithm. MD5 and SHA1 provide weak security and should be avoided.
     required: True
-    choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'aesxcbc' ]
+    choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc' ]
     type: str
   dhgroup:
     description: DH group. DH groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.
@@ -94,12 +94,13 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import PFSenseIpsecProposalModule, IPSEC_PROPOSALS_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import PFSenseIpsecProposalModule, IPSEC_PROPOSAL_ARGUMENT_SPEC, IPSEC_PROPOSAL_REQUIRED_IF
 
 
 def main():
     module = AnsibleModule(
-        argument_spec=IPSEC_PROPOSALS_ARGUMENT_SPEC,
+        argument_spec=IPSEC_PROPOSAL_ARGUMENT_SPEC,
+        required_if=IPSEC_PROPOSAL_REQUIRED_IF,
         supports_check_mode=True)
 
     pfipsec = PFSenseIpsecProposalModule(module)
