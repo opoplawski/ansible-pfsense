@@ -29,7 +29,12 @@ There are currently the following modules:
 * [pfsense_rule_separator](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule_separator) for managing rule separators
 * [pfsense_user](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_user) for managing users
 * [pfsense_vlan](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_vlan) for managing vlans
-* [pfsense_aggregate](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_aggregate) for bulk operations
+
+## bulk modules
+These modules allow you to make important changes at once and, using the purge parameters, to keep the targets configuration strictly synchronized with your playbooks:
+
+* [pfsense_aggregate](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_aggregate) for aliases, rules, rule separators, interfaces and vlans
+* [pfsense_ipsec_aggregate](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_aggregate) for ipsec tunnels, phases 1, phases 2 and proposals
 
 ## operation
 
