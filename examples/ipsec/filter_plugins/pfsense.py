@@ -17,113 +17,6 @@ except ImportError:
     display = Display()
 
 
-def get_param_def(terms, key, param):
-    """ get param value for vlan_id key, starting with the latest dict (the firewall's one) """
-    for i in range(2, -1, -1):
-        if key in terms[i] and param in terms[i][key]:
-            return terms[i][key][param]
-    return None
-
-
-def format_vlans(*terms):
-    """ format vlans definition for aggregate """
-    if len(terms) != 3 or not isinstance(terms[0], dict) or not isinstance(terms[1], dict) or not isinstance(terms[2], dict):
-        raise AnsibleFilterError("format_vlans expects 3 dictionnaries")
-
-    all_vlans = terms[0]
-    # model_vlans = terms[0]
-    pf_vlans = terms[2]
-    vlans = []
-    for key in pf_vlans.keys():
-        if key not in all_vlans:
-            raise AnsibleFilterError("format_vlans: {0} is not defined in parent vlans".format(key))
-
-        vlan = {}
-        vlans.append(vlan)
-
-        interface = get_param_def(terms, key, 'interface')
-        if interface is None:
-            raise AnsibleFilterError("format_vlans: no interface defined for {0}".format(key))
-
-        priority = get_param_def(terms, key, 'priority')
-
-        vlan['vlan_id'] = all_vlans[key]['id']
-        vlan['interface'] = interface
-        vlan['descr'] = key
-        vlan['state'] = 'present'
-        if priority is not None:
-            vlan['priority'] = priority
-
-    return vlans
-
-
-def parse_ip_address(ip):
-    """ parse ip address and return ip and prefix length """
-    match = re.search(r'([0-9\.]*)', ip)
-    if not match:
-        raise AnsibleFilterError("format_interface: invalid ip address {0}".format(ip))
-
-    try:
-        addr = ip_network(ip, strict=False)
-    except:
-        raise AnsibleFilterError("format_interface: error parsing ip address {0}".format(ip))
-
-    return (match.group(1), addr.prefixlen)
-
-
-def format_interfaces(*terms):
-    """ format interfaces definition for aggregate """
-    if len(terms) != 4 or not isinstance(terms[0], dict) or not isinstance(terms[1], dict) or not isinstance(terms[2], dict) or not isinstance(terms[3], dict):
-        raise AnsibleFilterError("format_interfaces expects 4 dictionnaries")
-
-    all_vlans = terms[0]
-    # model_vlans = terms[0]
-    pf_vlans = terms[2]
-    pf_interfaces = terms[3]
-    interfaces = []
-
-    # first, we get explicit interfaces
-    for key in pf_interfaces.keys():
-        iface = {}
-        interfaces.append(iface)
-        if pf_interfaces[key].get('interface') is None:
-            raise AnsibleFilterError("format_interface: no interface defined for {0}".format(key))
-
-        iface['interface'] = pf_interfaces[key]['interface']
-
-        if pf_interfaces[key].get('ip') is not None:
-            iface['ipv4_type'] = 'static'
-            (iface['ipv4_address'], iface['ipv4_prefixlen']) = parse_ip_address(pf_interfaces[key]['ip'])
-
-        iface['enable'] = True
-        iface['descr'] = key
-        iface['state'] = 'present'
-
-    # then, we get vlans interfaces
-    for key in pf_vlans.keys():
-        ip = get_param_def(terms, key, 'ip')
-        if ip is None:
-            continue
-
-        if key not in all_vlans:
-            raise AnsibleFilterError("format_interfaces: {0} is not defined in parent vlans".format(key))
-
-        interface = get_param_def(terms, key, 'interface')
-        if interface is None:
-            raise AnsibleFilterError("format_interfaces: no interface defined for {0}".format(key))
-
-        iface = {}
-        interfaces.append(iface)
-        iface['interface'] = '{}.{}'.format(interface, all_vlans[key]['id'])
-        iface['ipv4_type'] = 'static'
-        (iface['ipv4_address'], iface['ipv4_prefixlen']) = parse_ip_address(ip)
-        iface['enable'] = True
-        iface['descr'] = key
-        iface['state'] = 'present'
-
-    return interfaces
-
-
 def format_ipsec_aggregate_ipsecs(all_tunnels, pfname):
     """ format ipsecs for format_ipsec_aggregate """
     res = list()
@@ -158,6 +51,7 @@ def format_ipsec_aggregate_ipsecs(all_tunnels, pfname):
             if 'myid_data' in local:
                 params['myid_data'] = local['myid_data']
     return res
+
 
 def format_ipsec_aggregate_proposals(all_tunnels, pfname):
     """ format proposals for format_ipsec_aggregate """
@@ -204,6 +98,7 @@ def format_ipsec_aggregate_proposals(all_tunnels, pfname):
                 p1[p1_option] = phase1[p1_option]
         res.extend(p1s)
     return res
+
 
 def format_ipsec_aggregate_p2s(all_tunnels, pfname):
     """ format p2s for format_ipsec_aggregate """
@@ -298,7 +193,5 @@ class FilterModule(object):
     def filters():
         """ defined functions """
         return {
-            'format_interfaces': format_interfaces,
             'format_ipsec_aggregate': format_ipsec_aggregate,
-            'format_vlans': format_vlans,
         }
