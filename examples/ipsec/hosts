@@ -1,0 +1,4 @@
+[pfsense]
+pf_1 ansible_ssh_host=10.0.1.1 ansible_ssh_port=22 ansible_ssh_user=root ansible_password=pfsense ansible_python_interpreter=/usr/local/bin/python2.7
+pf_2 ansible_ssh_host=10.0.2.1 ansible_ssh_port=22 ansible_ssh_user=root ansible_password=pfsense ansible_python_interpreter=/usr/local/bin/python2.7
+pf_3 ansible_ssh_host=10.0.3.1 ansible_ssh_port=22 ansible_ssh_user=root ansible_password=pfsense ansible_python_interpreter=/usr/local/bin/python2.7

@@ -1,0 +1,20 @@
+---
+- hosts: pfsense
+  gather_facts: false
+  connection: paramiko
+
+  vars_files:
+    ipsecs.yaml
+
+  vars:
+    params: "{{ ipsec_tunnels|format_ipsec_aggregate(inventory_hostname) }}"
+
+  tasks:
+    - name: "setup ipsec"
+      pfsense_ipsec_aggregate:
+        purge_ipsecs: true
+        purge_ipsec_proposals: true
+        purge_ipsec_p2s: true
+        aggregated_ipsecs: "{{ params['aggregated_ipsecs'] }}"
+        aggregated_ipsec_proposals: "{{ params['aggregated_ipsec_proposals'] }}"
+        aggregated_ipsec_p2s: "{{ params['aggregated_ipsec_p2s'] }}"
