@@ -24,25 +24,12 @@ ipsec_tunnels:
         myid_data: pf_3_id
         preshared_key: 8HkwKFCtvtzSK5MU
     phase1:
-      encryptions:
-        - { encryption: aes128gcm, key_length: 128 }
-        - { encryption: aes192gcm, key_length: 128 }
-        - { encryption: aes256gcm, key_length: 128 }
-        - { encryption: cast128 }
+      encryptions: { aes128gcm: 128, aes192gcm: 128, aes256gcm: 128, cast128: }
       hashes: sha256 aesxcbc
       dhgroup: 14
     phase2:
-      # encryptions
-      aes128gcm: True
-      aes192gcm: True
-      aes256gcm: True
-      aes128gcm_len: '128'
-      aes192gcm_len: '128'
-      aes256gcm_len: '128'
-
-      # hashes
-      sha512: True
-      aesxcbc: True
+      encryptions: { aes128gcm: 128, aes192gcm: 128, aes256gcm: 128, cast128: None }
+      hashes: sha512 aesxcbc
 
       # misc
       lifetime: 7200

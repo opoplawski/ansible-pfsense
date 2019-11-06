@@ -25,16 +25,13 @@ ipsec_tunnels:
         preshared_key: 8HkwKFCtvtzSK5MU
     phase1:
       encryptions:
-        - { encryption: aes128gcm, key_length: 128 }
+        aes128gcm: 128
       hashes: sha256
       dhgroup: 14
     phase2:
-      # encryptions
-      aes128gcm: True
-      aes128gcm_len: '128'
-
-      # hashes
-      sha256: True
+      encryptions:
+        aes128gcm: 128
+      hashes: sha256
 
       # misc
       lifetime: 7200

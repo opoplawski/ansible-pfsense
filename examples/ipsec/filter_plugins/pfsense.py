@@ -194,8 +194,9 @@ def format_ipsec_aggregate_proposals(all_tunnels, pfname):
                     params['descr'] = name + ' to ' + remote_name
                     params['state'] = 'present'
                     params['hash'] = hash_option
-                    for encryption_option in encryption:
-                        params[encryption_option] = encryption[encryption_option]
+                    params['encryption'] = encryption
+                    if encryptions[encryption] is not None and encryptions[encryption] != 'None':
+                        params['key_length'] = encryptions[encryption]
         for p1_option in phase1:
             if p1_option in ['encryptions', 'hashes']:
                 continue
@@ -254,10 +255,22 @@ def format_ipsec_aggregate_p2s(all_tunnels, pfname):
                 params['p1_descr'] = name + ' to ' + remote_name
                 params['state'] = 'present'
 
-
-        for p2_option in phase2:
+        for p2_option, p2_value in phase2.items():
             for p2 in p2s:
-                p2[p2_option] = phase2[p2_option]
+                if p2_option == 'encryptions':
+                    for encryption, keylength in p2_value.items():
+                        p2[encryption] = True
+                        if keylength is not None and keylength != 'None':
+                            if isinstance(keylength, str):
+                                p2[encryption + '_len'] = keylength
+                            else:
+                                p2[encryption + '_len'] = str(keylength)
+                elif p2_option == 'hashes':
+                    hashes = p2_value.split(' ')
+                    for hash_option in hashes:
+                        p2[hash_option] = True
+                else:
+                    p2[p2_option] = p2_value
         res.extend(p2s)
     return res
 
