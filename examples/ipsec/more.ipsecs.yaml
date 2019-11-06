@@ -10,18 +10,18 @@ ipsec_tunnels:
     pfsenses:
       pf_1:
         sharing: 192.168.1.0/24 172.16.1.0/24
-        remote_gateway: 10.0.1.1
-        myid_data: pf_bas_tra
+        remote_gateway: pf1.acme.com
+        myid_data: pf_1_id
         preshared_key: HHmWGzbeAtyE8f2E
       pf_2:
         sharing: 192.168.2.0/24 172.16.2.0/24
-        remote_gateway: 10.0.2.1
-        myid_data: pf_aja_tra
+        remote_gateway: pf2.acme.com
+        myid_data: pf_2_id
         preshared_key: En6Y9Y7K9wsvpmGm
       pf_3:
         sharing: 192.168.3.0/24 172.16.3.0/24 10.3.3.0/24
-        remote_gateway: 10.0.3.1
-        myid_data: pf_vit_tra
+        remote_gateway: pf3.acme.com
+        myid_data: pf_3_id
         preshared_key: 8HkwKFCtvtzSK5MU
     phase1:
       encryptions:
