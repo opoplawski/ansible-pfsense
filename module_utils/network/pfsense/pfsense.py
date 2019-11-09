@@ -189,7 +189,7 @@ class PFSenseModule(object):
         """
         interface_elt = rule_elt.find('interface')
         floating_elt = rule_elt.find('floating')
-        if floating_elt is not None and floating_elt.text == 'yes':
+        if floating_elt is not None:
             return floating
         elif floating:
             return False
