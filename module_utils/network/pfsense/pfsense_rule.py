@@ -350,12 +350,11 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
 
     def _parse_address(self, param):
         """ validate param address field and returns it as a dict """
-        match = re.match('^([^:]+)(?::?([^:-]+)-?([^:-]+)?)?$', param)
-        if match is None:
+        addr = param.split(':')
+        if len(addr) > 3:
             self.module.fail_json(msg='Cannot parse address %s' % (param))
-        address = match.group(1)
-        port_start = match.group(2)
-        port_end = match.group(3)
+
+        address = addr[0]
 
         ret = dict()
         # Check if the first character is "!"
@@ -363,36 +362,44 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             # Invert the rule
             ret['not'] = None
             address = address[1:]
-        if address == 'any':
-            ret['any'] = None
-        # rule with this firewall
-        elif address == '(self)':
-            ret['network'] = '(self)'
-        elif address == 'NET' or address == 'IP':
-            interface = port_start
-            if port_end:
-                interface += '-' + port_end
+
+        if address == 'NET' or address == 'IP':
+            interface = addr[1] if len(addr) > 1 else None
+            ports = addr[2] if len(addr) > 2 else None
+            if interface is None or interface == '':
+                self.module.fail_json(msg='Cannot parse address %s' % (param))
+
             ret['network'] = self.pfsense.parse_interface(interface)
             if address == 'IP':
                 ret['network'] += 'ip'
-            return ret
-        # rule with interface name (LAN, WAN...)
-        elif self.pfsense.is_interface_name(address):
-            interface = self.pfsense.get_interface_pfsense_by_name(address)
-            ret['network'] = interface
         else:
-            if not self.pfsense.is_ip_or_alias(address):
-                self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
-            ret['address'] = address
+            ports = addr[1] if len(addr) > 1 else None
+            if address == 'any':
+                ret['any'] = None
+            # rule with this firewall
+            elif address == '(self)':
+                ret['network'] = '(self)'
+            # rule with interface name (LAN, WAN...)
+            elif self.pfsense.is_interface_name(address):
+                ret['network'] = self.pfsense.get_interface_pfsense_by_name(address)
+            else:
+                if not self.pfsense.is_ip_or_alias(address):
+                    self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
+                ret['address'] = address
 
-        if port_start is not None:
-            if not self.pfsense.is_port_or_alias(port_start):
-                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port_start))
-            ret['port'] = port_start
-        if port_end is not None:
-            if not self.pfsense.is_port_or_alias(port_end):
-                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (port_end))
-            ret['port'] += '-' + port_end
+        if ports is not None:
+            ports = ports.split('-')
+            if len(ports) > 2 or ports[0] is None or ports[0] == '' or len(ports) == 2 and (ports[1] is None or ports[1] == ''):
+                self.module.fail_json(msg='Cannot parse address %s' % (param))
+
+            if not self.pfsense.is_port_or_alias(ports[0]):
+                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[0]))
+            ret['port'] = ports[0]
+
+            if len(ports) > 1:
+                if not self.pfsense.is_port_or_alias(ports[1]):
+                    self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[1]))
+                ret['port'] += '-' + ports[1]
 
         return ret
 

@@ -244,9 +244,19 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         rule = dict(name='one_rule', source='NET:invalid_lan', destination='any', interface='lan')
         self.do_rule_creation_test(rule, failed=True, msg='invalid_lan is not a valid interface')
 
+    def test_rule_create_net_interface_invalid2(self):
+        """ test creation of a new rule with invalid interface """
+        rule = dict(name='one_rule', source='NET:', destination='any', interface='lan')
+        self.do_rule_creation_test(rule, failed=True, msg='Cannot parse address NET:')
+
     def test_rule_create_ip_interface(self):
         """ test creation of a new rule with valid interface """
         rule = dict(name='one_rule', source='IP:vt1', destination='any', interface='lan')
+        self.do_rule_creation_test(rule)
+
+    def test_rule_create_ip_interface_with_port(self):
+        """ test creation of a new rule with valid interface """
+        rule = dict(name='one_rule', source='IP:vt1:22', destination='any', interface='lan')
         self.do_rule_creation_test(rule)
 
     def test_rule_create_ip_interface_invalid(self):

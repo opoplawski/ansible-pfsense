@@ -60,10 +60,10 @@ class TestPFSenseRuleModule(TestPFSenseModule):
             res['network'] = '(self)'
         elif parts[0] == 'NET':
             res['network'] = self.unalias_interface(parts[1])
-            return res
+            del parts[1]
         elif parts[0] == 'IP':
             res['network'] = self.unalias_interface(parts[1]) + 'ip'
-            return res
+            del parts[1]
         elif parts[0] in ['lan', 'lan', 'vpn', 'vt1', 'lan_100']:
             res['network'] = self.unalias_interface(parts[0])
         else:

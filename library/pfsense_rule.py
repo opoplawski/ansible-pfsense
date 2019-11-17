@@ -64,12 +64,12 @@ options:
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
     type: str
   source:
-    description: The source address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
+    description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
     required: true
     default: null
     type: str
   destination:
-    description: The destination address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
+    description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
     required: true
     default: null
     type: str
@@ -116,6 +116,17 @@ EXAMPLES = """
     source: dns_int
     destination: any:53
     after: 'Allow proxies out'
+    state: present
+- name: "Allow inbound port range"
+  pfsense_rule:
+    name: 'Allow inbound port range'
+    action: pass
+    interface: wan
+    ipprotocol: inet
+    protocol: tcp
+    source: any
+    destination: NET:lan:4000-5000
+    after: 'Allow Internal DNS traffic out'
     state: present
 """
 
