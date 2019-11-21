@@ -390,14 +390,14 @@ result_ipsec_p2s:
     sample: ["create ipsec_p2 'test_p2' on 'test_tunnel', disabled='False', mode='vti', local='1.2.3.1', ...", "delete ipsec_p2 'test_p2' on 'test_tunnel'"]
 """
 
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import PFSenseIpsecProposalModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import IPSEC_PROPOSAL_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import IPSEC_PROPOSAL_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import PFSenseIpsecP2Module
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import IPSEC_P2_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import IPSEC_P2_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec_proposal import PFSenseIpsecProposalModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec_proposal import IPSEC_PROPOSAL_ARGUMENT_SPEC
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec_proposal import IPSEC_PROPOSAL_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec_p2 import PFSenseIpsecP2Module
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec_p2 import IPSEC_P2_ARGUMENT_SPEC
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec_p2 import IPSEC_P2_REQUIRED_IF
 
 from ansible.module_utils.basic import AnsibleModule
 from copy import deepcopy
