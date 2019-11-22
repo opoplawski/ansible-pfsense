@@ -172,7 +172,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
 
 
 def main():

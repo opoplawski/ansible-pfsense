@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 import re
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense import PFSenseModule, PFSenseModuleBase
 
 ALIAS_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),

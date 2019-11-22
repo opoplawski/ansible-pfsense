@@ -74,10 +74,10 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import PFSenseRuleSeparatorModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
 
 
 def main():

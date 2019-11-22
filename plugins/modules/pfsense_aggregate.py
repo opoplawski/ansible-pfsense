@@ -361,17 +361,17 @@ result_vlans:
     sample: ["create vlan 'mvneta.100', descr='voice', priority='5'", "update vlan 'mvneta.100', set priority='6'", "delete vlan 'mvneta.100'"]
 """
 
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense import PFSenseModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_interface import PFSenseInterfaceModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_interface import INTERFACE_ARGUMENT_SPEC
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_interface import INTERFACE_REQUIRED_IF
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense import PFSenseModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_interface import PFSenseInterfaceModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_interface import INTERFACE_ARGUMENT_SPEC
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_interface import INTERFACE_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import PFSenseRuleSeparatorModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 from ansible.module_utils.basic import AnsibleModule
 

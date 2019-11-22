@@ -203,7 +203,7 @@ import yaml
 
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.compat import ipaddress
+from ansible.module_utils.compat.ipaddress import ipaddress
 
 OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'filter']
 OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue']

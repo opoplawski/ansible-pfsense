@@ -62,5 +62,5 @@ issues: https://github.com/opoplawski/ansible-pfsense/issues
 build_ignore:
   - '*.tar.gz'
   - examples
-  - example_roles
   - misc
+  - test

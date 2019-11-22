@@ -12,7 +12,7 @@ if sys.version_info < (2, 7):
 
 from xml.etree.ElementTree import fromstring, ElementTree
 from units.compat.mock import patch
-from ansible.modules.network.pfsense import pfsense_rule
+from ansible_collections.opoplawski.pfsense.plugins.network.pfsense import pfsense_rule
 from .pfsense_module import TestPFSenseModule, load_fixture
 
 

@@ -82,7 +82,7 @@ diff:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
 
 
 def main():

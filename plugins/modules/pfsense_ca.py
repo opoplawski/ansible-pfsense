@@ -74,7 +74,7 @@ import base64
 import re
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.opoplawski.pfsense.plugins.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible_collections.opoplawski.pfsense.plugins.module_utils.pfsense import PFSenseModule
 
 
 class pfSenseCA(object):

@@ -13,7 +13,7 @@ if sys.version_info < (2, 7):
 from xml.etree.ElementTree import fromstring, ElementTree
 
 from units.modules.utils import set_module_args
-from ansible.modules.network.pfsense import pfsense_aggregate
+from ansible_collections.opoplawski.pfsense.plugins.network.pfsense import pfsense_aggregate
 
 from .pfsense_module import TestPFSenseModule, load_fixture
 

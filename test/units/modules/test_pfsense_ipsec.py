@@ -15,7 +15,7 @@ from xml.etree.ElementTree import fromstring, ElementTree
 
 from units.compat.mock import patch
 from units.modules.utils import set_module_args
-from ansible.modules.network.pfsense import pfsense_ipsec
+from ansible_collections.opoplawski.pfsense.plugins.network.pfsense import pfsense_ipsec
 
 from .pfsense_module import TestPFSenseModule, load_fixture
 
