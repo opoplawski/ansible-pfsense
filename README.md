@@ -3,16 +3,15 @@ Ansible modules for managing pfsense firewalls.
 
 This is a set of modules to allow you to configure pfsense firewalls with ansible.
 
-## installation
-### using ansible galaxy
+## installation using ansible galaxy
 
 Ansible Galaxy now has an option for collections.  A collection is a distribution format for delivering all type of Ansible content (not just roles as it was before).  Ansible-pfsense can be installed using ansible-galaxy.
 
-#### requirements
+### requirements
 
 To install `ansible-pfsense` using ansible-galaxy, you must have ansible version `2.9+` installed on your system.
 
-#### install command
+### install command
 
 `ansible-galaxy collection install opoplawski.pfsense`
 
@@ -28,7 +27,7 @@ Aditionally, you can set the `collections_paths` option in your `ansible.cfg` fi
 collections_paths=collections
 ```
 
-### ansible pre-2.9
+## installing using ansible pre-2.9 (not galaxy)
 
 To install this module pre-ansible version 2.9, you need to download one of the [releases](https://github.com/opoplawski/ansible-pfsense/releases) and extract it to the root of your project directory.
 
