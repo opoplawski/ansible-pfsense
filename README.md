@@ -4,8 +4,33 @@ Ansible modules for managing pfsense firewalls.
 This is a set of modules to allow you to configure pfsense firewalls with ansible.
 
 ## installation
+### using ansible galaxy
 
-Just checkout the repository and run your playbooks from the ansible-pfsense directory.
+Ansible Galaxy now has an option for collections.  A collection is a distribution format for delivering all type of Ansible content (not just roles as it was before).  Ansible-pfsense can be installed using ansible-galaxy.
+
+#### requirements
+
+To install `ansible-pfsense` using ansible-galaxy, you must have ansible version `2.9+` installed on your system.
+
+#### install command
+
+`ansible-galaxy collection install opoplawski.pfsense`
+
+Optionally, you can specify the path of the collection installation with the `-p` option.
+
+`ansible-galaxy collection install opoplawski.pfsense -p ./collections`
+
+Aditionally, you can set the `collections_paths` option in your `ansible.cfg` file to automatically designate install locations.
+
+```ini
+# ansible.cfg
+[defaults]
+collections_paths=collections
+```
+
+### ansible pre-2.9
+
+To install this module pre-ansible version 2.9, you need to download one of the [releases](https://github.com/opoplawski/ansible-pfsense/releases) and extract it to the root of your project directory.
 
 ## configuration
 
@@ -44,6 +69,44 @@ shell.
 
 Some formatting is lost, and CDATA items are converted to normal entries,
 but so far no problems with that have been noted.
+
+## how to use in a task
+
+### ansible galaxy version
+
+Using the ansible-galaxy version of these modules requires you to reference the FQCN of the modules.  This means prefix each module in your task with `opoplawski.pfsense.{module_name}`.
+
+Example:
+
+```yaml
+# task.yml
+---
+
+- name: 192.168.40.0/24 - Guest WiFi
+  opoplawski.pfsense.pfsense_vlan:
+    interface: "{{ pfsense_lan_nic }}"
+    vlan_id: 40
+    descr: 192.168.40.0/24 - Guest WiFi
+    state: present
+```
+
+### ansible pre-2.9 (non galaxy) version
+
+Using the ansible pre-2.9 version of the plugin you can reference the modules by module name.  There is no need to prefix the module name with the FQCN.
+
+Example:
+
+```yaml
+# task.yml
+---
+
+- name: 192.168.40.0/24 - Guest WiFi
+  pfsense_vlan:
+    interface: "{{ pfsense_lan_nic }}"
+    vlan_id: 40
+    descr: 192.168.40.0/24 - Guest WiFi
+    state: present
+```
 
 ## license
 
