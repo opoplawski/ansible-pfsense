@@ -59,6 +59,7 @@ EXAMPLES = """
   pfsense_vlan:
     interface: mvneta0
     vlan_id: 100
+    state: absent
 """
 
 RETURN = """

@@ -490,9 +490,13 @@ class PFSenseModule(object):
 
     def find_vlan(self, interface, tag):
         """ return vlan elt if found """
-        for vlan in self.vlans:
-            if vlan.find('if').text == interface and vlan.find('tag').text == tag:
-                return vlan
+        if self.vlans is None:
+            self.vlans = self.get_element('vlans')
+
+        if self.vlans is not None:
+            for vlan in self.vlans:
+                if vlan.find('if').text == interface and vlan.find('tag').text == tag:
+                    return vlan
 
         return None
 

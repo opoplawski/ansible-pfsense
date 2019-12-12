@@ -26,6 +26,9 @@ class PFSenseVlanModule(PFSenseModuleBase):
         self.module = module
         self.pfsense = pfsense
         self.vlans = self.pfsense.get_element('vlans')
+        if self.vlans is None:
+            self.vlans = self.pfsense.new_element('vlans')
+            self.pfsense.root.append(self.vlans)
 
         self.change_descr = ''
 
@@ -52,19 +55,19 @@ class PFSenseVlanModule(PFSenseModuleBase):
             'echo json_encode($list);')
 
     def _log_create(self, vlan):
-        """ generate pseudo-CLI command to create an vlan """
+        """ generate pseudo-CLI command to create a vlan """
         log = "create vlan '{0}.{1}'".format(vlan['if'], vlan['tag'])
         log += self.format_cli_field(vlan, 'descr')
         log += self.format_cli_field(vlan, 'pcp', fname='priority')
         self.result['commands'].append(log)
 
     def _log_delete(self, vlan):
-        """ generate pseudo-CLI command to delete an vlan """
+        """ generate pseudo-CLI command to delete a vlan """
         log = "delete vlan '{0}.{1}'".format(vlan['if'], vlan['tag'])
         self.result['commands'].append(log)
 
     def _log_update(self, vlan, before):
-        """ generate pseudo-CLI command to update an vlan """
+        """ generate pseudo-CLI command to update a vlan """
         log = "update vlan '{0}.{1}'".format(vlan['if'], vlan['tag'])
         values = ''
         values += self.format_updated_cli_field(vlan, before, 'pcp', add_comma=(values), fname='priority')
@@ -130,7 +133,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
             self.module.fail_json(msg='priority must be between 0 and 7 on interface {0}'.format(params['interface']))
 
     def _params_to_vlan(self, params):
-        """ return an vlan dict from module params """
+        """ return a vlan dict from module params """
         self._validate_params(params)
 
         vlan = dict()
@@ -164,7 +167,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
         self.module.exit_json(**self.result)
 
     def run(self, params):
-        """ process input params to add/update/delete an vlan """
+        """ process input params to add/update/delete a vlan """
         vlan = self._params_to_vlan(params)
 
         if params['state'] == 'absent':
