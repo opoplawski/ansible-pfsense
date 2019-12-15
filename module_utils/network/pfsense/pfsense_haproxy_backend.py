@@ -202,7 +202,7 @@ class PFSenseHaproxyBackendModule(PFSenseModuleBase):
         return backend
 
     def _update(self):
-        """ make the target pfsense reload separators """
+        """ make the target pfsense reload haproxy """
         return self.pfsense.phpshell('''require_once("haproxy/haproxy.inc");
 $result = haproxy_check_and_run($savemsg, true); if ($result) unlink_if_exists($d_haproxyconfdirty_path);''')
 

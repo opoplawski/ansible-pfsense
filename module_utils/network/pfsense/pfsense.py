@@ -536,23 +536,26 @@ class PFSenseModule(object):
 
         return None
 
-    def find_ca_elt(self, descr, search_field='descr'):
-        """ return certificate authority elt if found """
-        cas_elt = self.get_elements('ca')
+    def find_certobj_elt(self, descr, objtype, search_field='descr'):
+        """ return certificate object elt if found """
+        cas_elt = self.get_elements(objtype)
         for ca_elt in cas_elt:
             descr_elt = ca_elt.find(search_field)
             if descr_elt is not None and descr_elt.text == descr:
                 return ca_elt
         return None
 
+    def find_ca_elt(self, descr, search_field='descr'):
+        """ return certificate authority elt if found """
+        return self.find_certobj_elt(descr, 'ca', search_field)
+
     def find_cert_elt(self, descr, search_field='descr'):
         """ return certificate elt if found """
-        certs_elt = self.get_elements('cert')
-        for cert_elt in certs_elt:
-            descr_elt = cert_elt.find(search_field)
-            if descr_elt is not None and descr_elt.text == descr:
-                return cert_elt
-        return None
+        return self.find_certobj_elt(descr, 'cert', search_field)
+
+    def find_crl_elt(self, descr, search_field='descr'):
+        """ return certificate revocation list elt if found """
+        return self.find_certobj_elt(descr, 'crl', search_field)
 
     @staticmethod
     def uniqid(prefix=''):
