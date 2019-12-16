@@ -398,7 +398,7 @@ class PFSenseModuleAggregate(object):
         if self.pfsense_interfaces.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'interfaces\');\n'
-        if self.pfsense_rules.changed or self.pfsense_rule_separators.result['changed']:
+        if self.pfsense_rules.result['changed'] or self.pfsense_rule_separators.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'filter\');\n'
         cmd += '}'
@@ -492,7 +492,7 @@ class PFSenseModuleAggregate(object):
         # delete every other rule if required
         if self.module.params['purge_rules']:
             todel = []
-            for rule_elt in self.pfsense_rules.rules:
+            for rule_elt in self.pfsense_rules.root_elt:
                 if not self.want_rule(rule_elt, want):
                     params = {}
                     params['state'] = 'absent'
@@ -618,7 +618,7 @@ class PFSenseModuleAggregate(object):
         stdout = ''
         stderr = ''
         changed = (
-            self.pfsense_aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_rules.changed
+            self.pfsense_aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_rules.result['changed']
             or self.pfsense_rule_separators.result['changed'] or self.pfsense_vlans.result['changed']
         )
 

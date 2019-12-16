@@ -113,7 +113,7 @@ class PFSenseAliasModule(PFSenseModuleBase):
         """ update the XML target_elt """
         before = self.pfsense.element_to_dict(self.target_elt)
         changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
-        if self._remove_deleted_server_params():
+        if self._remove_deleted_params():
             changed = True
 
         self.diff['before'] = before

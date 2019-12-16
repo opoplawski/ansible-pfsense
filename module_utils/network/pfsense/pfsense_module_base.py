@@ -85,7 +85,7 @@ class PFSenseModuleBase(object):
         """ update the XML target_elt """
         before = self.pfsense.element_to_dict(self.target_elt)
         changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
-        if self._remove_deleted_server_params():
+        if self._remove_deleted_params():
             changed = True
 
         return (before, changed)
@@ -103,8 +103,8 @@ class PFSenseModuleBase(object):
         """ returns the list of params to remove if they are not set """
         return []
 
-    def _remove_deleted_server_params(self):
-        """ Remove from server a few deleted params """
+    def _remove_deleted_params(self):
+        """ Remove from target_elt a few deleted params """
         changed = False
         params = self._get_params_to_remove()
         for param in params:
