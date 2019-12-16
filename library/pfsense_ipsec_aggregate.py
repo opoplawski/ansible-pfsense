@@ -512,12 +512,13 @@ class PFSenseModuleIpsecAggregate(object):
         # delete every other if required
         if self.module.params['purge_ipsecs']:
             todel = []
-            for ipsec_elt in self.pfsense_ipsec.ipsec:
+            for ipsec_elt in self.pfsense_ipsec.root_elt:
                 if ipsec_elt.tag != 'phase1':
                     continue
                 if not self.want_ipsec(ipsec_elt, want):
                     params = {}
                     params['state'] = 'absent'
+                    params['apply'] = False
                     params['descr'] = ipsec_elt.find('descr').text
                     params['ikeid'] = ipsec_elt.find('ikeid').text
                     todel.append(params)
@@ -550,6 +551,7 @@ class PFSenseModuleIpsecAggregate(object):
                     if not self.want_ipsec_proposal(ipsec_elt, proposal_elt, want):
                         params = self.proposal_elt_to_params(ipsec_elt, proposal_elt)
                         params['state'] = 'absent'
+                        params['apply'] = False
                         params['descr'] = ipsec_elt.find('descr').text
                         params['ikeid'] = ipsec_elt.find('ikeid').text
                         todel.append(params)
@@ -569,12 +571,13 @@ class PFSenseModuleIpsecAggregate(object):
         # delete every other if required
         if self.module.params['purge_ipsec_p2s']:
             todel = []
-            for phase2_elt in self.pfsense_ipsec_p2.ipsec:
+            for phase2_elt in self.pfsense_ipsec_p2.root_elt:
                 if phase2_elt.tag != 'phase2':
                     continue
                 if not self.want_ipsec_phase2(phase2_elt, want):
                     params = {}
                     params['state'] = 'absent'
+                    params['apply'] = False
                     params['descr'] = phase2_elt.find('descr').text
                     params['p1_descr'] = self.pfsense.find_ipsec_phase1(phase2_elt.find('ikeid').text, 'ikeid').find('descr').text
                     params['ikeid'] = phase2_elt.find('ikeid').text

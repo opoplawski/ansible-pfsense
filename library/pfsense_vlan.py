@@ -79,9 +79,9 @@ def main():
         argument_spec=VLAN_ARGUMENT_SPEC,
         supports_check_mode=True)
 
-    pfvlan = PFSenseVlanModule(module)
-    pfvlan.run(module.params)
-    pfvlan.commit_changes()
+    pfmodule = PFSenseVlanModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

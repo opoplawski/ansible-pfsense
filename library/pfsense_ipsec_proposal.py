@@ -103,9 +103,9 @@ def main():
         required_if=IPSEC_PROPOSAL_REQUIRED_IF,
         supports_check_mode=True)
 
-    pfipsec = PFSenseIpsecProposalModule(module)
-    pfipsec.run(module.params)
-    pfipsec.commit_changes()
+    pfmodule = PFSenseIpsecProposalModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

@@ -5,7 +5,8 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+
+from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
 
 
 IPSEC_ARGUMENT_SPEC = dict(
@@ -69,140 +70,33 @@ IPSEC_REQUIRED_IF = [
 class PFSenseIpsecModule(PFSenseModuleBase):
     """ module managing pfsense ipsec tunnels phase 1 options """
 
+    ##############################
+    # init
+    #
     def __init__(self, module, pfsense=None):
-        if pfsense is None:
-            pfsense = PFSenseModule(module)
-        self.module = module
-        self.pfsense = pfsense
-        self.ipsec = self.pfsense.ipsec
+        super(PFSenseIpsecModule, self).__init__(module, pfsense)
+        self.name = "pfsense_ipsec"
+        self.obj = dict()
+        self.target_elt = None
+        self.apply = True
 
-        self.change_descr = ''
+        self.root_elt = self.pfsense.ipsec
 
-        self.result = {}
-        self.result['changed'] = False
-        self.result['commands'] = []
-
-        self._params = None
-
-    def _log_create(self, ipsec):
-        """ generate pseudo-CLI command to create an ipsec tunnel """
-        log = "create ipsec '{0}'".format(ipsec['descr'])
-        log += self.format_cli_field(self._params, 'disabled', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(ipsec, 'iketype')
-        if ipsec['iketype'] != 'ikev2':
-            log += self.format_cli_field(ipsec, 'mode')
-
-        log += self.format_cli_field(ipsec, 'protocol')
-        log += self.format_cli_field(self._params, 'interface')
-        log += self.format_cli_field(ipsec, 'remote-gateway', fname='remote_gateway')
-        log += self.format_cli_field(ipsec, 'authentication_method')
-        if ipsec['authentication_method'] == 'rsasig':
-            log += self.format_cli_field(self._params, 'certificate')
-            log += self.format_cli_field(self._params, 'certificate_authority')
-        else:
-            log += self.format_cli_field(ipsec, 'pre-shared-key', fname='preshared_key')
-
-        id_types = ['address', 'fqdn', 'user_fqdn', 'asn1dn', 'keyid tag', 'dyn_dns']
-        log += self.format_cli_field(ipsec, 'myid_type')
-        if ipsec['myid_type'] in id_types:
-            log += self.format_cli_field(ipsec, 'myid_data')
-
-        log += self.format_cli_field(ipsec, 'peerid_type')
-        if ipsec['peerid_type'] in id_types:
-            log += self.format_cli_field(ipsec, 'peerid_data')
-
-        log += self.format_cli_field(ipsec, 'lifetime')
-
-        log += self.format_cli_field(self._params, 'disable_rekey', fvalue=self.fvalue_bool)
-        if not self._params['disable_rekey']:
-            log += self.format_cli_field(ipsec, 'margintime')
-
-        if ipsec['iketype'] == 'ikev2':
-            log += self.format_cli_field(ipsec, 'reauth_enable', fname='disable_reauth', fvalue=self.fvalue_bool)
-            log += self.format_cli_field(ipsec, 'mobike')
-            log += self.format_cli_field(ipsec, 'splitconn', fvalue=self.fvalue_bool)
-
-        log += self.format_cli_field(self._params, 'responderonly', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(ipsec, 'nat_traversal')
-
-        log += self.format_cli_field(self._params, 'enable_dpd', fvalue=self.fvalue_bool)
-        if self._params['enable_dpd']:
-            log += self.format_cli_field(ipsec, 'dpd_delay')
-            log += self.format_cli_field(ipsec, 'dpd_maxfail')
-
-        self.result['commands'].append(log)
-
-    def _log_delete(self, ipsec):
-        """ generate pseudo-CLI command to delete an ipsec tunnel """
-        log = "delete ipsec '{0}'".format(ipsec['descr'])
-        self.result['commands'].append(log)
-
-    def _get_ref_names(self, before):
-        """ get cert and ca names """
-        if before['caref'] is not None and before['caref'] != '':
-            elt = self.pfsense.find_ca_elt(before['caref'], 'refid')
-            if elt is not None:
-                before['certificate_authority'] = elt.find('descr').text
-
-        if before['certref'] is not None and before['certref'] != '':
-            elt = self.pfsense.find_cert_elt(before['certref'], 'refid')
-            if elt is not None:
-                before['certificate'] = elt.find('descr').text
-
-    def _log_update(self, ipsec, before):
-        """ generate pseudo-CLI command to update an ipsec tunnel """
-
-        self._get_ref_names(before)
-
-        log = "update ipsec '{0}'".format(ipsec['descr'])
-        values = ''
-        values += self.format_updated_cli_field(ipsec, before, 'disabled', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(ipsec, before, 'iketype', add_comma=(values))
-        if ipsec['iketype'] != 'ikev2':
-            values += self.format_updated_cli_field(ipsec, before, 'mode', add_comma=(values))
-        values += self.format_updated_cli_field(ipsec, before, 'protocol', add_comma=(values))
-        values += self.format_updated_cli_field(ipsec, before, 'interface', add_comma=(values))
-        values += self.format_updated_cli_field(ipsec, before, 'remote-gateway', add_comma=(values), fname='remote_gateway')
-        values += self.format_updated_cli_field(ipsec, before, 'authentication_method', add_comma=(values))
-        if ipsec['authentication_method'] == 'rsasig':
-            values += self.format_updated_cli_field(self._params, before, 'certificate', add_comma=(values))
-            values += self.format_updated_cli_field(self._params, before, 'certificate_authority', add_comma=(values))
-        else:
-            values += self.format_updated_cli_field(ipsec, before, 'pre-shared-key', add_comma=(values), fname='preshared_key')
-        values += self.format_updated_cli_field(ipsec, before, 'myid_type', add_comma=(values))
-        id_types = ['address', 'fqdn', 'user_fqdn', 'asn1dn', 'keyid tag', 'dyn_dns']
-        if ipsec['myid_type'] in id_types:
-            values += self.format_updated_cli_field(ipsec, before, 'myid_data', add_comma=(values))
-
-        values += self.format_updated_cli_field(ipsec, before, 'peerid_type', add_comma=(values))
-        if ipsec['peerid_type'] in id_types:
-            values += self.format_updated_cli_field(ipsec, before, 'peerid_data', add_comma=(values))
-
-        values += self.format_updated_cli_field(ipsec, before, 'lifetime', add_comma=(values))
-
-        values += self.format_updated_cli_field(ipsec, before, 'disable_rekey', add_comma=(values), fvalue=self.fvalue_bool)
-        if not self._params['disable_rekey']:
-            values += self.format_updated_cli_field(ipsec, before, 'margintime', add_comma=(values))
-
-        if ipsec['iketype'] == 'ikev2':
-            values += self.format_updated_cli_field(ipsec, before, 'reauth_enable', add_comma=(values), fname='disable_reauth', fvalue=self.fvalue_bool)
-            values += self.format_updated_cli_field(ipsec, before, 'mobike', add_comma=(values))
-            values += self.format_updated_cli_field(ipsec, before, 'splitconn', add_comma=(values), fvalue=self.fvalue_bool)
-
-        values += self.format_updated_cli_field(ipsec, before, 'responderonly', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(ipsec, before, 'nat_traversal', add_comma=(values))
-        values += self.format_updated_cli_field(ipsec, before, 'enable_dpd', add_comma=(values), fvalue=self.fvalue_bool)
-        if self._params['enable_dpd']:
-            values += self.format_updated_cli_field(ipsec, before, 'dpd_delay', add_comma=(values))
-            values += self.format_updated_cli_field(ipsec, before, 'dpd_maxfail', add_comma=(values))
-        self.result['commands'].append(log + ' set ' + values)
+    ##############################
+    # XML processing
+    #
+    def _create_target(self):
+        """ create the XML target_elt """
+        ipsec_elt = self.pfsense.new_element('phase1')
+        self.obj['ikeid'] = str(self._find_free_ikeid())
+        return ipsec_elt
 
     def _find_free_ikeid(self):
         """ return first unused ikeid """
         ikeid = 1
         while True:
             found = False
-            for ipsec_elt in self.ipsec:
+            for ipsec_elt in self.root_elt:
                 ikeid_elt = ipsec_elt.find('ikeid')
                 if ikeid_elt is not None and ikeid_elt.text == str(ikeid):
                     found = True
@@ -212,130 +106,50 @@ class PFSenseIpsecModule(PFSenseModuleBase):
                 return ikeid
             ikeid = ikeid + 1
 
-    def _add(self, ipsec):
-        """ add or update ipsec """
-        # called from ipsec_aggregate
-        if self._params.get('ikeid') is not None:
-            ipsec_elt = self.pfsense.find_ipsec_phase1(self._params['ikeid'], 'ikeid')
-        else:
-            ipsec_elt = self.pfsense.find_ipsec_phase1(ipsec['descr'])
-        if ipsec_elt is None:
-            ipsec_elt = self.pfsense.new_element('phase1')
-            ipsec['ikeid'] = str(self._find_free_ikeid())
-            self.pfsense.copy_dict_to_element(ipsec, ipsec_elt)
-            self.ipsec.append(ipsec_elt)
+    def _find_target(self):
+        """ find the XML target_elt """
+        if self.params.get('ikeid') is not None:
+            return self.pfsense.find_ipsec_phase1(self.params['ikeid'], 'ikeid')
+        return self.pfsense.find_ipsec_phase1(self.obj['descr'])
 
-            changed = True
-            self.change_descr = 'ansible pfsense_ipsec added {0}'.format(ipsec['descr'])
-            self._log_create(ipsec)
-        else:
-            before = self.pfsense.element_to_dict(ipsec_elt)
-            changed = self.pfsense.copy_dict_to_element(ipsec, ipsec_elt)
-
-            if self._remove_deleted_ipsec_params(ipsec_elt, ipsec):
-                changed = True
-
-            if changed:
-                self.change_descr = 'ansible pfsense_ipsec updated {0}'.format(ipsec['descr'])
-                self._log_update(ipsec, before)
-
-        if changed:
-            self.result['changed'] = changed
-
-    def _remove_deleted_ipsec_params(self, ipsec_elt, ipsec):
-        """ Remove from ipsec a few deleted params """
-        changed = False
+    def _get_params_to_remove(self):
+        """ returns the list of params to remove if they are not set """
         params = ['disabled', 'rekey_enable', 'reauth_enable', 'splitconn']
-
-        if self._params['disable_rekey']:
+        if self.params['disable_rekey']:
             params.append('margintime')
 
-        if not self._params['enable_dpd']:
+        if not self.params['enable_dpd']:
             params.append('dpd_delay')
             params.append('dpd_maxfail')
 
-        for param in params:
-            if self.pfsense.remove_deleted_param_from_elt(ipsec_elt, param, ipsec):
-                changed = True
+        return params
 
-        return changed
+    def _pre_remove_target_elt(self):
+        """ processing before removing elt """
+        self._remove_phases2()
 
-    def _remove_ipsec_elt(self, ipsec_elt):
-        """ delete ipsec_elt from xml """
-        self.ipsec.remove(ipsec_elt)
-        self.result['changed'] = True
-
-    def _remove_phases2(self, ipsec_elt):
+    def _remove_phases2(self):
         """ remove phase2 elts from xml """
-        ikeid_elt = ipsec_elt.find('ikeid')
+        ikeid_elt = self.target_elt.find('ikeid')
         if ikeid_elt is None:
             return
         ikeid = ikeid_elt.text
-        phase2_elts = self.ipsec.findall('phase2')
+        phase2_elts = self.root_elt.findall('phase2')
         for phase2_elt in phase2_elts:
             ikeid_elt = phase2_elt.find('ikeid')
             if ikeid_elt is None:
                 continue
             if ikeid == ikeid_elt.text:
-                self.ipsec.remove(phase2_elt)
+                self.root_elt.remove(phase2_elt)
 
-    def _remove(self, ipsec):
-        """ delete ipsec """
-        ipsec_elt = self.pfsense.find_ipsec_phase1(ipsec['descr'])
-        if ipsec_elt is not None:
-            self._log_delete(ipsec)
-            self._remove_phases2(ipsec_elt)
-            self._remove_ipsec_elt(ipsec_elt)
-            self.change_descr = 'ansible pfsense_ipsec removed {0}'.format(ipsec['descr'])
-
-    def _validate_params(self, params):
-        """ do some extra checks on input parameters """
-        if params['state'] == 'absent':
-            return
-
-        for ipsec_elt in self.ipsec:
-            if ipsec_elt.tag != 'phase1':
-                continue
-
-            # don't check on ourself
-            name = ipsec_elt.find('descr')
-            if name is None:
-                name = ''
-            else:
-                name = name.text
-
-            if name == params['descr']:
-                continue
-
-            # two ikev2 can share the same gateway
-            iketype_elt = ipsec_elt.find('iketype')
-            if iketype_elt is None:
-                continue
-
-            if iketype_elt.text == 'ikev2' and iketype_elt.text == params['iketype']:
-                continue
-
-            # others can't share the same gateway
-            rgw_elt = ipsec_elt.find('remote-gateway')
-            if rgw_elt is None:
-                continue
-
-            if rgw_elt.text == params['remote_gateway']:
-                self.module.fail_json(msg='The remote gateway "{0}" is already used by phase1 "{1}".'.format(params['remote_gateway'], name))
-
-    def _parse_ipsec_interface(self, interface):
-        """ validate and return the tunnel interface param """
-        if self.pfsense.is_interface_name(interface):
-            return self.pfsense.get_interface_pfsense_by_name(interface)
-        elif self.pfsense.is_interface_pfsense(interface):
-            return interface
-
-        self.module.fail_json(msg='%s is not a valid interface' % (interface))
-        return None
-
-    def _params_to_ipsec(self, params):
+    ##############################
+    # params processing
+    #
+    def _params_to_obj(self):
         """ return an ipsec dict from module params """
-        self._validate_params(params)
+
+        params = self.params
+        self.apply = params['apply']
 
         ipsec = dict()
         ipsec['descr'] = params['descr']
@@ -401,6 +215,55 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
         return ipsec
 
+    def _parse_ipsec_interface(self, interface):
+        """ validate and return the tunnel interface param """
+        if self.pfsense.is_interface_name(interface):
+            return self.pfsense.get_interface_pfsense_by_name(interface)
+        elif self.pfsense.is_interface_pfsense(interface):
+            return interface
+
+        self.module.fail_json(msg='%s is not a valid interface' % (interface))
+        return None
+
+    def _validate_params(self):
+        """ do some extra checks on input parameters """
+        params = self.params
+        if params['state'] == 'absent':
+            return
+
+        for ipsec_elt in self.root_elt:
+            if ipsec_elt.tag != 'phase1':
+                continue
+
+            # don't check on ourself
+            name = ipsec_elt.find('descr')
+            if name is None:
+                name = ''
+            else:
+                name = name.text
+
+            if name == params['descr']:
+                continue
+
+            # two ikev2 can share the same gateway
+            iketype_elt = ipsec_elt.find('iketype')
+            if iketype_elt is None:
+                continue
+
+            if iketype_elt.text == 'ikev2' and iketype_elt.text == params['iketype']:
+                continue
+
+            # others can't share the same gateway
+            rgw_elt = ipsec_elt.find('remote-gateway')
+            if rgw_elt is None:
+                continue
+
+            if rgw_elt.text == params['remote_gateway']:
+                self.module.fail_json(msg='The remote gateway "{0}" is already used by phase1 "{1}".'.format(params['remote_gateway'], name))
+
+    ##############################
+    # run
+    #
     def _update(self):
         return self.pfsense.phpshell(
             "require_once('vpn.inc');"
@@ -411,23 +274,109 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             "   clear_subsystem_dirty('ipsec');"
         )
 
-    def commit_changes(self):
-        """ apply changes and exit module """
-        self.result['stdout'] = ''
-        self.result['stderr'] = ''
-        if self.result['changed'] and not self.module.check_mode:
-            self.pfsense.write_config(descr=self.change_descr)
-            if self._params['apply']:
-                (dummy, self.result['stdout'], self.result['stderr']) = self._update()
+    ##############################
+    # Logging
+    #
+    def _get_obj_name(self):
+        """ return obj's name """
+        return "'" + self.obj['descr'] + "'"
 
-        self.module.exit_json(**self.result)
+    def _log_fields(self, before=None):
+        """ generate pseudo-CLI command fields parameters to create an obj """
+        values = ''
+        if before is None:
+            values += self.format_cli_field(self.params, 'disabled', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.obj, 'iketype')
+            if self.obj['iketype'] != 'ikev2':
+                values += self.format_cli_field(self.obj, 'mode')
 
-    def run(self, params):
-        """ process input params to add/update/delete an ipsec tunnel """
-        self._params = params
-        ipsec = self._params_to_ipsec(params)
+            values += self.format_cli_field(self.obj, 'protocol')
+            values += self.format_cli_field(self.params, 'interface')
+            values += self.format_cli_field(self.obj, 'remote-gateway', fname='remote_gateway')
+            values += self.format_cli_field(self.obj, 'authentication_method')
+            if self.obj['authentication_method'] == 'rsasig':
+                values += self.format_cli_field(self.params, 'certificate')
+                values += self.format_cli_field(self.params, 'certificate_authority')
+            else:
+                values += self.format_cli_field(self.obj, 'pre-shared-key', fname='preshared_key')
 
-        if params['state'] == 'absent':
-            self._remove(ipsec)
+            id_types = ['address', 'fqdn', 'user_fqdn', 'asn1dn', 'keyid tag', 'dyn_dns']
+            values += self.format_cli_field(self.obj, 'myid_type')
+            if self.obj['myid_type'] in id_types:
+                values += self.format_cli_field(self.obj, 'myid_data')
+
+            values += self.format_cli_field(self.obj, 'peerid_type')
+            if self.obj['peerid_type'] in id_types:
+                values += self.format_cli_field(self.obj, 'peerid_data')
+
+            values += self.format_cli_field(self.obj, 'lifetime')
+
+            values += self.format_cli_field(self.params, 'disable_rekey', fvalue=self.fvalue_bool)
+            if not self.params['disable_rekey']:
+                values += self.format_cli_field(self.obj, 'margintime')
+
+            if self.obj['iketype'] == 'ikev2':
+                values += self.format_cli_field(self.obj, 'reauth_enable', fname='disable_reauth', fvalue=self.fvalue_bool)
+                values += self.format_cli_field(self.obj, 'mobike')
+                values += self.format_cli_field(self.obj, 'splitconn', fvalue=self.fvalue_bool)
+
+            values += self.format_cli_field(self.params, 'responderonly', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.obj, 'nat_traversal')
+
+            values += self.format_cli_field(self.params, 'enable_dpd', fvalue=self.fvalue_bool)
+            if self.params['enable_dpd']:
+                values += self.format_cli_field(self.obj, 'dpd_delay')
+                values += self.format_cli_field(self.obj, 'dpd_maxfail')
         else:
-            self._add(ipsec)
+            values += self.format_updated_cli_field(self.obj, before, 'disabled', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.obj, before, 'iketype', add_comma=(values))
+            if self.obj['iketype'] != 'ikev2':
+                values += self.format_updated_cli_field(self.obj, before, 'mode', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'protocol', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'interface', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'remote-gateway', add_comma=(values), fname='remote_gateway')
+            values += self.format_updated_cli_field(self.obj, before, 'authentication_method', add_comma=(values))
+            if self.obj['authentication_method'] == 'rsasig':
+                values += self.format_updated_cli_field(self.params, before, 'certificate', add_comma=(values))
+                values += self.format_updated_cli_field(self.params, before, 'certificate_authority', add_comma=(values))
+            else:
+                values += self.format_updated_cli_field(self.obj, before, 'pre-shared-key', add_comma=(values), fname='preshared_key')
+            values += self.format_updated_cli_field(self.obj, before, 'myid_type', add_comma=(values))
+            id_types = ['address', 'fqdn', 'user_fqdn', 'asn1dn', 'keyid tag', 'dyn_dns']
+            if self.obj['myid_type'] in id_types:
+                values += self.format_updated_cli_field(self.obj, before, 'myid_data', add_comma=(values))
+
+            values += self.format_updated_cli_field(self.obj, before, 'peerid_type', add_comma=(values))
+            if self.obj['peerid_type'] in id_types:
+                values += self.format_updated_cli_field(self.obj, before, 'peerid_data', add_comma=(values))
+
+            values += self.format_updated_cli_field(self.obj, before, 'lifetime', add_comma=(values))
+
+            values += self.format_updated_cli_field(self.obj, before, 'disable_rekey', add_comma=(values), fvalue=self.fvalue_bool)
+            if not self.params['disable_rekey']:
+                values += self.format_updated_cli_field(self.obj, before, 'margintime', add_comma=(values))
+
+            if self.obj['iketype'] == 'ikev2':
+                values += self.format_updated_cli_field(self.obj, before, 'reauth_enable', add_comma=(values), fname='disable_reauth', fvalue=self.fvalue_bool)
+                values += self.format_updated_cli_field(self.obj, before, 'mobike', add_comma=(values))
+                values += self.format_updated_cli_field(self.obj, before, 'splitconn', add_comma=(values), fvalue=self.fvalue_bool)
+
+            values += self.format_updated_cli_field(self.obj, before, 'responderonly', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.obj, before, 'nat_traversal', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'enable_dpd', add_comma=(values), fvalue=self.fvalue_bool)
+            if self.params['enable_dpd']:
+                values += self.format_updated_cli_field(self.obj, before, 'dpd_delay', add_comma=(values))
+                values += self.format_updated_cli_field(self.obj, before, 'dpd_maxfail', add_comma=(values))
+        return values
+
+    def _get_ref_names(self, before):
+        """ get cert and ca names """
+        if before['caref'] is not None and before['caref'] != '':
+            elt = self.pfsense.find_ca_elt(before['caref'], 'refid')
+            if elt is not None:
+                before['certificate_authority'] = elt.find('descr').text
+
+        if before['certref'] is not None and before['certref'] != '':
+            elt = self.pfsense.find_cert_elt(before['certref'], 'refid')
+            if elt is not None:
+                before['certificate'] = elt.find('descr').text

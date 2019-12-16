@@ -87,9 +87,9 @@ def main():
         mutually_exclusive=RULE_SEPARATOR_MUTUALLY_EXCLUSIVE,
         supports_check_mode=True)
 
-    pfseparator = PFSenseRuleSeparatorModule(module)
-    pfseparator.run(module.params)
-    pfseparator.commit_changes()
+    pfmodule = PFSenseRuleSeparatorModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

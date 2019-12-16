@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 import re
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
 
 ALIAS_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
@@ -28,93 +28,40 @@ ALIAS_REQUIRED_IF = [
 class PFSenseAliasModule(PFSenseModuleBase):
     """ module managing pfsense aliases """
 
+    ##############################
+    # init
+    #
     def __init__(self, module, pfsense=None):
-        if pfsense is None:
-            pfsense = PFSenseModule(module)
-        self.module = module
-        self.pfsense = pfsense
-        self.aliases = self.pfsense.get_element('aliases')
-
-        self.change_descr = ''
+        super(PFSenseAliasModule, self).__init__(module, pfsense)
+        self.name = "pfsense_alias"
+        self.root_elt = self.pfsense.get_element('aliases')
+        self.obj = dict()
 
         self.diff = {}
-        self.result = {}
-        self.result['changed'] = False
         self.result['diff'] = self.diff
-        self.result['commands'] = []
 
-    def _update(self):
-        """ make the target pfsense reload aliases """
-        return self.pfsense.phpshell('''require_once("filter.inc");
-if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
+    ##############################
+    # params processing
+    #
+    def _params_to_obj(self):
+        """ return dict from module params """
+        obj = dict()
+        obj['name'] = self.params['name']
+        if self.params['state'] == 'present':
+            obj['type'] = self.params['type']
+            obj['address'] = self.params['address']
+            obj['descr'] = self.params['descr']
+            obj['detail'] = self.params['detail']
+            if obj['type'] == 'urltable' or obj['type'] == 'urltable_ports':
+                obj['url'] = self.params['address']
+                obj['updatefreq'] = str(self.params['updatefreq'])
 
-    def _log_create(self, alias):
-        """ generate pseudo-CLI command to create an alias """
-        log = "create alias '{0}'".format(alias['name'])
-        log += self.format_cli_field(alias, 'type')
-        log += self.format_cli_field(alias, 'address')
-        log += self.format_cli_field(alias, 'updatefreq')
-        log += self.format_cli_field(alias, 'descr')
-        log += self.format_cli_field(alias, 'detail')
-        self.result['commands'].append(log)
+        return obj
 
-    def _log_delete(self, alias):
-        """ generate pseudo-CLI command to delete an alias """
-        log = "delete alias '{0}'".format(alias['name'])
-        self.result['commands'].append(log)
-
-    def _log_update(self, alias, before):
-        """ generate pseudo-CLI command to update an alias """
-        log = "update alias '{0}'".format(alias['name'])
-        values = ''
-        values += self.format_updated_cli_field(alias, before, 'address', add_comma=(values))
-        values += self.format_updated_cli_field(alias, before, 'updatefreq', add_comma=(values))
-        values += self.format_updated_cli_field(alias, before, 'descr', add_comma=(values))
-        values += self.format_updated_cli_field(alias, before, 'detail', add_comma=(values))
-        self.result['commands'].append(log + ' set ' + values)
-
-    def _add(self, alias):
-        """ add or update alias """
-        alias_elt = self.pfsense.find_alias(alias['name'])
-        self.diff['after'] = alias
-        if alias_elt is None:
-            alias_elt = self.pfsense.new_element('alias')
-            self.pfsense.copy_dict_to_element(alias, alias_elt)
-            self.aliases.append(alias_elt)
-
-            changed = True
-            self.diff['before'] = ''
-            self.change_descr = 'ansible pfsense_alias added %s type %s' % (alias['name'], alias['type'])
-            self._log_create(alias)
-        else:
-            self.diff['before'] = self.pfsense.element_to_dict(alias_elt)
-            changed = self.pfsense.copy_dict_to_element(alias, alias_elt)
-            if changed:
-                self.diff['after'] = self.pfsense.element_to_dict(alias_elt)
-                self.change_descr = 'ansible pfsense_alias updated "%s" type %s' % (alias['name'], alias['type'])
-                self._log_update(alias, self.diff['before'])
-
-        if changed:
-            self.result['changed'] = changed
-
-    def _remove_alias_elt(self, alias_elt):
-        """ delete alias_elt from xml """
-        self.aliases.remove(alias_elt)
-        self.result['changed'] = True
-        self.diff['before'] = self.pfsense.element_to_dict(alias_elt)
-
-    def _remove(self, alias):
-        """ delete alias """
-        alias_elt = self.pfsense.find_alias(alias['name'])
-        self.diff['after'] = ''
-        self.diff['before'] = ''
-        if alias_elt is not None:
-            self._log_delete(alias)
-            self._remove_alias_elt(alias_elt)
-            self.change_descr = 'ansible pfsense_alias removed "%s"' % (alias['name'])
-
-    def _validate_params(self, params):
+    def _validate_params(self):
         """ do some extra checks on input parameters """
+        params = self.params
+
         # check name
         if re.match('^[a-zA-Z0-9_]+$', params['name']) is None:
             self.module.fail_json(msg='The alias name may only consist of the characters "a-z, A-Z, 0-9 and _"')
@@ -159,38 +106,75 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
                 if detail.startswith('|') or detail.endswith('|'):
                     self.module.fail_json(msg='Vertical bars (|) at start or end of descriptions not allowed')
 
-    def _params_to_alias(self, params):
-        """ return an alias dict from module params """
-        self._validate_params(params)
+    ##############################
+    # XML processing
+    #
+    def _copy_and_update_target(self):
+        """ update the XML target_elt """
+        before = self.pfsense.element_to_dict(self.target_elt)
+        changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        if self._remove_deleted_server_params():
+            changed = True
 
-        alias = dict()
-        alias['name'] = params['name']
-        if params['state'] == 'present':
-            alias['type'] = params['type']
-            alias['address'] = params['address']
-            alias['descr'] = params['descr']
-            alias['detail'] = params['detail']
-            if alias['type'] == 'urltable' or alias['type'] == 'urltable_ports':
-                alias['url'] = params['address']
-                alias['updatefreq'] = str(params['updatefreq'])
-
-        return alias
-
-    def commit_changes(self):
-        """ apply changes and exit module """
-        self.result['stdout'] = ''
-        self.result['stderr'] = ''
-        if self.result['changed'] and not self.module.check_mode:
-            self.pfsense.write_config(descr=self.change_descr)
-            (dummy, self.result['stdout'], self.result['stderr']) = self._update()
-
-        self.module.exit_json(**self.result)
-
-    def run(self, params):
-        """ process input params to add/update/delete an alias """
-        alias = self._params_to_alias(params)
-
-        if params['state'] == 'absent':
-            self._remove(alias)
+        self.diff['before'] = before
+        if changed:
+            self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
+            self.result['changed'] = True
         else:
-            self._add(alias)
+            self.diff['after'] = self.obj
+
+        return (before, changed)
+
+    def _create_target(self):
+        """ create the XML target_elt """
+        target_elt = self.pfsense.new_element('alias')
+        self.diff['before'] = ''
+        self.diff['after'] = self.obj
+        self.result['changed'] = True
+        return target_elt
+
+    def _find_target(self):
+        """ find the XML target_elt """
+        return self.pfsense.find_alias(self.obj['name'])
+
+    def _remove_target_elt(self):
+        """ delete target_elt from xml """
+        super(PFSenseAliasModule, self)._remove_target_elt()
+        self.diff['before'] = self.pfsense.element_to_dict(self.target_elt)
+
+    ##############################
+    # run
+    #
+    def _remove(self):
+        """ delete obj """
+        self.diff['after'] = ''
+        self.diff['before'] = ''
+        super(PFSenseAliasModule, self)._remove()
+
+    def _update(self):
+        """ make the target pfsense reload """
+        return self.pfsense.phpshell('''require_once("filter.inc");
+if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
+
+    ##############################
+    # Logging
+    #
+    def _get_obj_name(self):
+        """ return obj's name """
+        return "'" + self.obj['name'] + "'"
+
+    def _log_fields(self, before=None):
+        """ generate pseudo-CLI command fields parameters to create an obj """
+        values = ''
+        if before is None:
+            values += self.format_cli_field(self.obj, 'type')
+            values += self.format_cli_field(self.obj, 'address')
+            values += self.format_cli_field(self.obj, 'updatefreq')
+            values += self.format_cli_field(self.obj, 'descr')
+            values += self.format_cli_field(self.obj, 'detail')
+        else:
+            values += self.format_updated_cli_field(self.obj, before, 'address', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'updatefreq', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'descr', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'detail', add_comma=(values))
+        return values

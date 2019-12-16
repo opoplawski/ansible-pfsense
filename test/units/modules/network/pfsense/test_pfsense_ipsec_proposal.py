@@ -124,19 +124,19 @@ class TestPFSenseIpsecProposalModule(TestPFSenseModule):
     def test_ipsec_proposal_create(self):
         """ test creation of a new proposal """
         proposal = dict(descr='test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup=21)
-        command = "create ipsec_proposal on 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='21'"
+        command = "create ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='21'"
         self.do_ipsec_proposal_test(proposal, command=command)
 
     def test_ipsec_proposal_create_nokeylen(self):
         """ test creation of a new proposal """
         proposal = dict(descr='test_tunnel2', encryption='cast128', hash='sha256', dhgroup=21)
-        command = "create ipsec_proposal on 'test_tunnel2', encryption='cast128', hash='sha256', dhgroup='21'"
+        command = "create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha256', dhgroup='21'"
         self.do_ipsec_proposal_test(proposal, command=command)
 
     def test_ipsec_proposal_delete(self):
         """ test deletion of an ipsec proposal """
         proposal = dict(descr='test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup=14, state='absent')
-        command = "delete ipsec_proposal on 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'"
+        command = "delete ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'"
         self.do_ipsec_proposal_test(proposal, delete=True, command=command)
 
     def test_ipsec_proposal_update_noop(self):

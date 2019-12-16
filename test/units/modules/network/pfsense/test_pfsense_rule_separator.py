@@ -128,49 +128,49 @@ class TestPFSenseRuleSeparatorModule(TestPFSenseModule):
     def test_separator_create(self):
         """ test creation of a new separator """
         separator = dict(name='voip', interface='lan_100')
-        command = "create rule_separator 'voip', interface='lan_100', color='info'"
+        command = "create rule_separator 'voip' on 'lan_100', color='info'"
         self.do_separator_creation_test(separator, command=command)
         self.check_separator_idx(separator, 6)
 
     def test_separator_create_floating(self):
         """ test creation of a new separator """
         separator = dict(name='voip', floating=True)
-        command = "create rule_separator 'voip', floating=True, color='info'"
+        command = "create rule_separator 'voip' on 'floating', color='info'"
         self.do_separator_creation_test(separator, command=command)
         self.check_separator_idx(separator, 0)
 
     def test_separator_create_top(self):
         """ test creation of a new separator at top """
         separator = dict(name='voip', interface='lan_100', after='top')
-        command = "create rule_separator 'voip', interface='lan_100', color='info', after='top'"
+        command = "create rule_separator 'voip' on 'lan_100', color='info', after='top'"
         self.do_separator_creation_test(separator, command=command)
         self.check_separator_idx(separator, 0)
 
     def test_separator_create_bottom(self):
         """ test creation of a new separator at bottom """
         separator = dict(name='voip', interface='lan', before='bottom')
-        command = "create rule_separator 'voip', interface='lan', color='info', before='bottom'"
+        command = "create rule_separator 'voip' on 'lan', color='info', before='bottom'"
         self.do_separator_creation_test(separator, command=command)
         self.check_separator_idx(separator, 14)
 
     def test_separator_create_after(self):
         """ test creation of a new separator at bottom """
         separator = dict(name='voip', interface='lan', after='antilock_out_1')
-        command = "create rule_separator 'voip', interface='lan', color='info', after='antilock_out_1'"
+        command = "create rule_separator 'voip' on 'lan', color='info', after='antilock_out_1'"
         self.do_separator_creation_test(separator, command=command)
         self.check_separator_idx(separator, 1)
 
     def test_separator_create_before(self):
         """ test creation of a new separator at bottom """
         separator = dict(name='voip', interface='lan', before='antilock_out_2')
-        command = "create rule_separator 'voip', interface='lan', color='info', before='antilock_out_2'"
+        command = "create rule_separator 'voip' on 'lan', color='info', before='antilock_out_2'"
         self.do_separator_creation_test(separator, command=command)
         self.check_separator_idx(separator, 1)
 
     def test_separator_delete(self):
         """ test deletion of a separator """
         separator = dict(name='test_separator', interface='lan')
-        command = "delete rule_separator 'test_separator', interface='lan'"
+        command = "delete rule_separator 'test_separator' on 'lan'"
         self.do_separator_deletion_test(separator, command=command)
 
     def test_separator_delete_inexistent(self):
@@ -189,13 +189,13 @@ class TestPFSenseRuleSeparatorModule(TestPFSenseModule):
     def test_separator_update_color(self):
         """ test updating color of a separator """
         separator = dict(name='test_separator', interface='lan', color='warning')
-        command = "update rule_separator 'test_separator' set interface='lan', color='warning'"
+        command = "update rule_separator 'test_separator' on 'lan' set color='warning'"
         self.do_separator_update_test(separator, command=command)
         self.check_separator_idx(separator, 1)
 
     def test_separator_update_position(self):
         """ test updating position of a separator """
         separator = dict(name='test_separator', interface='lan', after='top')
-        command = "update rule_separator 'test_separator' set interface='lan', color='info', after='top'"
+        command = "update rule_separator 'test_separator' on 'lan' set color='info', after='top'"
         self.do_separator_update_test(separator, command=command)
         self.check_separator_idx(separator, 0)

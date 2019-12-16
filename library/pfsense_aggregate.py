@@ -523,7 +523,7 @@ class PFSenseModuleAggregate(object):
         # delete every other alias if required
         if self.module.params['purge_aliases']:
             todel = []
-            for alias_elt in self.pfsense_aliases.aliases:
+            for alias_elt in self.pfsense_aliases.root_elt:
                 if not self.want_alias(alias_elt, want):
                     params = {}
                     params['state'] = 'absent'
@@ -602,7 +602,7 @@ class PFSenseModuleAggregate(object):
         # delete every other if required
         if self.module.params['purge_vlans']:
             todel = []
-            for vlan_elt in self.pfsense_vlans.vlans:
+            for vlan_elt in self.pfsense_vlans.root_elt:
                 if not self.want_vlan(vlan_elt, want):
                     params = {}
                     params['state'] = 'absent'

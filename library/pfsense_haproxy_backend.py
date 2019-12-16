@@ -129,9 +129,9 @@ def main():
         argument_spec=HAPROXY_BACKEND_ARGUMENT_SPEC,
         supports_check_mode=True)
 
-    pf_module = PFSenseHaproxyBackendModule(module)
-    pf_module.run(module.params)
-    pf_module.commit_changes()
+    pfmodule = PFSenseHaproxyBackendModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

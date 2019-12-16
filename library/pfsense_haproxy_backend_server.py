@@ -146,9 +146,9 @@ def main():
         mutually_exclusive=HAPROXY_BACKEND_SERVER_MUTUALLY_EXCLUSIVE,
         supports_check_mode=True)
 
-    pf_module = PFSenseHaproxyBackendServerModule(module)
-    pf_module.run(module.params)
-    pf_module.commit_changes()
+    pfmodule = PFSenseHaproxyBackendServerModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

@@ -128,9 +128,9 @@ def main():
         required_if=INTERFACE_REQUIRED_IF,
         supports_check_mode=True)
 
-    pfvlan = PFSenseInterfaceModule(module)
-    pfvlan.run(module.params)
-    pfvlan.commit_changes()
+    pfmodule = PFSenseInterfaceModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

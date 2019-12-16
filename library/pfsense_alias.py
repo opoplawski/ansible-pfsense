@@ -91,9 +91,9 @@ def main():
         required_if=ALIAS_REQUIRED_IF,
         supports_check_mode=True)
 
-    pfalias = PFSenseAliasModule(module)
-    pfalias.run(module.params)
-    pfalias.commit_changes()
+    pfmodule = PFSenseAliasModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

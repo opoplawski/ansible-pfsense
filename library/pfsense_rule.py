@@ -144,9 +144,9 @@ def main():
         required_if=RULE_REQUIRED_IF,
         supports_check_mode=True)
 
-    pfrule = PFSenseRuleModule(module)
-    pfrule.run(module.params)
-    pfrule.commit_changes()
+    pfmodule = PFSenseRuleModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

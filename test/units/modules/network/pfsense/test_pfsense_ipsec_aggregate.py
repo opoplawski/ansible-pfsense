@@ -151,10 +151,10 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         self.execute_module(changed=True)
         result = self.execute_module(changed=True)
         result_ipsec_proposals = []
-        result_ipsec_proposals.append("create ipsec_proposal on 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14'")
-        result_ipsec_proposals.append("create ipsec_proposal on 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
 
         self.assertEqual(result['result_ipsec_proposals'], result_ipsec_proposals)
 
@@ -171,17 +171,17 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         self.execute_module(changed=True)
         result = self.execute_module(changed=True)
         result_ipsec_proposals = []
-        result_ipsec_proposals.append("create ipsec_proposal on 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14'")
-        result_ipsec_proposals.append("create ipsec_proposal on 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel', encryption='aes', key_length=256, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=256, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
 
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel2', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel2', encryption='aes', key_length=256, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel2', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal on 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes', key_length=256, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
 
         self.assertEqual(result['result_ipsec_proposals'], result_ipsec_proposals)
 

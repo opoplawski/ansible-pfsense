@@ -5,7 +5,8 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
 
 
 IPSEC_PROPOSAL_ARGUMENT_SPEC = dict(
@@ -30,93 +31,44 @@ IPSEC_PROPOSAL_REQUIRED_IF = [
 class PFSenseIpsecProposalModule(PFSenseModuleBase):
     """ module managing pfsense ipsec phase 1 proposals """
 
+    ##############################
+    # init
+    #
     def __init__(self, module, pfsense=None):
-        if pfsense is None:
-            pfsense = PFSenseModule(module)
-        self.module = module
-        self.pfsense = pfsense
+        super(PFSenseIpsecProposalModule, self).__init__(module, pfsense)
+        self.name = "pfsense_ipsec_proposal"
+        self.root_elt = None
+        self.obj = dict()
+        self.apply = True
+
         self.ipsec = self.pfsense.ipsec
-
-        self.change_descr = ''
-
-        self.result = {}
-        self.result['changed'] = False
-        self.result['commands'] = []
-
-        self._params = None
         self._phase1 = None
 
-    def _log_create(self, proposal):
-        """ generate pseudo-CLI command to create an ipsec proposal """
-        log = "create ipsec_proposal on '{0}'".format(self._params['descr'])
+    ##############################
+    # params processing
+    #
+    def _params_to_obj(self):
+        """ return a dict from module params """
+        params = self.params
 
-        log += self.format_cli_field(self._params, 'encryption')
-        log += self.format_cli_field(self._params, 'key_length')
-        log += self.format_cli_field(proposal, 'hash-algorithm', fname='hash')
-        log += self.format_cli_field(proposal, 'dhgroup')
-
-        self.result['commands'].append(log)
-
-    def _log_delete(self, proposal):
-        """ generate pseudo-CLI command to delete an ipsec proposal """
-        log = "delete ipsec_proposal on '{0}'".format(self._params['descr'])
-
-        log += self.format_cli_field(self._params, 'encryption')
-        log += self.format_cli_field(self._params, 'key_length')
-        log += self.format_cli_field(proposal, 'hash-algorithm', fname='hash')
-        log += self.format_cli_field(proposal, 'dhgroup')
-
-        self.result['commands'].append(log)
-
-    def _find_proposal_elt(self, proposal):
-        encryption_elt = self._phase1.find('encryption')
-        if encryption_elt is None:
-            return None
-
-        items_elt = encryption_elt.findall('item')
-        for item in items_elt:
-            existing = self.pfsense.element_to_dict(item)
-            if existing == proposal:
-                return item
-        return None
-
-    def _add(self, proposal):
-        """ add proposal """
-        proposal_elt = self._find_proposal_elt(proposal)
-        if proposal_elt is None:
-            encryption_elt = self._phase1.find('encryption')
-            if encryption_elt is None:
-                encryption_elt = self.pfsense.new_element('encryption')
-                self._phase1.append(encryption_elt)
-
-            proposal_elt = self.pfsense.new_element('item')
-            self.pfsense.copy_dict_to_element(proposal, proposal_elt)
-            encryption_elt.append(proposal_elt)
-
-            changed = True
-            self.change_descr = 'ansible pfsense_ipsec_proposal added to {0}'.format(self._params['descr'])
-            self._log_create(proposal)
+        obj = dict()
+        obj['encryption-algorithm'] = dict()
+        obj['encryption-algorithm']['name'] = params['encryption']
+        if params.get('key_length') is not None:
+            obj['encryption-algorithm']['keylen'] = str(params['key_length'])
         else:
-            changed = False
+            obj['encryption-algorithm']['keylen'] = ''
+        obj['hash-algorithm'] = params['hash']
+        obj['dhgroup'] = str(params['dhgroup'])
 
-        self.result['changed'] = changed
+        self.apply = params['apply']
 
-    def _remove_proposal_elt(self, proposal_elt):
-        """ delete proposal_elt from xml """
-        encryption_elt = self._phase1.find('encryption')
-        encryption_elt.remove(proposal_elt)
-        self.result['changed'] = True
+        return obj
 
-    def _remove(self, proposal):
-        """ delete proposal """
-        proposal_elt = self._find_proposal_elt(proposal)
-        if proposal_elt is not None:
-            self._log_delete(proposal)
-            self._remove_proposal_elt(proposal_elt)
-            self.change_descr = 'ansible pfsense_ipsec_proposal removed from {0}'.format(self._params['descr'])
-
-    def _validate_params(self, params):
+    def _validate_params(self):
         """ do some extra checks on input parameters """
+        params = self.params
+
         key_length = dict()
         key_length['aes'] = ['128', '192', '256']
         key_length['aes192gcm'] = ['64', '96', '128']
@@ -137,27 +89,40 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
             if self._phase1 is None:
                 self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['descr']))
 
+        self.root_elt = self._phase1.find('encryption')
+        if self.root_elt is None:
+            self.root_elt = self.pfsense.new_element('encryption')
+            self._phase1.append(self.root_elt)
+
         if params['encryption'] in ['aes128gcm', 'aes192gcm', 'aes256gcm']:
             iketype_elt = self._phase1.find('iketype')
             if iketype_elt is not None and iketype_elt.text != 'ikev2':
                 self.module.fail_json(msg='Encryption Algorithm AES-GCM can only be used with IKEv2')
 
-    def _params_to_proposal(self, params):
-        """ return a proposal dict from module params """
-        self._validate_params(params)
+    ##############################
+    # XML processing
+    #
+    @staticmethod
+    def _copy_and_update_target():
+        """ update the XML target_elt """
+        return (None, False)
 
-        proposal = dict()
-        proposal['encryption-algorithm'] = dict()
-        proposal['encryption-algorithm']['name'] = params['encryption']
-        if params.get('key_length') is not None:
-            proposal['encryption-algorithm']['keylen'] = str(params['key_length'])
-        else:
-            proposal['encryption-algorithm']['keylen'] = ''
-        proposal['hash-algorithm'] = params['hash']
-        proposal['dhgroup'] = str(params['dhgroup'])
+    def _create_target(self):
+        """ create the XML target_elt """
+        return self.pfsense.new_element('item')
 
-        return proposal
+    def _find_target(self):
+        """ find the XML target_elt """
+        items_elt = self.root_elt.findall('item')
+        for item in items_elt:
+            existing = self.pfsense.element_to_dict(item)
+            if existing == self.obj:
+                return item
+        return None
 
+    ##############################
+    # run
+    #
     def _update(self):
         return self.pfsense.phpshell(
             "require_once('vpn.inc');"
@@ -168,23 +133,22 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
             "   clear_subsystem_dirty('ipsec');"
         )
 
-    def commit_changes(self):
-        """ apply changes and exit module """
-        self.result['stdout'] = ''
-        self.result['stderr'] = ''
-        if self.result['changed'] and not self.module.check_mode:
-            self.pfsense.write_config(descr=self.change_descr)
-            if self._params['apply']:
-                (dummy, self.result['stdout'], self.result['stderr']) = self._update()
+    ##############################
+    # Logging
+    #
+    def _get_obj_name(self):
+        """ return obj's name """
+        return "'{0}'".format(self.params['descr'])
 
-        self.module.exit_json(**self.result)
+    def _log_fields(self, before=None):
+        """ generate pseudo-CLI command fields parameters to create an obj """
+        values = ''
+        values += self.format_cli_field(self.params, 'encryption')
+        values += self.format_cli_field(self.params, 'key_length')
+        values += self.format_cli_field(self.obj, 'hash-algorithm', fname='hash')
+        values += self.format_cli_field(self.obj, 'dhgroup')
+        return values
 
-    def run(self, params):
-        """ process input params to add/update/delete an ipsec proposal """
-        self._params = params
-        proposal = self._params_to_proposal(params)
-
-        if params['state'] == 'absent':
-            self._remove(proposal)
-        else:
-            self._add(proposal)
+    def _log_fields_delete(self):
+        """ generate pseudo-CLI command fields parameters to delete an obj """
+        return self._log_fields()

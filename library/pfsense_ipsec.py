@@ -181,9 +181,9 @@ def main():
         required_if=IPSEC_REQUIRED_IF,
         supports_check_mode=True)
 
-    pfipsec = PFSenseIpsecModule(module)
-    pfipsec.run(module.params)
-    pfipsec.commit_changes()
+    pfmodule = PFSenseIpsecModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':

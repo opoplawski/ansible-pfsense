@@ -5,7 +5,8 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule, PFSenseModuleBase
+from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
 from copy import deepcopy
 
 IPSEC_P2_ARGUMENT_SPEC = dict(
@@ -70,154 +71,210 @@ IPSEC_P2_REQUIRED_IF = [
 class PFSenseIpsecP2Module(PFSenseModuleBase):
     """ module managing pfsense ipsec phase 2 options and proposals """
 
+    ##############################
+    # init
+    #
     def __init__(self, module, pfsense=None):
+        super(PFSenseIpsecP2Module, self).__init__(module, pfsense)
+        self.name = "pfsense_ipsec_p2"
+        self.apply = True
+        self.obj = dict()
+
         if pfsense is None:
             pfsense = PFSenseModule(module)
         self.module = module
         self.pfsense = pfsense
-        self.ipsec = self.pfsense.ipsec
+        self.root_elt = self.pfsense.ipsec
 
-        self.change_descr = ''
-
-        self.result = {}
-        self.result['changed'] = False
-        self.result['commands'] = []
-
-        self._params = None
         self._phase1 = None
+        self.before_elt = None
 
-    def _log_create(self, phase2):
-        """ generate pseudo-CLI command to create a phase2 """
-        def log_enc(name):
-            log = ''
-            log += self.format_cli_field(self._params, name, fvalue=self.fvalue_bool)
-            if self._params.get(name) and self._params.get(name + '_len') is not None:
-                log += self.format_cli_field(self._params, name + '_len')
-            return log
-        log = "create ipsec_p2 '{0}' on '{1}'".format(phase2['descr'], self._params['p1_descr'])
-        log += self.format_cli_field(self._params, 'disabled', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(phase2, 'mode')
+    ##############################
+    # params processing
+    #
+    def _check_for_duplicate_phase2(self, phase2):
+        """ check for another phase2 with same remote and local """
+        def strip_phase(phase):
+            _phase2 = {}
+            if phase.get('localid') is not None:
+                _phase2['localid'] = phase['localid']
+            if phase.get('remoteid') is not None:
+                _phase2['remoteid'] = phase['remoteid']
+            return _phase2
 
-        log += self.format_cli_field(self._params, 'local')
-        log += self.format_cli_field(self._params, 'remote')
-        log += self.format_cli_field(self._params, 'nat')
+        _phase2 = strip_phase(phase2)
+        ikeid = self._phase1.find('ikeid').text
+        for phase2_elt in self.root_elt:
+            if phase2_elt.tag != 'phase2':
+                continue
 
-        log += log_enc('aes')
-        log += log_enc('aes128gcm')
-        log += log_enc('aes192gcm')
-        log += log_enc('aes256gcm')
-        log += log_enc('blowfish')
-        log += log_enc('des')
-        log += log_enc('cast128')
+            if phase2_elt.find('ikeid').text != ikeid:
+                continue
 
-        log += self.format_cli_field(self._params, 'md5', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(self._params, 'sha1', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(self._params, 'sha256', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(self._params, 'sha384', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(self._params, 'sha512', fvalue=self.fvalue_bool)
-        log += self.format_cli_field(self._params, 'aesxcbc', fvalue=self.fvalue_bool)
+            if phase2_elt.find('descr').text == phase2['descr']:
+                continue
 
-        log += self.format_cli_field(self._params, 'pfsgroup')
-        log += self.format_cli_field(self._params, 'lifetime')
-        log += self.format_cli_field(self._params, 'pinghost')
+            other_phase2 = self.pfsense.element_to_dict(phase2_elt)
+            if _phase2 == strip_phase(other_phase2):
+                self.module.fail_json(msg='Phase2 with this Local/Remote networks combination is already defined for this Phase1.')
 
-        self.result['commands'].append(log)
+    def _id_to_phase2(self, name, phase2, address, param_name):
+        """ setup ipsec phase2 with address """
+        def set_ip_address():
+            phase2[name]['type'] = 'address'
+            phase2[name]['address'] = address
 
-    def _log_delete(self, phase2):
-        """ generate pseudo-CLI command to delete a phase2 """
-        log = "delete ipsec_p2 '{0}' on '{1}'".format(phase2['descr'], self._params['p1_descr'])
-        self.result['commands'].append(log)
+        def set_ip_network():
+            phase2[name]['type'] = 'network'
+            (phase2[name]['address'], phase2[name]['netbits']) = self.pfsense.parse_ip_network(address, False)
+            phase2[name]['netbits'] = str(phase2[name]['netbits'])
+        phase2[name] = dict()
 
-    def _prepare_log_address(self, before, param, name):
-        """ reparse some params for logging """
-        if before.get(name) is None or not isinstance(before[name], dict) or before[name].get('type') is None:
-            before[param] = None
-            return
-
-        if before[name]['type'] == 'address':
-            before[param] = before[name]['address']
-        elif before[name]['type'] == 'network':
-            before[param] = before[name]['address'] + '/' + str(before[name]['netbits'])
+        interface = self._parse_ipsec_interface(address)
+        if interface is not None:
+            if phase2['mode'] == 'vti':
+                msg = 'VTI requires a valid local network or IP address for its endpoint address.'
+                self.module.fail_json(msg=msg)
+            phase2[name]['type'] = interface
+        elif self.pfsense.is_ipv4_address(address):
+            if self.params['mode'] == 'tunnel6':
+                self.module.fail_json(msg='A valid IPv6 address or network must be specified in {0} with tunnel6.'.format(param_name))
+            set_ip_address()
+        elif self.pfsense.is_ipv6_address(address):
+            if self.params['mode'] == 'tunnel':
+                self.module.fail_json(msg='A valid IPv4 address or network must be specified in {0} with tunnel.'.format(param_name))
+            set_ip_address()
+        elif self.pfsense.is_ipv4_network(address, False):
+            if self.params['mode'] == 'tunnel6':
+                self.module.fail_json(msg='A valid IPv6 address or network must be specified in {0} with tunnel6.'.format(param_name))
+            set_ip_network()
+        elif self.pfsense.is_ipv6_network(address, False):
+            if self.params['mode'] == 'tunnel':
+                self.module.fail_json(msg='A valid IPv4 address or network must be specified in {0} with tunnel.'.format(param_name))
+            set_ip_network()
         else:
-            before[param] = self.pfsense.get_interface_display_name(before[name]['type'])
+            self.module.fail_json(msg='A valid IP address, network or interface must be specified in {0}.'.format(param_name))
 
-    @staticmethod
-    def _prepare_log_encryptions(before, before_elt):
-        """ reparse some params for logging """
-        encryptions_elt = before_elt.findall('encryption-algorithm-option')
-        for encryption_elt in encryptions_elt:
-            name = encryption_elt.find('name').text
-            len_elt = encryption_elt.find('keylen')
-            if name == '3des':
-                name = 'des'
-            before[name] = True
-            if len_elt is not None:
-                before[name + '_len'] = len_elt.text
+    def _params_to_obj(self):
+        """ return an phase2 dict from module params """
+        params = self.params
 
-        encs = ['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128']
-        for enc in encs:
-            if enc not in before.keys():
-                before[enc] = False
-            if enc + '_len' not in before.keys():
-                before[enc + '_len'] = None
+        obj = dict()
+        obj['descr'] = params['descr']
+        self.apply = params['apply']
 
-    @staticmethod
-    def _prepare_log_hashes(before, before_elt):
-        """ reparse some params for logging """
-        hashes_elt = before_elt.findall('hash-algorithm-option')
-        for hash_elt in hashes_elt:
-            name = hash_elt.text.replace("hmac_", "")
-            before[name] = True
+        if params['state'] == 'present':
+            obj['mode'] = params['mode']
+            if obj['mode'] != 'transport':
 
-    def _log_update(self, phase2, before, before_elt):
-        """ generate pseudo-CLI command to update a phase2 """
-        self._prepare_log_address(before, 'local', 'localid')
-        self._prepare_log_address(before, 'nat', 'natlocalid')
-        self._prepare_log_address(before, 'remote', 'remoteid')
-        self._prepare_log_encryptions(before, before_elt)
-        self._prepare_log_hashes(before, before_elt)
+                if obj['mode'] == 'vti' and not self.pfsense.is_ip_address(params['remote']):
+                    msg = 'VTI requires a valid remote IP address for its endpoint address.'
+                    self.module.fail_json(msg=msg)
 
-        log = "update ipsec_p2 '{0}' on '{1}'".format(phase2['descr'], self._params['p1_descr'])
-        values = ''
-        values += self.format_updated_cli_field(phase2, before, 'disabled', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(phase2, before, 'mode', add_comma=(values))
+                self._id_to_phase2('localid', obj, params['local'], 'local')
+                self._id_to_phase2('remoteid', obj, params['remote'], 'remote')
 
-        values += self.format_updated_cli_field(self._params, before, 'local', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'remote', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'nat', add_comma=(values))
+                if obj['mode'] != 'vti' and params.get('nat') is not None:
+                    self._id_to_phase2('natlocalid', obj, params['nat'], 'nat')
 
-        values += self.format_updated_cli_field(self._params, before, 'aes', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'aes_len', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'aes128gcm', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'aes128gcm_len', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'aes192gcm', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'aes192gcm_len', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'aes256gcm', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'aes256gcm_len', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'blowfish', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'blowfish_len', add_comma=(values))
-        values += self.format_updated_cli_field(self._params, before, 'des', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'cast128', add_comma=(values), fvalue=self.fvalue_bool)
+            if params.get('disabled'):
+                obj['disabled'] = ''
 
-        values += self.format_updated_cli_field(self._params, before, 'md5', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'sha1', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'sha256', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'sha384', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'sha512', add_comma=(values), fvalue=self.fvalue_bool)
-        values += self.format_updated_cli_field(self._params, before, 'aesxcbc', add_comma=(values), fvalue=self.fvalue_bool)
+            obj['protocol'] = params['protocol']
+            obj['pfsgroup'] = params['pfsgroup']
+            if params.get('lifetime') is not None and params['lifetime'] > 0:
+                obj['lifetime'] = str(params['lifetime'])
+            else:
+                obj['lifetime'] = ''
 
-        values += self.format_updated_cli_field(phase2, before, 'pfsgroup', add_comma=(values))
-        values += self.format_updated_cli_field(phase2, before, 'lifetime', add_comma=(values))
-        values += self.format_updated_cli_field(phase2, before, 'pinghost', add_comma=(values))
+            if obj.get('pinghost'):
+                obj['pinghost'] = params['pinghost']
+            else:
+                obj['pinghost'] = ''
 
-        self.result['commands'].append(log + ' set ' + values)
+            self._check_for_duplicate_phase2(obj)
+
+        return obj
+
+    def _parse_ipsec_interface(self, interface):
+        """ validate and return an interface param """
+        if self.pfsense.is_interface_name(interface):
+            return self.pfsense.get_interface_pfsense_by_name(interface)
+        elif self.pfsense.is_interface_pfsense(interface):
+            return interface
+
+        return None
+
+    def _validate_params(self):
+        """ do some extra checks on input parameters """
+        def has_one_of(bools):
+            for name in bools:
+                if params.get(name):
+                    return True
+            return False
+
+        params = self.params
+
+        # called from ipsec_aggregate
+        if params.get('ikeid') is not None:
+            self._phase1 = self.pfsense.find_ipsec_phase1(params['ikeid'], 'ikeid')
+            if self._phase1 is None:
+                self.module.fail_json(msg='No ipsec tunnel with ikeid {0}'.format(params['ikeid']))
+        else:
+            self._phase1 = self.pfsense.find_ipsec_phase1(params['p1_descr'])
+            if self._phase1 is None:
+                self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['p1_descr']))
+
+        if params['state'] == 'present':
+            encs = ['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128']
+            if params['protocol'] == 'esp' and not has_one_of(encs):
+                self.module.fail_json(msg='At least one encryption algorithm must be selected.')
+
+            hashes = ['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc']
+            if not has_one_of(hashes):
+                self.module.fail_json(msg='At least one hashing algorithm needs to be selected.')
+
+    ##############################
+    # XML processing
+    #
+    def _copy_and_add_target(self):
+        """ create the XML target_elt """
+        self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self._sync_encryptions(self.target_elt)
+        self._sync_hashes(self.target_elt)
+        self.root_elt.append(self.target_elt)
+
+    def _copy_and_update_target(self):
+        """ update the XML target_elt """
+        self.before_elt = deepcopy(self.target_elt)
+        before = self.pfsense.element_to_dict(self.target_elt)
+        changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+
+        if self._sync_encryptions(self.target_elt):
+            changed = True
+
+        if self._sync_hashes(self.target_elt):
+            changed = True
+
+        if self._remove_deleted_ipsec_params():
+            changed = True
+
+        return (before, changed)
+
+    def _create_target(self):
+        """ create the XML target_elt """
+        target_elt = self.pfsense.new_element('phase2')
+        self.obj['ikeid'] = self._phase1.find('ikeid').text
+        self.obj['uniqid'] = self.pfsense.uniqid()
+        self.obj['reqid'] = str(self._find_free_reqid())
+        return target_elt
 
     def _find_free_reqid(self):
         """ return first unused reqid """
         reqid = 1
         while True:
             found = False
-            for phase2_elt in self.ipsec:
+            for phase2_elt in self.root_elt:
                 if phase2_elt.tag != 'phase2':
                     continue
                 reqid_elt = phase2_elt.find('reqid')
@@ -229,10 +286,10 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
                 return reqid
             reqid = reqid + 1
 
-    def _find_ipsec_phase2(self, descr):
+    def _find_target(self):
         """ return ipsec phase2 elt if found """
         ikeid = self._phase1.find('ikeid').text
-        for phase2_elt in self.ipsec:
+        for phase2_elt in self.root_elt:
             if phase2_elt.tag != 'phase2':
                 continue
 
@@ -240,10 +297,45 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
                 continue
 
             descr_elt = phase2_elt.find('descr')
-            if descr_elt is not None and descr_elt.text == descr:
+            if descr_elt is not None and descr_elt.text == self.obj['descr']:
                 return phase2_elt
 
         return None
+
+    def _remove_deleted_ipsec_params(self):
+        """ Remove from phase2 a few deleted params """
+        changed = False
+        params = ['disabled']
+
+        for param in params:
+            if self.pfsense.remove_deleted_param_from_elt(self.target_elt, param, self.obj):
+                changed = True
+
+        for param in ['localid', 'remoteid', 'natlocalid']:
+            if self._remove_extra_deleted_ipsec_params(param):
+                changed = True
+
+        return changed
+
+    def _remove_extra_deleted_ipsec_params(self, name):
+        """ Remove from phase2 a few extra deleted params """
+        changed = False
+
+        params = ['type', 'address', 'netbits']
+        sub_elt = self.target_elt.find(name)
+        if sub_elt is not None:
+            for param in params:
+                if name in self.obj:
+                    if self.pfsense.remove_deleted_param_from_elt(sub_elt, param, self.obj[name]):
+                        changed = True
+                else:
+                    if self.pfsense.remove_deleted_param_from_elt(sub_elt, param, dict()):
+                        changed = True
+
+            if not sub_elt:
+                self.target_elt.remove(sub_elt)
+
+        return changed
 
     def _sync_encryptions(self, phase2_elt):
         """ sync encryptions params """
@@ -256,11 +348,11 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
 
         def sync_encryption(encryptions_elt, name, param_name):
             encryption_elt = get_encryption(encryptions_elt, name)
-            if self._params.get(param_name):
+            if self.params.get(param_name):
                 encryption = dict()
                 encryption['name'] = name
-                if self._params.get(param_name + '_len') is not None:
-                    encryption['keylen'] = self._params[param_name + '_len']
+                if self.params.get(param_name + '_len') is not None:
+                    encryption['keylen'] = self.params[param_name + '_len']
                 if encryption_elt is None:
                     encryption_elt = self.pfsense.new_element('encryption-algorithm-option')
                     self.pfsense.copy_dict_to_element(encryption, encryption_elt)
@@ -304,7 +396,7 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             return None
 
         def sync_hash(hashes_elt, name, param_name):
-            if self._params.get(param_name) is not None:
+            if self.params.get(param_name) is not None:
                 if get_hash(hashes_elt, name) is None:
                     hash_elt = self.pfsense.new_element('hash-algorithm-option')
                     hash_elt.text = name
@@ -333,234 +425,9 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             changed = True
         return changed
 
-    def _add(self, phase2):
-        """ add or update phase2 """
-        phase2_elt = self._find_ipsec_phase2(phase2['descr'])
-        if phase2_elt is None:
-            phase2_elt = self.pfsense.new_element('phase2')
-            phase2['ikeid'] = self._phase1.find('ikeid').text
-            phase2['uniqid'] = self.pfsense.uniqid()
-            phase2['reqid'] = str(self._find_free_reqid())
-
-            self.pfsense.copy_dict_to_element(phase2, phase2_elt)
-            self._sync_encryptions(phase2_elt)
-            self._sync_hashes(phase2_elt)
-            self.ipsec.append(phase2_elt)
-
-            changed = True
-            self.change_descr = 'ansible pfsense_ipsec_p2 added {0}'.format(phase2['descr'])
-            self._log_create(phase2)
-        else:
-            before_elt = deepcopy(phase2_elt)
-            before = self.pfsense.element_to_dict(phase2_elt)
-            changed = self.pfsense.copy_dict_to_element(phase2, phase2_elt)
-
-            if self._sync_encryptions(phase2_elt):
-                changed = True
-
-            if self._sync_hashes(phase2_elt):
-                changed = True
-
-            if self._remove_deleted_ipsec_params(phase2_elt, phase2):
-                changed = True
-
-            if changed:
-                self.change_descr = 'ansible pfsense_ipsec_p2 updated {0}'.format(phase2['descr'])
-                self._log_update(phase2, before, before_elt)
-
-        if changed:
-            self.result['changed'] = changed
-
-    def _remove_extra_deleted_ipsec_params(self, name, phase2_elt, phase2):
-        """ Remove from phase2 a few extra deleted params """
-        changed = False
-
-        params = ['type', 'address', 'netbits']
-        sub_elt = phase2_elt.find(name)
-        if sub_elt is not None:
-            for param in params:
-                if name in phase2:
-                    if self.pfsense.remove_deleted_param_from_elt(sub_elt, param, phase2[name]):
-                        changed = True
-                else:
-                    if self.pfsense.remove_deleted_param_from_elt(sub_elt, param, dict()):
-                        changed = True
-
-            if not sub_elt:
-                phase2_elt.remove(sub_elt)
-
-        return changed
-
-    def _remove_deleted_ipsec_params(self, phase2_elt, phase2):
-        """ Remove from phase2 a few deleted params """
-        changed = False
-        params = ['disabled']
-
-        for param in params:
-            if self.pfsense.remove_deleted_param_from_elt(phase2_elt, param, phase2):
-                changed = True
-
-        if self._remove_extra_deleted_ipsec_params('localid', phase2_elt, phase2):
-            changed = True
-        if self._remove_extra_deleted_ipsec_params('remoteid', phase2_elt, phase2):
-            changed = True
-        if self._remove_extra_deleted_ipsec_params('natlocalid', phase2_elt, phase2):
-            changed = True
-
-        return changed
-
-    def _remove_phase2_elt(self, phase2_elt):
-        """ delete phase2_elt from xml """
-        self.ipsec.remove(phase2_elt)
-        self.result['changed'] = True
-
-    def _remove(self, phase2):
-        """ delete ipsec phase2 """
-        phase2_elt = self._find_ipsec_phase2(phase2['descr'])
-        if phase2_elt is not None:
-            self._log_delete(phase2)
-            self._remove_phase2_elt(phase2_elt)
-            self.change_descr = 'ansible pfsense_ipsec_p2 removed {0}'.format(phase2['descr'])
-
-    def _validate_params(self, params):
-        """ do some extra checks on input parameters """
-        def has_one_of(bools):
-            for name in bools:
-                if params.get(name):
-                    return True
-            return False
-
-        # called from ipsec_aggregate
-        if params.get('ikeid') is not None:
-            self._phase1 = self.pfsense.find_ipsec_phase1(params['ikeid'], 'ikeid')
-            if self._phase1 is None:
-                self.module.fail_json(msg='No ipsec tunnel with ikeid {0}'.format(params['ikeid']))
-        else:
-            self._phase1 = self.pfsense.find_ipsec_phase1(params['p1_descr'])
-            if self._phase1 is None:
-                self.module.fail_json(msg='No ipsec tunnel named {0}'.format(params['p1_descr']))
-
-        if params['state'] == 'present':
-            encs = ['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128']
-            if params['protocol'] == 'esp' and not has_one_of(encs):
-                self.module.fail_json(msg='At least one encryption algorithm must be selected.')
-
-            hashes = ['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc']
-            if not has_one_of(hashes):
-                self.module.fail_json(msg='At least one hashing algorithm needs to be selected.')
-
-    def _parse_ipsec_interface(self, interface):
-        """ validate and return an interface param """
-        if self.pfsense.is_interface_name(interface):
-            return self.pfsense.get_interface_pfsense_by_name(interface)
-        elif self.pfsense.is_interface_pfsense(interface):
-            return interface
-
-        return None
-
-    def _id_to_phase2(self, name, phase2, address, param_name):
-        """ setup ipsec phase2 with address """
-        def set_ip_address():
-            phase2[name]['type'] = 'address'
-            phase2[name]['address'] = address
-
-        def set_ip_network():
-            phase2[name]['type'] = 'network'
-            (phase2[name]['address'], phase2[name]['netbits']) = self.pfsense.parse_ip_network(address, False)
-            phase2[name]['netbits'] = str(phase2[name]['netbits'])
-        phase2[name] = dict()
-
-        interface = self._parse_ipsec_interface(address)
-        if interface is not None:
-            if phase2['mode'] == 'vti':
-                msg = 'VTI requires a valid local network or IP address for its endpoint address.'
-                self.module.fail_json(msg=msg)
-            phase2[name]['type'] = interface
-        elif self.pfsense.is_ipv4_address(address):
-            if self._params['mode'] == 'tunnel6':
-                self.module.fail_json(msg='A valid IPv6 address or network must be specified in {0} with tunnel6.'.format(param_name))
-            set_ip_address()
-        elif self.pfsense.is_ipv6_address(address):
-            if self._params['mode'] == 'tunnel':
-                self.module.fail_json(msg='A valid IPv4 address or network must be specified in {0} with tunnel.'.format(param_name))
-            set_ip_address()
-        elif self.pfsense.is_ipv4_network(address, False):
-            if self._params['mode'] == 'tunnel6':
-                self.module.fail_json(msg='A valid IPv6 address or network must be specified in {0} with tunnel6.'.format(param_name))
-            set_ip_network()
-        elif self.pfsense.is_ipv6_network(address, False):
-            if self._params['mode'] == 'tunnel':
-                self.module.fail_json(msg='A valid IPv4 address or network must be specified in {0} with tunnel.'.format(param_name))
-            set_ip_network()
-        else:
-            self.module.fail_json(msg='A valid IP address, network or interface must be specified in {0}.'.format(param_name))
-
-    def _check_for_duplicate_phase2(self, phase2):
-        """ check for another phase2 with same remote and local """
-        def strip_phase(phase):
-            _phase2 = {}
-            if phase.get('localid') is not None:
-                _phase2['localid'] = phase['localid']
-            if phase.get('remoteid') is not None:
-                _phase2['remoteid'] = phase['remoteid']
-            return _phase2
-
-        _phase2 = strip_phase(phase2)
-        ikeid = self._phase1.find('ikeid').text
-        for phase2_elt in self.ipsec:
-            if phase2_elt.tag != 'phase2':
-                continue
-
-            if phase2_elt.find('ikeid').text != ikeid:
-                continue
-
-            if phase2_elt.find('descr').text == phase2['descr']:
-                continue
-
-            other_phase2 = self.pfsense.element_to_dict(phase2_elt)
-            if _phase2 == strip_phase(other_phase2):
-                self.module.fail_json(msg='Phase2 with this Local/Remote networks combination is already defined for this Phase1.')
-
-    def _params_to_phase2(self, params):
-        """ return an phase2 dict from module params """
-        self._validate_params(params)
-
-        phase2 = dict()
-        phase2['descr'] = params['descr']
-
-        if params['state'] == 'present':
-            phase2['mode'] = params['mode']
-            if phase2['mode'] != 'transport':
-
-                if phase2['mode'] == 'vti' and not self.pfsense.is_ip_address(params['remote']):
-                    msg = 'VTI requires a valid remote IP address for its endpoint address.'
-                    self.module.fail_json(msg=msg)
-
-                self._id_to_phase2('localid', phase2, params['local'], 'local')
-                self._id_to_phase2('remoteid', phase2, params['remote'], 'remote')
-
-                if phase2['mode'] != 'vti' and params.get('nat') is not None:
-                    self._id_to_phase2('natlocalid', phase2, params['nat'], 'nat')
-
-            if params.get('disabled'):
-                phase2['disabled'] = ''
-
-            phase2['protocol'] = params['protocol']
-            phase2['pfsgroup'] = params['pfsgroup']
-            if params.get('lifetime') is not None and params['lifetime'] > 0:
-                phase2['lifetime'] = str(params['lifetime'])
-            else:
-                phase2['lifetime'] = ''
-
-            if phase2.get('pinghost'):
-                phase2['pinghost'] = params['pinghost']
-            else:
-                phase2['pinghost'] = ''
-
-            self._check_for_duplicate_phase2(phase2)
-
-        return phase2
-
+    ##############################
+    # run
+    #
     def _update(self):
         return self.pfsense.phpshell(
             "require_once('vpn.inc');"
@@ -571,23 +438,124 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             "   clear_subsystem_dirty('ipsec');"
         )
 
-    def commit_changes(self):
-        """ apply changes and exit module """
-        self.result['stdout'] = ''
-        self.result['stderr'] = ''
-        if self.result['changed'] and not self.module.check_mode:
-            self.pfsense.write_config(descr=self.change_descr)
-            if self._params['apply']:
-                (dummy, self.result['stdout'], self.result['stderr']) = self._update()
+    ##############################
+    # Logging
+    #
+    def _get_obj_name(self):
+        """ return obj's name """
+        return "'{0}' on '{1}'".format(self.obj['descr'], self.params['p1_descr'])
 
-        self.module.exit_json(**self.result)
+    def _log_fields(self, before=None):
+        """ generate pseudo-CLI command fields parameters to create an obj """
+        def log_enc(name):
+            log = ''
+            log += self.format_cli_field(self.params, name, fvalue=self.fvalue_bool)
+            if self.params.get(name) and self.params.get(name + '_len') is not None:
+                log += self.format_cli_field(self.params, name + '_len')
+            return log
+        values = ''
+        if before is None:
+            values += self.format_cli_field(self.params, 'disabled', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.obj, 'mode')
 
-    def run(self, params):
-        """ process input params to add/update/delete an ipsec phase2 """
-        self._params = params
-        phase2 = self._params_to_phase2(params)
+            values += self.format_cli_field(self.params, 'local')
+            values += self.format_cli_field(self.params, 'remote')
+            values += self.format_cli_field(self.params, 'nat')
 
-        if params['state'] == 'absent':
-            self._remove(phase2)
+            values += log_enc('aes')
+            values += log_enc('aes128gcm')
+            values += log_enc('aes192gcm')
+            values += log_enc('aes256gcm')
+            values += log_enc('blowfish')
+            values += log_enc('des')
+            values += log_enc('cast128')
+
+            values += self.format_cli_field(self.params, 'md5', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.params, 'sha1', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.params, 'sha256', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.params, 'sha384', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.params, 'sha512', fvalue=self.fvalue_bool)
+            values += self.format_cli_field(self.params, 'aesxcbc', fvalue=self.fvalue_bool)
+
+            values += self.format_cli_field(self.params, 'pfsgroup')
+            values += self.format_cli_field(self.params, 'lifetime')
+            values += self.format_cli_field(self.params, 'pinghost')
         else:
-            self._add(phase2)
+            self._prepare_log_address(before, 'local', 'localid')
+            self._prepare_log_address(before, 'nat', 'natlocalid')
+            self._prepare_log_address(before, 'remote', 'remoteid')
+            self._prepare_log_encryptions(before, self.before_elt)
+            self._prepare_log_hashes(before, self.before_elt)
+
+            values += self.format_updated_cli_field(self.obj, before, 'disabled', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.obj, before, 'mode', add_comma=(values))
+
+            values += self.format_updated_cli_field(self.params, before, 'local', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'remote', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'nat', add_comma=(values))
+
+            values += self.format_updated_cli_field(self.params, before, 'aes', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'aes_len', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'aes128gcm', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'aes128gcm_len', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'aes192gcm', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'aes192gcm_len', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'aes256gcm', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'aes256gcm_len', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'blowfish', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'blowfish_len', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'des', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'cast128', add_comma=(values), fvalue=self.fvalue_bool)
+
+            values += self.format_updated_cli_field(self.params, before, 'md5', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'sha1', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'sha256', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'sha384', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'sha512', add_comma=(values), fvalue=self.fvalue_bool)
+            values += self.format_updated_cli_field(self.params, before, 'aesxcbc', add_comma=(values), fvalue=self.fvalue_bool)
+
+            values += self.format_updated_cli_field(self.obj, before, 'pfsgroup', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'lifetime', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'pinghost', add_comma=(values))
+        return values
+
+    def _prepare_log_address(self, before, param, name):
+        """ reparse some params for logging """
+        if before.get(name) is None or not isinstance(before[name], dict) or before[name].get('type') is None:
+            before[param] = None
+            return
+
+        if before[name]['type'] == 'address':
+            before[param] = before[name]['address']
+        elif before[name]['type'] == 'network':
+            before[param] = before[name]['address'] + '/' + str(before[name]['netbits'])
+        else:
+            before[param] = self.pfsense.get_interface_display_name(before[name]['type'])
+
+    @staticmethod
+    def _prepare_log_encryptions(before, before_elt):
+        """ reparse some params for logging """
+        encryptions_elt = before_elt.findall('encryption-algorithm-option')
+        for encryption_elt in encryptions_elt:
+            name = encryption_elt.find('name').text
+            len_elt = encryption_elt.find('keylen')
+            if name == '3des':
+                name = 'des'
+            before[name] = True
+            if len_elt is not None:
+                before[name + '_len'] = len_elt.text
+
+        encs = ['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128']
+        for enc in encs:
+            if enc not in before.keys():
+                before[enc] = False
+            if enc + '_len' not in before.keys():
+                before[enc + '_len'] = None
+
+    @staticmethod
+    def _prepare_log_hashes(before, before_elt):
+        """ reparse some params for logging """
+        hashes_elt = before_elt.findall('hash-algorithm-option')
+        for hash_elt in hashes_elt:
+            name = hash_elt.text.replace("hmac_", "")
+            before[name] = True
