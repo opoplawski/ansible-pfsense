@@ -288,7 +288,6 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self.diff['after'] = self._rule_element_to_dict()
         self._insert(self.target_elt)
         self.result['added'].append(self.obj)
-        self._log_create()
 
     def _copy_and_update_target(self):
         """ update the XML target_elt """

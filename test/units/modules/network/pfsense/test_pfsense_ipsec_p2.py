@@ -4,84 +4,43 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from copy import copy
 import pytest
 import sys
 
 if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
-from xml.etree.ElementTree import fromstring, ElementTree
-
-from units.compat.mock import patch
-from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_ipsec_p2
-
-from .pfsense_module import TestPFSenseModule, load_fixture
-
-
-def args_from_var(var, state='present', **kwargs):
-    """ return arguments for pfsense_ipsec_p2 module from var """
-    args = {}
-
-    fields = ['descr', 'p1_descr', 'disabled', 'mode', 'local', 'nat', 'remote', 'apply', 'protocol', 'pfsgroup', 'lifetime', 'pinghost']
-    fields.extend(['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128'])
-    fields.extend(['aes_len', 'aes128gcm_len', 'aes192gcm_len', 'aes256gcm_len', 'blowfish_len'])
-    fields.extend(['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc'])
-    for field in fields:
-        if field in var:
-            args[field] = var[field]
-
-    args['state'] = state
-    for key, value in kwargs.items():
-        args[key] = value
-
-    return args
+from .pfsense_module import TestPFSenseModule
 
 
 class TestPFSenseIpsecP2Module(TestPFSenseModule):
 
     module = pfsense_ipsec_p2
 
+    def __init__(self, *args, **kwargs):
+        super(TestPFSenseIpsecP2Module, self).__init__(*args, **kwargs)
+        self.config_file = 'pfsense_ipsec_p2_config.xml'
+
+    @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['descr', 'p1_descr', 'disabled', 'mode', 'local', 'nat', 'remote', 'apply', 'protocol', 'pfsgroup', 'lifetime', 'pinghost']
+        fields += ['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', 'des', 'cast128']
+        fields += ['aes_len', 'aes128gcm_len', 'aes192gcm_len', 'aes256gcm_len', 'blowfish_len']
+        fields += ['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc']
+        return fields
+
     ##############
     # tests utils
     #
-    def load_fixtures(self, commands=None):
-        """ loading data """
-        config_file = 'pfsense_ipsec_p2_config.xml'
-        self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
-
-    def do_phase2_test(self, phase2, command=None, changed=True, failed=False, msg=None, delete=False):
-        """ test deletion of an phase2 """
-        if delete:
-            set_module_args(args_from_var(phase2, 'absent'))
-        else:
-            set_module_args(args_from_var(phase2))
-
-        result = self.execute_module(changed=changed, failed=failed, msg=msg)
-
-        if not isinstance(command, list):
-            command = [command]
-
-        if failed:
-            self.assertFalse(self.load_xml_result())
-        elif not changed:
-            self.assertFalse(self.load_xml_result())
-            self.assertEqual(result['commands'], [])
-        elif delete:
-            self.get_phase2_elt(phase2, absent=True)
-            self.assertEqual(result['commands'], command)
-        else:
-            self.check_phase2_elt(phase2)
-            self.assertEqual(result['commands'], command)
-
     def get_phase1_elt(self, descr, absent=False):
         """ get phase1 """
         elt_filter = {}
         elt_filter['descr'] = descr
         return self.assert_has_xml_tag('ipsec', elt_filter, absent=absent)
 
-    def get_phase2_elt(self, phase2, absent=False):
+    def get_target_elt(self, phase2, absent=False):
         """ get the generated phase2 xml definition """
         phase1_elt = self.get_phase1_elt(phase2['p1_descr'])
 
@@ -183,10 +142,8 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
                 if elt.tag not in params:
                     self.fail('Address param{0} found'.format(elt.tag))
 
-    def check_phase2_elt(self, phase2):
+    def check_target_elt(self, phase2, phase2_elt):
         """ test the xml definition of phase2 elt """
-        phase2_elt = self.get_phase2_elt(phase2)
-
         # bools
         if phase2.get('disabled'):
             self.assert_xml_elt_is_none_or_empty(phase2_elt, 'disabled')
@@ -247,7 +204,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             "create ipsec_p2 'test_p2' on 'test_tunnel', disabled=False, mode='vti', local='1.2.3.1', remote='1.2.3.2', "
             "aes=True, aes_len='auto', sha256=True, pfsgroup='14', lifetime=3600"
         )
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_create_tunnel(self):
         """ test creation of a new phase2 in tunnel mode """
@@ -256,20 +213,20 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             "create ipsec_p2 'test_p2' on 'test_tunnel', disabled=False, mode='tunnel', local='lan_100', remote='1.2.3.4/24', "
             "aes=True, aes_len='auto', sha256=True, pfsgroup='14', lifetime=3600"
         )
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_delete(self):
         """ test deletion of a phase2 """
         phase2 = dict(p1_descr='test_tunnel', descr='one_p2', state='absent')
         command = "delete ipsec_p2 'one_p2' on 'test_tunnel'"
-        self.do_phase2_test(phase2, delete=True, command=command)
+        self.do_module_test(phase2, delete=True, command=command)
 
     def test_phase2_update_noop(self):
         """ test not updating a phase2 """
         phase2 = dict(
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='10.20.30.40/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
-        self.do_phase2_test(phase2, changed=False)
+        self.do_module_test(phase2, changed=False)
 
     def test_phase2_update_aes_len(self):
         """ test update aes """
@@ -277,7 +234,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='10.20.30.40/24',
             aes='True', aes_len='auto', aes128gcm=True, aes128gcm_len='128', sha256='True')
         command = "update ipsec_p2 'one_p2' on 'test_tunnel' set aes_len='auto'"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_disable_aes(self):
         """ test removing aes """
@@ -285,7 +242,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='10.20.30.40/24',
             aes128gcm=True, aes128gcm_len='128', sha256='True')
         command = "update ipsec_p2 'one_p2' on 'test_tunnel' set aes=False, aes_len=none"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_set_3des(self):
         """ test enabling 3des """
@@ -293,7 +250,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='10.20.30.40/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', des=True, sha256='True')
         command = "update ipsec_p2 'one_p2' on 'test_tunnel' set des=True"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_remove_3des(self):
         """ test disabling 3des """
@@ -301,7 +258,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='another_p2', mode='tunnel', local='lan', remote='10.20.30.50/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', des=False, sha256='True')
         command = "update ipsec_p2 'another_p2' on 'test_tunnel' set des=False"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_remove_sha256(self):
         """ test disabling sha256 """
@@ -309,7 +266,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='another_p2', mode='tunnel', local='lan', remote='10.20.30.50/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', des=True, sha512='True')
         command = "update ipsec_p2 'another_p2' on 'test_tunnel' set sha256=False, sha512=True"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_change_address(self):
         """ test changing address """
@@ -317,7 +274,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='third_p2', mode='tunnel', local='lan_100', remote='10.20.30.50/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', des=True, sha256='True')
         command = "update ipsec_p2 'third_p2' on 'test_tunnel' set local='lan_100'"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_set_nat(self):
         """ test setting nat """
@@ -325,7 +282,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='10.20.30.40/24', nat='1.2.3.4/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         command = "update ipsec_p2 'one_p2' on 'test_tunnel' set nat='1.2.3.4/24'"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_update_remove_nat(self):
         """ test removing nat """
@@ -333,7 +290,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='nat_p2', mode='tunnel', local='lan', remote='1.2.3.4/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         command = "update ipsec_p2 'nat_p2' on 'test_tunnel' set nat=none"
-        self.do_phase2_test(phase2, command=command)
+        self.do_module_test(phase2, command=command)
 
     def test_phase2_inexistent_tunnel(self):
         """ test error with inexistent tunnel """
@@ -341,35 +298,35 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='inexistent_tunnel', descr='nat_p2', mode='tunnel', local='lan', remote='1.2.3.4/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'No ipsec tunnel named inexistent_tunnel'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_no_encryption(self):
         """ test error with no encryption """
         ipsec = dict(
             p1_descr='test_tunnel', descr='nat_p2', mode='tunnel', local='lan', remote='1.2.3.4/24', sha256='True')
         msg = 'At least one encryption algorithm must be selected.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_no_hash(self):
         """ test error with no hash """
         ipsec = dict(
             p1_descr='test_tunnel', descr='nat_p2', mode='tunnel', local='lan', remote='1.2.3.4/24', cast128='True')
         msg = 'At least one hashing algorithm needs to be selected.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_vti_lan(self):
         """ test error on vti address """
         ipsec = dict(
             p1_descr='test_tunnel', descr='nat_p2', mode='vti', local='lan', remote='1.2.3.4', cast128='True', sha256='True')
         msg = 'VTI requires a valid local network or IP address for its endpoint address.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_vti_lan2(self):
         """ test error on vti address """
         ipsec = dict(
             p1_descr='test_tunnel', descr='nat_p2', mode='vti', local='1.2.3.4', remote='lan', cast128='True', sha256='True')
         msg = 'VTI requires a valid remote IP address for its endpoint address.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_tunnel6_remote(self):
         """ test error on tunnel6 address """
@@ -377,7 +334,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel6', local='lan', remote='10.20.30.40/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'A valid IPv6 address or network must be specified in remote with tunnel6.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_tunnel6_remote2(self):
         """ test error on tunnel6 address """
@@ -385,7 +342,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel6', local='lan', remote='1.2.3.4',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'A valid IPv6 address or network must be specified in remote with tunnel6.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_tunnel6_local(self):
         """ test error on tunnel6 address """
@@ -393,7 +350,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel6', local='1.2.3.4/24', remote='10.20.30.40/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'A valid IPv6 address or network must be specified in local with tunnel6.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_tunnel_remote(self):
         """ test error on tunnel address """
@@ -401,7 +358,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='fd69:81a5:a5:7396:0:0:0:0',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'A valid IPv4 address or network must be specified in remote with tunnel.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_tunnel_remote2(self):
         """ test error on tunnel address """
@@ -409,7 +366,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='lan', remote='fd69:81a5:a5:7396:0:0:0:0/64',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'A valid IPv4 address or network must be specified in remote with tunnel.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_tunnel_local(self):
         """ test error on tunnel address """
@@ -417,7 +374,7 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='one_p2', mode='tunnel', local='fd69:81a5:a5:7396:0:0:0:0', remote='10.20.30.40/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'A valid IPv4 address or network must be specified in local with tunnel.'
-        self.do_phase2_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)
 
     def test_phase2_duplicate(self):
         """ test error duplicate local/remote definition """
@@ -425,4 +382,4 @@ class TestPFSenseIpsecP2Module(TestPFSenseModule):
             p1_descr='test_tunnel', descr='duplicate_p2', mode='tunnel', local='lan', remote='10.20.30.40/24',
             aes='True', aes_len='128', aes128gcm=True, aes128gcm_len='128', sha256='True')
         msg = 'Phase2 with this Local/Remote networks combination is already defined for this Phase1.'
-        self.do_phase2_test(phase2, msg=msg, failed=True)
+        self.do_module_test(phase2, msg=msg, failed=True)

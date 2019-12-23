@@ -11,13 +11,10 @@ import sys
 if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
-from xml.etree.ElementTree import fromstring, ElementTree
-
-from units.compat.mock import patch
 from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_alias
 
-from .pfsense_module import TestPFSenseModule, load_fixture
+from .pfsense_module import TestPFSenseModule
 
 
 def args_from_var(var, state='present', **kwargs):
@@ -38,10 +35,9 @@ class TestPFSenseAliasModule(TestPFSenseModule):
 
     module = pfsense_alias
 
-    def load_fixtures(self, commands=None):
-        """ loading data """
-        config_file = 'pfsense_alias_config.xml'
-        self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
+    def __init__(self, *args, **kwargs):
+        super(TestPFSenseAliasModule, self).__init__(*args, **kwargs)
+        self.config_file = 'pfsense_alias_config.xml'
 
     ########################################################
     # Generic set of funcs used for testing aliases

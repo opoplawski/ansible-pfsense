@@ -23,7 +23,8 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         if failed:
             self.assertFalse(self.load_xml_result())
         else:
-            self.check_rule_elt(rule)
+            rule_elt = self.get_target_elt(rule)
+            self.check_target_elt(rule, rule_elt)
 
     ############################
     # rule creation tests

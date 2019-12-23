@@ -4,42 +4,30 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from copy import copy
 import pytest
 import sys
 
 if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
-from xml.etree.ElementTree import fromstring, ElementTree
-
-from units.compat.mock import patch
-from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_interface
-
-from .pfsense_module import TestPFSenseModule, load_fixture
-
-
-def args_from_var(var, state='present', **kwargs):
-    """ return arguments for pfsense_interface module from var """
-    args = {}
-
-    fields = ['descr', 'interface', 'enable', 'ipv4_type', 'mac', 'mtu', 'mss', 'speed_duplex']
-    fields.extend(['ipv4_address', 'ipv4_prefixlen', 'ipv4_gateway', 'create_ipv4_gateway', 'ipv4_gateway_address', 'blockpriv', 'blockbogons'])
-    for field in fields:
-        if field in var:
-            args[field] = var[field]
-
-    args['state'] = state
-    for key, value in kwargs.items():
-        args[key] = value
-
-    return args
+from .pfsense_module import TestPFSenseModule
 
 
 class TestPFSenseInterfaceModule(TestPFSenseModule):
 
     module = pfsense_interface
+
+    def __init__(self, *args, **kwargs):
+        super(TestPFSenseInterfaceModule, self).__init__(*args, **kwargs)
+        self.config_file = 'pfsense_interface_config.xml'
+
+    @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['descr', 'interface', 'enable', 'ipv4_type', 'mac', 'mtu', 'mss', 'speed_duplex']
+        fields += ['ipv4_address', 'ipv4_prefixlen', 'ipv4_gateway', 'create_ipv4_gateway', 'ipv4_gateway_address', 'blockpriv', 'blockbogons']
+        return fields
 
     def setUp(self):
         """ mocking up """
@@ -57,46 +45,15 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     ##############
     # tests utils
     #
-    def load_fixtures(self, commands=None):
-        """ loading data """
-        config_file = 'pfsense_interface_config.xml'
-        self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
-
-    def do_interface_test(self, interface, command=None, changed=True, failed=False, msg=None, delete=False):
-        """ test deletion of a interface """
-        if delete:
-            set_module_args(args_from_var(interface, 'absent'))
-        else:
-            set_module_args(args_from_var(interface))
-
-        result = self.execute_module(changed=changed, failed=failed, msg=msg)
-
-        if not isinstance(command, list):
-            command = [command]
-
-        if failed:
-            self.assertFalse(self.load_xml_result())
-        elif not changed:
-            self.assertFalse(self.load_xml_result())
-            self.assertEqual(result['commands'], [])
-        elif delete:
-            self.get_interface_elt(interface, absent=True)
-            self.assertEqual(result['commands'], command)
-        else:
-            self.check_interface_elt(interface)
-            self.assertEqual(result['commands'], command)
-
-    def get_interface_elt(self, interface, absent=False):
+    def get_target_elt(self, interface, absent=False):
         """ get the generated interface xml definition """
         elt_filter = {}
         elt_filter['descr'] = interface['descr']
 
         return self.assert_has_xml_tag('interfaces', elt_filter, absent=absent)
 
-    def check_interface_elt(self, interface):
+    def check_target_elt(self, interface, interface_elt):
         """ test the xml definition of interface """
-        interface_elt = self.get_interface_elt(interface)
-
         self.assert_xml_elt_equal(interface_elt, 'if', self.unalias_interface(interface['interface'], physical=True))
 
         # bools
@@ -151,13 +108,13 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         """ test creation of a new interface with no address """
         interface = dict(descr='VOICE', interface='vmx0.100')
         command = "create interface 'VOICE', port='vmx0.100', ipv4_type='none', speed_duplex='autoselect'"
-        self.do_interface_test(interface, command=command)
+        self.do_module_test(interface, command=command)
 
     def test_interface_create_static(self):
         """ test creation of a new interface with a static ip """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen=24)
         command = "create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen='24', speed_duplex='autoselect'"
-        self.do_interface_test(interface, command=command)
+        self.do_module_test(interface, command=command)
 
     def test_interface_create_gateway(self):
         """ test creation of a new interface with a static ip and a gateway """
@@ -166,19 +123,19 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         command1 = "create gateway 'voice_gw', interface='opt4', ip='10.20.30.1'"
         command2 = ("create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40'"
                     ", ipv4_prefixlen='24', ipv4_gateway='voice_gw', speed_duplex='autoselect'")
-        self.do_interface_test(interface, command=[command1, command2])
+        self.do_module_test(interface, command=[command1, command2])
 
     def test_interface_create_none_mac_mtu_mss(self):
         """ test creation of a new interface """
         interface = dict(descr='VOICE', interface='vmx0.100', mac='00:11:22:33:44:55', mtu=1500, mss=1100)
         command = "create interface 'VOICE', port='vmx0.100', ipv4_type='none', mac='00:11:22:33:44:55', mtu='1500', mss='1100', speed_duplex='autoselect'"
-        self.do_interface_test(interface, command=command)
+        self.do_module_test(interface, command=command)
 
     def test_interface_delete(self):
         """ test deletion of an interface """
         interface = dict(descr='vt1', state='absent')
         command = "delete interface 'vt1'"
-        self.do_interface_test(interface, delete=True, command=command)
+        self.do_module_test(interface, delete=True, command=command)
 
     def test_interface_delete_lan(self):
         """ test deletion of an interface """
@@ -192,79 +149,79 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
             "delete rule 'antilock_out_3', interface='lan'",
             "delete interface 'lan'"
         ]
-        self.do_interface_test(interface, delete=True, command=commands)
+        self.do_module_test(interface, delete=True, command=commands)
 
     def test_interface_update_noop(self):
         """ test not updating a interface """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=True, ipv4_type='static', ipv4_address='172.16.151.210', ipv4_prefixlen=24)
-        self.do_interface_test(interface, changed=False)
+        self.do_module_test(interface, changed=False)
 
     def test_interface_update_name(self):
         """ test updating interface name """
         interface = dict(descr='wlan_1100', interface='vmx1.1100', enable=True, ipv4_type='static', ipv4_address='172.16.151.210', ipv4_prefixlen=24)
         command = "update interface 'lan_1100' set interface='wlan_1100'"
-        self.do_interface_test(interface, changed=True, command=command)
+        self.do_module_test(interface, changed=True, command=command)
 
     def test_interface_update_enable(self):
         """ test disabling interface """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=False, ipv4_type='static', ipv4_address='172.16.151.210', ipv4_prefixlen=24)
         command = "update interface 'lan_1100' set enable=False"
-        self.do_interface_test(interface, changed=True, command=command)
+        self.do_module_test(interface, changed=True, command=command)
 
     def test_interface_update_enable2(self):
         """ test enabling interface """
         interface = dict(descr='vt1', interface='vmx3', enable=True)
         command = "update interface 'vt1' set enable=True"
-        self.do_interface_test(interface, changed=True, command=command)
+        self.do_module_test(interface, changed=True, command=command)
 
     def test_interface_update_mac(self):
         """ test updating mac """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=True, ipv4_type='static',
                          ipv4_address='172.16.151.210', ipv4_prefixlen=24, mac='00:11:22:33:44:55', )
         command = "update interface 'lan_1100' set mac='00:11:22:33:44:55'"
-        self.do_interface_test(interface, changed=True, command=command)
+        self.do_module_test(interface, changed=True, command=command)
 
     def test_interface_update_blocks(self):
         """ test updating block fields """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=True, ipv4_type='static',
                          ipv4_address='172.16.151.210', ipv4_prefixlen=24, blockpriv=True, blockbogons=True)
         command = "update interface 'lan_1100' set blockpriv=True, blockbogons=True"
-        self.do_interface_test(interface, changed=True, command=command)
+        self.do_module_test(interface, changed=True, command=command)
 
     def test_interface_error_used(self):
         """ test error already used """
         interface = dict(descr='lan_1100', interface='vmx1', enable=True, ipv4_type='static', ipv4_address='172.16.151.210', ipv4_prefixlen=24)
         msg = "Port vmx1 is already in use on interface lan"
-        self.do_interface_test(interface, failed=True, msg=msg)
+        self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_gw(self):
         """ test error no such gateway """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=True, ipv4_type='static',
                          ipv4_address='172.16.151.210', ipv4_prefixlen=24, ipv4_gateway='voice_gw')
         msg = "Gateway voice_gw does not exist on lan_1100"
-        self.do_interface_test(interface, failed=True, msg=msg)
+        self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_if(self):
         """ test error no such interface """
         interface = dict(descr='wlan_1100', interface='vmx1.1200', enable=True, ipv4_type='static',
                          ipv4_address='172.16.151.210', ipv4_prefixlen=24, ipv4_gateway='voice_gw')
         msg = "vmx1.1200 can't be assigned. Interface may only be one the following: ['vmx0', 'vmx1', 'vmx2', 'vmx3', 'vmx0.100', 'vmx1.1100']"
-        self.do_interface_test(interface, failed=True, msg=msg)
+        self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_eq(self):
         """ test error same ipv4 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.242', ipv4_prefixlen=32)
         msg = "IPv4 address 192.168.1.242/32 is being used by or overlaps with: lan (192.168.1.242/24)"
-        self.do_interface_test(interface, failed=True, msg=msg)
+        self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_overlaps1(self):
         """ test error same ipv4 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.1', ipv4_prefixlen=30)
         msg = "IPv4 address 192.168.1.1/30 is being used by or overlaps with: lan (192.168.1.242/24)"
-        self.do_interface_test(interface, failed=True, msg=msg)
+        self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_overlaps2(self):
         """ test error same ipv4 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.1', ipv4_prefixlen=22)
         msg = "IPv4 address 192.168.1.1/22 is being used by or overlaps with: lan (192.168.1.242/24)"
-        self.do_interface_test(interface, failed=True, msg=msg)
+        self.do_module_test(interface, failed=True, msg=msg)

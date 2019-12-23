@@ -11,8 +11,10 @@ import json
 
 from units.compat.mock import patch
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase
+from units.modules.utils import set_module_args
 from tempfile import mkstemp
 import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import fromstring, ElementTree
 
 
 fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures')
@@ -38,10 +40,14 @@ def load_fixture(name):
 
 
 class TestPFSenseModule(ModuleTestCase):
+    ##############################
+    # init
+    #
     def __init__(self, *args, **kwargs):
         super(TestPFSenseModule, self).__init__(*args, **kwargs)
         self.xml_result = None
         self.tmp_file = None
+        self.config_file = None
 
     def setUp(self):
         """ mocking up """
@@ -89,8 +95,35 @@ class TestPFSenseModule(ModuleTestCase):
             if exception.errno != errno.ENOENT:
                 raise
 
+    def get_args_fields(self):
+        """ return params fields """
+        raise NotImplementedError()
+
+    def get_target_elt(self, obj, absent=False):
+        """ return target elt from XML """
+        raise NotImplementedError()
+
+    def check_target_elt(self, obj, target_elt):
+        """ check XML definition of target elt """
+        raise NotImplementedError()
+
+    def args_from_var(self, var, state='present', **kwargs):
+        """ return arguments for module from var """
+        args = {}
+
+        fields = self.get_args_fields()
+        for field in fields:
+            if field in var:
+                args[field] = var[field]
+
+        args['state'] = state
+        for key, value in kwargs.items():
+            args[key] = value
+
+        return args
+
     def execute_module(self, failed=False, changed=False, commands=None, sort=True, defaults=False, msg=''):
-        self.load_fixtures(commands)
+        self.load_fixtures()
 
         if failed:
             result = self.failed()
@@ -111,6 +144,35 @@ class TestPFSenseModule(ModuleTestCase):
 
         return result
 
+    def do_module_test(self, obj, command=None, changed=True, failed=False, msg=None, delete=False, **kwargs):
+        """ run test """
+        if delete:
+            set_module_args(self.args_from_var(obj, 'absent'))
+        else:
+            set_module_args(self.args_from_var(obj))
+
+        result = self.execute_module(changed=changed, failed=failed, msg=msg)
+
+        if not isinstance(command, list):
+            command = [command]
+
+        if failed:
+            self.assertFalse(self.load_xml_result())
+        elif not changed:
+            self.assertFalse(self.load_xml_result())
+            self.assertEqual(result['commands'], [])
+        elif delete:
+            self.assertTrue(self.load_xml_result())
+            target_elt = self.get_target_elt(obj, absent=True)
+            self.assertIsNone(target_elt)
+            self.assertEqual(result['commands'], command)
+        else:
+            self.assertTrue(self.load_xml_result())
+            target_elt = self.get_target_elt(obj)
+            self.assertIsNotNone(target_elt)
+            self.check_target_elt(obj, target_elt, **kwargs)
+            self.assertEqual(result['commands'], command)
+
     def failed(self):
         with self.assertRaises(AnsibleFailJson) as exc:
             self.module.main()
@@ -127,8 +189,9 @@ class TestPFSenseModule(ModuleTestCase):
         self.assertEqual(result['changed'], changed, result)
         return result
 
-    def load_fixtures(self, commands=None):
-        pass
+    def load_fixtures(self):
+        """ loading data """
+        self.parse.return_value = ElementTree(fromstring(load_fixture(self.config_file)))
 
     def load_xml_result(self):
         """ load the resulting xml if not already loaded """

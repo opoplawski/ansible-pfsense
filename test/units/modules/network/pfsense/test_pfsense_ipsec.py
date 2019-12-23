@@ -4,78 +4,37 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from copy import copy
 import pytest
 import sys
 
 if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
-from xml.etree.ElementTree import fromstring, ElementTree
-
-from units.compat.mock import patch
-from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_ipsec
-
-from .pfsense_module import TestPFSenseModule, load_fixture
-
-
-def args_from_var(var, state='present', **kwargs):
-    """ return arguments for pfsense_ipsec module from var """
-    args = {}
-
-    fields = ['descr', 'interface', 'iketype', 'protocol', 'remote_gateway', 'disabled', 'authentication_method', 'mode']
-    fields.extend(['myid_type', 'myid_data', 'peerid_type', 'peerid_data', 'certificate', 'certificate_authority', 'preshared_key'])
-    fields.extend(['lifetime', 'disable_rekey', 'margintime', 'responderonly', 'nat_traversal', 'enable_dpd', 'dpd_delay', 'dpd_maxfail', 'apply'])
-    fields.extend(['disable_reauth', 'mobike', 'splitconn'])
-    for field in fields:
-        if field in var:
-            args[field] = var[field]
-
-    args['state'] = state
-    for key, value in kwargs.items():
-        args[key] = value
-
-    return args
+from .pfsense_module import TestPFSenseModule
 
 
 class TestPFSenseIpsecModule(TestPFSenseModule):
 
     module = pfsense_ipsec
 
+    def __init__(self, *args, **kwargs):
+        super(TestPFSenseIpsecModule, self).__init__(*args, **kwargs)
+        self.config_file = 'pfsense_ipsec_config.xml'
+
+    @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['descr', 'interface', 'iketype', 'protocol', 'remote_gateway', 'disabled', 'authentication_method', 'mode']
+        fields += ['myid_type', 'myid_data', 'peerid_type', 'peerid_data', 'certificate', 'certificate_authority', 'preshared_key']
+        fields += ['lifetime', 'disable_rekey', 'margintime', 'responderonly', 'nat_traversal', 'enable_dpd', 'dpd_delay', 'dpd_maxfail', 'apply']
+        fields += ['disable_reauth', 'mobike', 'splitconn']
+        return fields
+
     ##############
     # tests utils
     #
-    def load_fixtures(self, commands=None):
-        """ loading data """
-        config_file = 'pfsense_ipsec_config.xml'
-        self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
-
-    def do_ipsec_test(self, ipsec, command=None, changed=True, failed=False, msg=None, delete=False):
-        """ test deletion of an ipsec tunnel """
-        if delete:
-            set_module_args(args_from_var(ipsec, 'absent'))
-        else:
-            set_module_args(args_from_var(ipsec))
-
-        result = self.execute_module(changed=changed, failed=failed, msg=msg)
-
-        if not isinstance(command, list):
-            command = [command]
-
-        if failed:
-            self.assertFalse(self.load_xml_result())
-        elif not changed:
-            self.assertFalse(self.load_xml_result())
-            self.assertEqual(result['commands'], [])
-        elif delete:
-            self.get_ipsec_elt(ipsec, absent=True)
-            self.assertEqual(result['commands'], command)
-        else:
-            self.check_ipsec_elt(ipsec)
-            self.assertEqual(result['commands'], command)
-
-    def get_ipsec_elt(self, ipsec, absent=False):
+    def get_target_elt(self, ipsec, absent=False):
         """ get the generated ipsec xml definition """
         elt_filter = {}
         elt_filter['descr'] = ipsec['descr']
@@ -100,9 +59,8 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             return '5c00e5f9029de'
         return ''
 
-    def check_ipsec_elt(self, ipsec):
+    def check_target_elt(self, ipsec, ipsec_elt):
         """ test the xml definition of ipsec elt """
-        ipsec_elt = self.get_ipsec_elt(ipsec)
 
         # bools
         if ipsec.get('disabled'):
@@ -214,7 +172,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
             "disable_rekey=False, margintime='', mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_create_ikev1(self):
         """ test creation of a new ipsec tunnel """
@@ -225,7 +183,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_create_auto(self):
         """ test creation of a new ipsec tunnel """
@@ -236,7 +194,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "create ipsec 'new_tunnel', iketype='auto', mode='main', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_create_auto_rsasig(self):
         """ test creation of a new ipsec tunnel with certificate """
@@ -248,20 +206,20 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "authentication_method='rsasig', certificate='webConfigurator default (5c00e5f9029df)', certificate_authority='test ca', "
             "myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', mobike='off', responderonly=False, "
             "nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_delete(self):
         """ test deletion of an ipsec """
         ipsec = dict(descr='test_tunnel', state='absent')
         command = "delete ipsec 'test_tunnel'"
-        self.do_ipsec_test(ipsec, delete=True, command=command)
+        self.do_module_test(ipsec, delete=True, command=command)
 
     def test_ipsec_update_noop(self):
         """ test not updating a ipsec """
         ipsec = dict(
             descr='test_tunnel', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev2',
             authentication_method='pre_shared_key', preshared_key='1234')
-        self.do_ipsec_test(ipsec, changed=False)
+        self.do_module_test(ipsec, changed=False)
 
     def test_ipsec_update_ike(self):
         """ test updating ike """
@@ -269,7 +227,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             descr='test_tunnel', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
         command = "update ipsec 'test_tunnel' set iketype='ikev1', mode='main'"
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_update_gw(self):
         """ test updating gw """
@@ -277,7 +235,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             descr='test_tunnel', interface='lan_100', remote_gateway='1.2.3.5', iketype='ikev2',
             authentication_method='pre_shared_key', preshared_key='1234')
         command = "update ipsec 'test_tunnel' set remote_gateway='1.2.3.5'"
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_update_auth(self):
         """ test updating auth """
@@ -287,7 +245,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         command = (
             "update ipsec 'test_tunnel' set authentication_method='rsasig', "
             "certificate='webConfigurator default (5c00e5f9029df)', certificate_authority='test ca'")
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_update_cert(self):
         """ test updating certificates """
@@ -295,7 +253,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             descr='test_tunnel2', interface='lan_100', remote_gateway='1.2.3.6', iketype='ikev2',
             authentication_method='rsasig', certificate='webConfigurator default copy', certificate_authority='test ca copy')
         command = "update ipsec 'test_tunnel2' set certificate='webConfigurator default copy', certificate_authority='test ca copy'"
-        self.do_ipsec_test(ipsec, command=command)
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_duplicate_gw(self):
         """ test using a duplicate gw """
@@ -303,4 +261,4 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
         msg = 'The remote gateway "1.2.4.8" is already used by phase1 "test_tunnel".'
-        self.do_ipsec_test(ipsec, msg=msg, failed=True)
+        self.do_module_test(ipsec, msg=msg, failed=True)

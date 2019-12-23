@@ -26,7 +26,8 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         if failed:
             self.assertFalse(self.load_xml_result())
         else:
-            self.check_rule_elt(target)
+            rule_elt = self.get_target_elt(rule)
+            self.check_target_elt(rule, rule_elt)
 
     ############################
     # rule update tests
@@ -68,7 +69,8 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         rule = dict(name='test_rule', source='any', destination='any', interface='wan', floating='yes', direction='any', protocol='tcp')
         self.do_rule_update_test(rule)
         other_rule = dict(name='test_rule', source='any', destination='any', interface='wan', floating='no', protocol='tcp')
-        self.check_rule_elt(other_rule)
+        other_rule_elt = self.get_target_elt(other_rule)
+        self.check_target_elt(other_rule, other_rule_elt)
 
     def test_rule_update_floating_no(self):
         """ test updating floating of a rule to no
@@ -77,7 +79,8 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', floating='no', direction='any', protocol='tcp')
         self.do_rule_update_test(rule)
         other_rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', floating='yes', direction='any', protocol='tcp')
-        self.check_rule_elt(other_rule)
+        other_rule_elt = self.get_target_elt(other_rule)
+        self.check_target_elt(other_rule, other_rule_elt)
 
     def test_rule_update_floating_default(self):
         """ test updating floating of a rule to default (no)
@@ -86,7 +89,8 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', protocol='tcp')
         self.do_rule_update_test(rule)
         other_rule = dict(name='test_rule_floating', source='any', destination='any', interface='wan', floating='yes', direction='any', protocol='tcp')
-        self.check_rule_elt(other_rule)
+        other_rule_elt = self.get_target_elt(other_rule)
+        self.check_target_elt(other_rule, other_rule_elt)
 
     def test_rule_update_inet(self):
         """ test updating ippprotocol of a rule to ipv4 and ipv6 """

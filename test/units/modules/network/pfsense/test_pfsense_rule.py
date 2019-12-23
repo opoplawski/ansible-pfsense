@@ -102,13 +102,14 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         else:
             self.assert_not_find_xml_elt(rule_elt, xml_option)
 
-    def check_rule_elt(self, rule):
-        """ test the xml definition of rule """
+    def get_target_elt(self, rule, absent=False):
         rule['interface'] = self.unalias_interface(rule['interface'])
         if 'floating' in rule and rule['floating'] == 'yes':
-            rule_elt = self.assert_has_xml_tag('filter', dict(descr=rule['name'], floating='yes'))
-        else:
-            rule_elt = self.assert_has_xml_tag('filter', dict(descr=rule['name'], interface=rule['interface']))
+            return self.assert_has_xml_tag('filter', dict(descr=rule['name'], floating='yes'))
+        return self.assert_has_xml_tag('filter', dict(descr=rule['name'], interface=rule['interface']))
+
+    def check_target_elt(self, rule, rule_elt):
+        """ test the xml definition of rule """
 
         # checking source address and ports
         self.check_rule_elt_addr(rule, rule_elt, 'source')

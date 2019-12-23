@@ -34,6 +34,7 @@ class PFSenseModule(object):
         self.gateways = self.get_element('gateways')
         self.ipsec = self.get_element('ipsec')
         self.openvpn = self.get_element('openvpn')
+        self.virtualip = None
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -437,6 +438,18 @@ class PFSenseModule(object):
                 return True
         except ValueError:
             pass
+        return False
+
+    def is_virtual_ip(self, addr):
+        """ return True if addr is a virtual ip """
+        if self.virtualip is None:
+            self.virtualip = self.get_element('virtualip')
+        if self.virtualip is None:
+            return False
+
+        for ip_elt in self.virtualip:
+            if ip_elt.find('subnet').text == addr:
+                return True
         return False
 
     def find_queue(self, name, interface=None, enabled=False):

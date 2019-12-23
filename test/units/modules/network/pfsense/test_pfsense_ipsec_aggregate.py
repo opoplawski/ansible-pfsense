@@ -10,22 +10,19 @@ import sys
 if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
-from xml.etree.ElementTree import fromstring, ElementTree
-
 from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_ipsec_aggregate
 
-from .pfsense_module import TestPFSenseModule, load_fixture
+from .pfsense_module import TestPFSenseModule
 
 
 class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
 
     module = pfsense_ipsec_aggregate
 
-    def load_fixtures(self, commands=None):
-        """ loading data """
-        config_file = 'pfsense_ipsec_aggregate_config.xml'
-        self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
+    def __init__(self, *args, **kwargs):
+        super(TestPFSenseIpsecAggregateModule, self).__init__(*args, **kwargs)
+        self.config_file = 'pfsense_ipsec_aggregate_config.xml'
 
     def assert_find_ipsec(self, ipsec):
         """ test if an ipsec tunnel exist """
