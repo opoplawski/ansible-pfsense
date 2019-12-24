@@ -331,6 +331,14 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
         return True
 
     ##############################
+    # run
+    #
+    def _update(self):
+        """ make the target pfsense reload """
+        return self.pfsense.phpshell('''require_once("filter.inc");
+if (filter_configure() == 0) { clear_subsystem_dirty('natconf'); clear_subsystem_dirty('filter'); }''')
+
+    ##############################
     # Logging
     #
     def _get_obj_name(self):
