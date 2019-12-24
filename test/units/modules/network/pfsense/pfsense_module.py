@@ -303,3 +303,38 @@ class TestPFSenseModule(ModuleTestCase):
             else:
                 res.append(iface)
         return ','.join(res)
+
+    def check_param_equal(self, params, target_elt, param, default=None, xml_field=None, not_find_val=None):
+        """ if param is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
+        if xml_field is None:
+            xml_field = param
+
+        value = default
+        if param in params:
+            value = params[param]
+        if value is not None:
+            if not_find_val is not None and not_find_val == default:
+                self.assert_not_find_xml_elt(target_elt, xml_field)
+            else:
+                self.assert_xml_elt_equal(target_elt, xml_field, value)
+        else:
+            self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+
+    def check_value_equal(self, target_elt, xml_field, value, empty=True):
+        """ if value is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
+        if value is None:
+            if empty:
+                self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+            else:
+                self.assert_not_find_xml_elt(target_elt, xml_field)
+        else:
+            self.assert_xml_elt_equal(target_elt, xml_field, value)
+
+    def check_param_equal_or_not_find(self, params, target_elt, param, xml_field=None):
+        """ if param is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
+        if xml_field is None:
+            xml_field = param
+        if param in params:
+            self.assert_xml_elt_equal(target_elt, xml_field, params[param])
+        else:
+            self.assert_not_find_xml_elt(target_elt, xml_field)

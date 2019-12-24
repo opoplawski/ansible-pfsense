@@ -93,15 +93,6 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         if 'not' not in addr_dict:
             self.assert_not_find_xml_elt(addr_elt, 'not')
 
-    def check_rule_option_equal_or_not_find(self, rule, rule_elt, option, xml_option=None):
-        """ check if option is defined that it has the right value, otherwise that it does not exist in XML """
-        if xml_option is None:
-            xml_option = option
-        if option in rule:
-            self.assert_xml_elt_equal(rule_elt, xml_option, rule[option])
-        else:
-            self.assert_not_find_xml_elt(rule_elt, xml_option)
-
     def get_target_elt(self, rule, absent=False):
         rule['interface'] = self.unalias_interface(rule['interface'])
         if 'floating' in rule and rule['floating'] == 'yes':
@@ -137,17 +128,17 @@ class TestPFSenseRuleModule(TestPFSenseModule):
             self.assert_not_find_xml_elt(rule_elt, 'floating')
 
         # checking direction option
-        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'direction')
+        self.check_param_equal_or_not_find(rule, rule_elt, 'direction')
 
         # checking default queue option
-        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'queue', 'defaultqueue')
+        self.check_param_equal_or_not_find(rule, rule_elt, 'queue', 'defaultqueue')
 
         # checking acknowledge queue option
-        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'ackqueue')
+        self.check_param_equal_or_not_find(rule, rule_elt, 'ackqueue')
 
         # limiters
-        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'in_queue', 'dnpipe')
-        self.check_rule_option_equal_or_not_find(rule, rule_elt, 'out_queue', 'pdnpipe')
+        self.check_param_equal_or_not_find(rule, rule_elt, 'in_queue', 'dnpipe')
+        self.check_param_equal_or_not_find(rule, rule_elt, 'out_queue', 'pdnpipe')
 
         # checking ipprotocol option
         if 'ipprotocol' in rule:

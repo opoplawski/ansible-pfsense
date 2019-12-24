@@ -413,11 +413,11 @@ class PFSenseModule(object):
         return False
 
     @staticmethod
-    def parse_ip_network(address, strict=True):
+    def parse_ip_network(address, strict=True, returns_ip=True):
         """ return cidr parts of address """
         try:
             addr = ip_network(u'{0}'.format(address), strict=strict)
-            if strict:
+            if strict or not returns_ip:
                 return (str(addr.network_address), addr.prefixlen)
             else:
                 # we parse the address with ipaddr just for type checking
