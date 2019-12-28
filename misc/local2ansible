@@ -8,12 +8,14 @@ fi
 
 mkdir -p ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures
 mkdir -p ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense
+mkdir -p ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense/__impl
 mkdir -p ${ANSIBLE_HOME}/lib/ansible/modules/network/pfsense
 
 
 cp test/units/modules/network/pfsense/*.py ${ANSIBLE_HOME}/test/units/modules/network/pfsense/
 cp test/units/modules/network/pfsense/fixtures/*.xml ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures/
 cp module_utils/network/pfsense/*.py ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense/
+cp module_utils/network/pfsense/__impl/*.py ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense/__impl/
 cp library/*.py ${ANSIBLE_HOME}/lib/ansible/modules/network/pfsense/
 cp lookup_plugins/pfsense.py ${ANSIBLE_HOME}/lib/ansible/plugins/lookup/pfsense.py
 

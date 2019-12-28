@@ -1,0 +1,7 @@
+#!/bin/sh
+
+misc/local2ansible
+if [ ! -f .coveragerc ]; then
+    cp -f misc/.coveragerc .
+fi
+python3 -m pytest -v -r a test/units/modules/network/pfsense/ --cov --cov-report html $*

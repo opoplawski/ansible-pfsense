@@ -83,12 +83,12 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
         def param_to_rule(param_field, rule_field):
             """ set rule_field if param_field is defined """
-            if params[param_field] is not None:
+            if params.get(param_field) is not None:
                 rule[rule_field] = params[param_field]
 
         def bool_to_rule(param_field, rule_field):
             """ set rule_field if param_field is True """
-            if params[param_field]:
+            if params.get(param_field):
                 rule[rule_field] = ''
 
         rule['descr'] = params['name']
@@ -103,8 +103,8 @@ class PFSenseRuleModule(PFSenseModuleBase):
             rule['type'] = params['action']
             rule['ipprotocol'] = params['ipprotocol']
             rule['statetype'] = params['statetype']
-            rule['source'] = self._parse_address(params['source'])
-            rule['destination'] = self._parse_address(params['destination'])
+            rule['source'] = self.pfsense.parse_address(params['source'])
+            rule['destination'] = self.pfsense.parse_address(params['destination'])
 
             if params['protocol'] != 'any':
                 rule['protocol'] = params['protocol']
@@ -117,8 +117,9 @@ class PFSenseRuleModule(PFSenseModuleBase):
             param_to_rule('ackqueue', 'ackqueue')
             param_to_rule('in_queue', 'dnpipe')
             param_to_rule('out_queue', 'pdnpipe')
+            param_to_rule('associated-rule-id', 'associated-rule-id')
 
-            if params['gateway'] != 'default':
+            if 'gateway' in params and params['gateway'] != 'default':
                 rule['gateway'] = params['gateway']
 
         self._floating = 'floating' in self.obj and self.obj['floating'] == 'yes'
@@ -126,61 +127,6 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self._before = params.get('before')
 
         return rule
-
-    def _parse_address(self, param):
-        """ validate param address field and returns it as a dict """
-        addr = param.split(':')
-        if len(addr) > 3:
-            self.module.fail_json(msg='Cannot parse address %s' % (param))
-
-        address = addr[0]
-
-        ret = dict()
-        # Check if the first character is "!"
-        if address[0] == '!':
-            # Invert the rule
-            ret['not'] = None
-            address = address[1:]
-
-        if address == 'NET' or address == 'IP':
-            interface = addr[1] if len(addr) > 1 else None
-            ports = addr[2] if len(addr) > 2 else None
-            if interface is None or interface == '':
-                self.module.fail_json(msg='Cannot parse address %s' % (param))
-
-            ret['network'] = self.pfsense.parse_interface(interface)
-            if address == 'IP':
-                ret['network'] += 'ip'
-        else:
-            ports = addr[1] if len(addr) > 1 else None
-            if address == 'any':
-                ret['any'] = None
-            # rule with this firewall
-            elif address == '(self)':
-                ret['network'] = '(self)'
-            # rule with interface name (LAN, WAN...)
-            elif self.pfsense.is_interface_name(address):
-                ret['network'] = self.pfsense.get_interface_pfsense_by_name(address)
-            else:
-                if not self.pfsense.is_ip_or_alias(address):
-                    self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))
-                ret['address'] = address
-
-        if ports is not None:
-            ports = ports.split('-')
-            if len(ports) > 2 or ports[0] is None or ports[0] == '' or len(ports) == 2 and (ports[1] is None or ports[1] == ''):
-                self.module.fail_json(msg='Cannot parse address %s' % (param))
-
-            if not self.pfsense.is_port_or_alias(ports[0]):
-                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[0]))
-            ret['port'] = ports[0]
-
-            if len(ports) > 1:
-                if not self.pfsense.is_port_or_alias(ports[1]):
-                    self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[1]))
-                ret['port'] += '-' + ports[1]
-
-        return ret
 
     def _parse_floating_interfaces(self, interfaces):
         """ validate param interface field when floating is true """
@@ -293,6 +239,9 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ update the XML target_elt """
         timestamp = '%d' % int(time.time())
         before = self._rule_element_to_dict()
+        if 'associated-rule-id' not in self.obj and 'associated-rule-id' in before and before['associated-rule-id'] != '':
+            self.module.fail_json(msg='Target filter rule is associated with a NAT rule.')
+
         self.diff['before'] = before
         changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
         if self._remove_deleted_params():
@@ -321,9 +270,14 @@ class PFSenseRuleModule(PFSenseModuleBase):
         return self.pfsense.new_element('rule')
 
     def _find_matching_rule(self):
-        """ retturn rule element and index that matches by description or action """
+        """ return rule element and index that matches by description or action """
         # Prioritize matching my name
-        found, i = self._find_rule_by_descr(self.obj['descr'])
+        if 'associated-rule-id' in self.obj:
+            found, i = self._find_rule(self.obj['associated-rule-id'], 'associated-rule-id')
+            if found is not None:
+                return (found, i)
+
+        found, i = self._find_rule(self.obj['descr'])
         if found is not None:
             return (found, i)
 
@@ -342,12 +296,12 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
         return (None, -1)
 
-    def _find_rule_by_descr(self, descr):
-        """ return rule element and index on interface/floating that matches description """
+    def _find_rule(self, value, field='descr'):
+        """ return rule element and index on interface/floating that matches criteria """
         i = 0
         for rule_elt in self.root_elt:
-            descr_elt = rule_elt.find('descr')
-            if self._match_interface(rule_elt) and descr_elt is not None and descr_elt.text == descr:
+            field_elt = rule_elt.find(field)
+            if self._match_interface(rule_elt) and field_elt is not None and field_elt.text == value:
                 return (rule_elt, i)
             i += 1
         return (None, -1)
@@ -384,19 +338,19 @@ class PFSenseRuleModule(PFSenseModuleBase):
         elif self._after == 'top':
             return self._get_first_rule_xml_index()
         elif self._after is not None:
-            found, i = self._find_rule_by_descr(self._after)
+            found, i = self._find_rule(self._after)
             if found is not None:
                 return i + 1
             else:
                 self.module.fail_json(msg='Failed to insert after rule=%s interface=%s' % (self._after, self._interface_name()))
         elif self._before is not None:
-            found, i = self._find_rule_by_descr(self._before)
+            found, i = self._find_rule(self._before)
             if found is not None:
                 return i
             else:
                 self.module.fail_json(msg='Failed to insert before rule=%s interface=%s' % (self._before, self._interface_name()))
         else:
-            found, i = self._find_rule_by_descr(self.obj['descr'])
+            found, i = self._find_rule(self.obj['descr'])
             if found is not None:
                 return i
             return self._get_last_rule_xml_index() + 1

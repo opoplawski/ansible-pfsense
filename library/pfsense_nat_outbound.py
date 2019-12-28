@@ -22,7 +22,7 @@ description:
 notes:
 options:
   descr:
-    description: The name the nat rule
+    description: The name of the nat rule
     required: true
     default: null
     type: str

@@ -11,6 +11,7 @@ import json
 import shutil
 import os
 import pwd
+import random
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -19,6 +20,8 @@ from tempfile import mkstemp
 
 class PFSenseModule(object):
     """ class managing pfsense base configuration """
+
+    from ansible.module_utils.network.pfsense.__impl.parse_address import parse_address
 
     def __init__(self, module, config='/cf/conf/config.xml'):
         self.module = module
@@ -571,8 +574,11 @@ class PFSenseModule(object):
         return self.find_certobj_elt(descr, 'crl', search_field)
 
     @staticmethod
-    def uniqid(prefix=''):
+    def uniqid(prefix='', more_entropy=False):
         """ return an identifier based on time """
+        if more_entropy:
+            return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7] + "%.8F" % (random.random() * 10)
+
         return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7]
 
     def phpshell(self, command):
