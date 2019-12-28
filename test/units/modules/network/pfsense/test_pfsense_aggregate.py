@@ -12,13 +12,13 @@ if sys.version_info < (2, 7):
 
 from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_aggregate
-
 from .pfsense_module import TestPFSenseModule
 
 
 class TestPFSenseAggregateModule(TestPFSenseModule):
 
     module = pfsense_aggregate
+
     def __init__(self, *args, **kwargs):
         super(TestPFSenseAggregateModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_aggregate_config.xml'

@@ -332,7 +332,7 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
                     if self.pfsense.remove_deleted_param_from_elt(sub_elt, param, dict()):
                         changed = True
 
-            if not sub_elt:
+            if len(sub_elt) == 0:
                 self.target_elt.remove(sub_elt)
 
         return changed

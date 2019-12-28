@@ -485,7 +485,7 @@ class PFSenseModuleIpsecAggregate(object):
             return True
 
         phase1_elt = self.pfsense.find_ipsec_phase1(ikeid_elt.text, 'ikeid')
-        if not phase1_elt:
+        if phase1_elt is None:
             return True
         phase1_descr_elt = phase1_elt.find('descr')
         if phase1_descr_elt is None:

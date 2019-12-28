@@ -205,7 +205,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     def _create_target(self):
         """ create the XML target_elt """
         # wan can't be deleted, so the first interface we can create is lan
-        if not self._find_interface_elt_by_tag('lan'):
+        if self._find_interface_elt_by_tag('lan') is None:
             interface_elt = self.pfsense.new_element('lan')
             self.root_elt.insert(1, interface_elt)
             return interface_elt
@@ -214,7 +214,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         i = 1
         while True:
             interface = 'opt{0}'.format(i)
-            if not self._find_interface_elt_by_tag(interface):
+            if self._find_interface_elt_by_tag(interface) is None:
                 interface_elt = self.pfsense.new_element(interface)
                 # i + 1 = i + (lan and wan) - 1
                 self.root_elt.insert(i + 1, interface_elt)
