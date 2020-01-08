@@ -67,7 +67,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
             ipaddr_elt = iface.find('ipaddr')
             subnet_elt = iface.find('subnet')
-            if ipaddr_elt is None or subnet_elt is None:
+            if ipaddr_elt is None or subnet_elt is None or ipaddr_elt.text == 'dhcp':
                 continue
 
             other_addr = ip_network(u'{0}/{1}'.format(ipaddr_elt.text, subnet_elt.text), strict=False)
@@ -104,15 +104,14 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             self._get_ansible_param(obj, 'mss')
             self._get_ansible_param(obj, 'speed_duplex', fname='media', exclude='autoselect')
 
-            # get target interface
-            self.target_elt = self._find_matching_interface()
-
             if params['ipv4_type'] == 'static':
                 self._get_ansible_param(obj, 'ipv4_address', fname='ipaddr')
                 self._get_ansible_param(obj, 'ipv4_prefixlen', fname='subnet')
                 self._get_ansible_param(obj, 'ipv4_gateway', fname='gateway')
-                self._check_overlaps()
 
+            # get target interface
+            self.target_elt = self._find_matching_interface()
+            self._check_overlaps()
         else:
             self.target_elt = self._find_interface_elt_by_name()
 

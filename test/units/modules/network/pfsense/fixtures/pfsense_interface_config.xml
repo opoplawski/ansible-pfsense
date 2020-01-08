@@ -146,6 +146,15 @@
 			<ipaddr>172.16.151.210</ipaddr>
 			<subnet>24</subnet>
 		</opt3>
+		<opt5>
+			<if>vmx4</if>
+			<descr>vt2</descr>
+			<spoofmac></spoofmac>
+		  <ipaddr>dhcp</ipaddr>
+			<subnet></subnet>
+			<dhcphostname></dhcphostname>
+			<dhcprejectfrom></dhcprejectfrom>
+		</opt5>
 	</interfaces>
 	<staticroutes></staticroutes>
 	<dhcpd>
