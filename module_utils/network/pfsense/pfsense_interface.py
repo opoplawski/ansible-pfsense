@@ -104,14 +104,15 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             self._get_ansible_param(obj, 'mss')
             self._get_ansible_param(obj, 'speed_duplex', fname='media', exclude='autoselect')
 
+            # get target interface
+            self.target_elt = self._find_matching_interface()
+
             if params['ipv4_type'] == 'static':
                 self._get_ansible_param(obj, 'ipv4_address', fname='ipaddr')
                 self._get_ansible_param(obj, 'ipv4_prefixlen', fname='subnet')
                 self._get_ansible_param(obj, 'ipv4_gateway', fname='gateway')
+                self._check_overlaps()
 
-            # get target interface
-            self.target_elt = self._find_matching_interface()
-            self._check_overlaps()
         else:
             self.target_elt = self._find_interface_elt_by_name()
 
