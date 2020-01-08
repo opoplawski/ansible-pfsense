@@ -54,7 +54,14 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
         self.position_changed = False
 
         nat_elt = self.pfsense.get_element('nat')
+        if nat_elt is None:
+            nat_elt = self.pfsense.new_element('nat')
+            self.pfsense.root.append(nat_elt)
+
         self.root_elt = nat_elt.find('outbound')
+        if self.root_elt is None:
+            self.root_elt = self.pfsense.new_element('outbound')
+            nat_elt.append(self.root_elt)
 
     ##############################
     # params processing

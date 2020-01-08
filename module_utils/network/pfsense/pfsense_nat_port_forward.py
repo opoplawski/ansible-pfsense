@@ -47,6 +47,9 @@ class PFSenseNatPortForwardModule(PFSenseModuleBase):
         self.position_changed = False
 
         self.root_elt = self.pfsense.get_element('nat')
+        if self.root_elt is None:
+            self.root_elt = self.pfsense.new_element('nat')
+            self.pfsense.root.append(self.root_elt)
 
         self.pfsense_rule_module = None
 
