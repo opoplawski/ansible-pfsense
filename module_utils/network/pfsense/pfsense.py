@@ -516,12 +516,19 @@ class PFSenseModule(object):
 
         return None
 
-    def find_gateway_elt(self, name, interface, protocol='inet'):
+    def find_gateway_elt(self, name, interface=None, protocol=None):
         """ return gateway elt if found """
         for gw_elt in self.gateways:
-            if gw_elt.tag != 'gateway_item' or gw_elt.find('ipprotocol').text != protocol:
+            if gw_elt.tag != 'gateway_item':
                 continue
-            if gw_elt.find('name').text == name and (interface is None or gw_elt.find('interface').text == interface):
+
+            if protocol is not None and gw_elt.find('ipprotocol').text != protocol:
+                continue
+
+            if interface is not None and gw_elt.find('interface').text != interface:
+                continue
+
+            if gw_elt.find('name').text == name:
                 return gw_elt
 
         return None

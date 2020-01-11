@@ -312,7 +312,11 @@ class TestPFSenseModule(ModuleTestCase):
         value = default
         if param in params:
             value = params[param]
+
         if value is not None:
+            if not isinstance(value, str):
+                value = str(value)
+
             if not_find_val is not None and not_find_val == default:
                 self.assert_not_find_xml_elt(target_elt, xml_field)
             else:

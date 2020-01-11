@@ -54,7 +54,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
     # params processing
     #
     def _params_to_obj(self):
-        """ return a vlan dict from module params """
+        """ return a dict from module params """
         params = self.params
 
         obj = dict()
@@ -122,7 +122,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
     # run
     #
     def _update(self):
-        """ make the target pfsense reload separators """
+        """ make the target pfsense reload """
         return self.pfsense.phpshell('''require_once("filter.inc");
 if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
 
