@@ -81,14 +81,12 @@ EXAMPLES = """
   pfsense_gateway:
     name: default_gw
     interface: wan
-    address: 1.2.3.4
+    gateway: 1.2.3.4
     state: present
 
 - name: Remove gateway
   pfsense_gateway:
     name: vpn_gw
-    interface: vpn
-    address: 10.1.1.1
     state: absent
 """
 
