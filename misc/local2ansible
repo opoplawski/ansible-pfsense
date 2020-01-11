@@ -2,23 +2,34 @@
 
 if [ -z "${ANSIBLE_HOME}" ]
 then
-    echo "ANSIBLE_HOME is undefined. Go into ansible directory and run 'source hacking/env-setup'"
-    exit 1
+    ANSIBLE_INSTALL=`ansible --version 2> /dev/null | grep 'module location' | cut -d '=' -f 2 | sed -e s/^[[:space:]]*//`
+    if [ -z "$ANSIBLE_INSTALL" ]
+    then
+        echo "ANSIBLE_HOME is undefined and ansible is not found. Install ansible or go into ansible source directory and run 'source hacking/env-setup'"
+        exit 1
+    fi
+    echo Installing into program dir: ${ANSIBLE_INSTALL}
+else
+    ANSIBLE_INSTALL=${ANSIBLE_HOME}/lib/ansible
+    echo Installing into source dir: ${ANSIBLE_INSTALL}
+
+    # tests are installed in source dir only
+    mkdir -p ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures
+    cp test/units/modules/network/pfsense/*.py ${ANSIBLE_HOME}/test/units/modules/network/pfsense/
+    cp test/units/modules/network/pfsense/fixtures/*.xml ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures/
 fi
 
-mkdir -p ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures
-mkdir -p ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense
-mkdir -p ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense/__impl
-mkdir -p ${ANSIBLE_HOME}/lib/ansible/modules/network/pfsense
+
+mkdir -p ${ANSIBLE_INSTALL}/module_utils/network/pfsense
+mkdir -p ${ANSIBLE_INSTALL}/module_utils/network/pfsense/__impl
+mkdir -p ${ANSIBLE_INSTALL}/modules/network/pfsense
 
 
-cp test/units/modules/network/pfsense/*.py ${ANSIBLE_HOME}/test/units/modules/network/pfsense/
-cp test/units/modules/network/pfsense/fixtures/*.xml ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures/
-cp module_utils/network/pfsense/*.py ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense/
-cp module_utils/network/pfsense/__impl/*.py ${ANSIBLE_HOME}/lib/ansible/module_utils/network/pfsense/__impl/
-cp library/*.py ${ANSIBLE_HOME}/lib/ansible/modules/network/pfsense/
-cp lookup_plugins/pfsense.py ${ANSIBLE_HOME}/lib/ansible/plugins/lookup/pfsense.py
+cp module_utils/network/pfsense/*.py ${ANSIBLE_INSTALL}/module_utils/network/pfsense/
+cp module_utils/network/pfsense/__impl/*.py ${ANSIBLE_INSTALL}/module_utils/network/pfsense/__impl/
+cp library/*.py ${ANSIBLE_INSTALL}/modules/network/pfsense/
+cp lookup_plugins/pfsense.py ${ANSIBLE_INSTALL}/plugins/lookup/pfsense.py
 
-touch ${ANSIBLE_HOME}/lib/ansible/module_utils/network/__init__.py
-touch ${ANSIBLE_HOME}/lib/ansible/modules/network/__init__.py
-touch ${ANSIBLE_HOME}/lib/ansible/modules/network/pfsense/__init__.py
+touch ${ANSIBLE_INSTALL}/module_utils/network/__init__.py
+touch ${ANSIBLE_INSTALL}/modules/network/__init__.py
+touch ${ANSIBLE_INSTALL}/modules/network/pfsense/__init__.py
