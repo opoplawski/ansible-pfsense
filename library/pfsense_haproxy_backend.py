@@ -121,7 +121,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_haproxy_backend import PFSenseHaproxyBackendModule, HAPROXY_BACKEND_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.haproxy_backend import PFSenseHaproxyBackendModule, HAPROXY_BACKEND_ARGUMENT_SPEC
 
 
 def main():

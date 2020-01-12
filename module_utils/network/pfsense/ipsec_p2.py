@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
+from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 from copy import deepcopy
 
 IPSEC_P2_ARGUMENT_SPEC = dict(

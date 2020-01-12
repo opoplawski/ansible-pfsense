@@ -391,13 +391,13 @@ result_ipsec_p2s:
 """
 
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import PFSenseIpsecProposalModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import IPSEC_PROPOSAL_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_ipsec_proposal import IPSEC_PROPOSAL_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import PFSenseIpsecP2Module
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import IPSEC_P2_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import IPSEC_P2_REQUIRED_IF
+from ansible.module_utils.network.pfsense.ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
+from ansible.module_utils.network.pfsense.ipsec_proposal import PFSenseIpsecProposalModule
+from ansible.module_utils.network.pfsense.ipsec_proposal import IPSEC_PROPOSAL_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.ipsec_proposal import IPSEC_PROPOSAL_REQUIRED_IF
+from ansible.module_utils.network.pfsense.ipsec_p2 import PFSenseIpsecP2Module
+from ansible.module_utils.network.pfsense.ipsec_p2 import IPSEC_P2_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.ipsec_p2 import IPSEC_P2_REQUIRED_IF
 
 from ansible.module_utils.basic import AnsibleModule
 from copy import deepcopy
