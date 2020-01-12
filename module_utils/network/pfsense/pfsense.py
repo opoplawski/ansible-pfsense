@@ -22,6 +22,7 @@ class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
     from ansible.module_utils.network.pfsense.__impl.parse_address import parse_address
+    from ansible.module_utils.network.pfsense.__impl.checks import check_name
 
     def __init__(self, module, config='/cf/conf/config.xml'):
         self.module = module

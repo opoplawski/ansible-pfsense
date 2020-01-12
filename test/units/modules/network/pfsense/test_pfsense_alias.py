@@ -249,7 +249,9 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def test_create_alias_invalid_name(self):
         """ test creation of a new alias with invalid name """
         alias = dict(name='ads-ervers', address='10.0.0.1 10.0.0.2', type='host')
-        self.do_alias_creation_test(alias, failed=True, msg='The alias name may only consist of the characters "a-z, A-Z, 0-9 and _"')
+        msg = "The alias name must be less than 32 characters long, may not consist of only numbers, may not consist of only underscores, "
+        msg += "and may only contain the following characters: a-z, A-Z, 0-9, _"
+        self.do_alias_creation_test(alias, failed=True, msg=msg)
 
     def test_create_alias_invalid_name_interface(self):
         """ test creation of a new alias with invalid name """

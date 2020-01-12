@@ -82,6 +82,13 @@ class TestPFSenseGatewayModule(TestPFSenseModule):
         command = "create gateway 'test_gw', interface='lan', gateway='10.255.2.1'"
         self.do_module_test(obj, command=command)
 
+    def test_gateway_create_invalid_name(self):
+        """ test """
+        obj = dict(name='___', interface='lan', gateway='192.168.1.1')
+        msg = 'The gateway name must be less than 32 characters long, may not consist of only numbers, '
+        msg += 'may not consist of only underscores, and may only contain the following characters: a-z, A-Z, 0-9, _'
+        self.do_module_test(obj, msg=msg, failed=True)
+
     def test_gateway_create_invalid_interface(self):
         """ test """
         obj = dict(name='test_gw', interface='lan_232', gateway='192.168.1.1')
