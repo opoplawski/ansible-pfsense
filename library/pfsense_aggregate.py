@@ -362,16 +362,16 @@ result_vlans:
 """
 
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.pfsense_alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_interface import PFSenseInterfaceModule
-from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACE_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_interface import INTERFACE_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
-from ansible.module_utils.network.pfsense.pfsense_vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
+from ansible.module_utils.network.pfsense.interface import PFSenseInterfaceModule
+from ansible.module_utils.network.pfsense.interface import INTERFACE_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.interface import INTERFACE_REQUIRED_IF
+from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
+from ansible.module_utils.network.pfsense.rule_separator import PFSenseRuleSeparatorModule
+from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible.module_utils.network.pfsense.vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 from ansible.module_utils.basic import AnsibleModule
 

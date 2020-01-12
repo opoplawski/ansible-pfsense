@@ -74,10 +74,10 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.pfsense_rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible.module_utils.network.pfsense.rule_separator import PFSenseRuleSeparatorModule
+from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
 
 
 def main():

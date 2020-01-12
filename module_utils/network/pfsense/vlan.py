@@ -5,7 +5,7 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
+from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 VLAN_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),

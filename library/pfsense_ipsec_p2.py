@@ -189,7 +189,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_ipsec_p2 import PFSenseIpsecP2Module, IPSEC_P2_ARGUMENT_SPEC, IPSEC_P2_REQUIRED_IF
+from ansible.module_utils.network.pfsense.ipsec_p2 import PFSenseIpsecP2Module, IPSEC_P2_ARGUMENT_SPEC, IPSEC_P2_REQUIRED_IF
 
 
 def main():

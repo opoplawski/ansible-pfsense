@@ -133,7 +133,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_haproxy_backend_server import (
+from ansible.module_utils.network.pfsense.haproxy_backend_server import (
     PFSenseHaproxyBackendServerModule,
     HAPROXY_BACKEND_SERVER_ARGUMENT_SPEC,
     HAPROXY_BACKEND_SERVER_MUTUALLY_EXCLUSIVE,

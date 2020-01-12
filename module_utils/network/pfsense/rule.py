@@ -10,7 +10,7 @@ __metaclass__ = type
 import time
 import re
 
-from ansible.module_utils.network.pfsense.pfsense_module_base import PFSenseModuleBase
+from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 RULE_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),

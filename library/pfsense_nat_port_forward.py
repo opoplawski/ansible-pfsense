@@ -115,7 +115,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense_nat_port_forward import (
+from ansible.module_utils.network.pfsense.nat_port_forward import (
     PFSenseNatPortForwardModule,
     NAT_PORT_FORWARD_ARGUMENT_SPEC,
     NAT_PORT_FORWARD_REQUIRED_IF
