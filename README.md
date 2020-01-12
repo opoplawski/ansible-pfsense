@@ -28,6 +28,7 @@ The following modules are currently available:
 * [pfsense_ipsec_p2](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_p2) for ipsec tunnels phase 2 options
 * [pfsense_nat_outbound](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_nat_outbound) for outbound NAT rules
 * [pfsense_nat_port_forward](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_nat_port_forward) for port forward NAT rules
+* [pfsense_route](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_route) for routes
 * [pfsense_rule](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule) for rules
 * [pfsense_rule_separator](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule_separator) for rule separators
 * [pfsense_user](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_user) for users

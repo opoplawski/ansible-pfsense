@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 from ansible.module_utils.compat.ipaddress import ip_address, ip_network
+import re
 
 GATEWAY_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -173,6 +174,8 @@ class PFSenseGatewayModule(PFSenseModuleBase):
                         self.module.fail_json(msg='gateway must use an IPv6 address')
                     if params.get('monitor') is not None and params['monitor'] != '' and not self.pfsense.is_ipv6_address(params['monitor']):
                         self.module.fail_json(msg='monitor must use an IPv6 address')
+
+            self.pfsense.check_name(params['name'], 'gateway')
 
         else:
             if self.dynamic:
