@@ -24,6 +24,8 @@ mkdir -p ${ANSIBLE_INSTALL}/module_utils/network/pfsense
 mkdir -p ${ANSIBLE_INSTALL}/module_utils/network/pfsense/__impl
 mkdir -p ${ANSIBLE_INSTALL}/modules/network/pfsense
 
+# remove old modules imports
+rm -rf ${ANSIBLE_INSTALL}/module_utils/network/pfsense/pfense_*
 
 cp module_utils/network/pfsense/*.py ${ANSIBLE_INSTALL}/module_utils/network/pfsense/
 cp module_utils/network/pfsense/__impl/*.py ${ANSIBLE_INSTALL}/module_utils/network/pfsense/__impl/
