@@ -1,0 +1,97 @@
+---
+- block:
+  - name: "Load private data"
+    include_vars: keys.yml
+
+  # Different releases of pfSense work with different nss-pam-ldapd packages
+  - name: "Set facts"
+    set_fact:
+      nss_pam_ldap_pkg: http://pkg.freebsd.org/FreeBSD:11:amd64/release_2/All/nss-pam-ldapd-0.9.9.txz
+    when:
+    - ansible_distribution_version == "11.1"
+
+  - name: "Set facts"
+    set_fact:
+      nss_pam_ldap_pkg: http://pkg.freebsd.org/FreeBSD:11:amd64/latest/All/nss-pam-ldapd-0.9.10_1.txz
+    when:
+    - ansible_distribution_version == "11.2"
+
+  - name: "Install nss-pam-ldap"
+  #  package:
+  #    name: {{ nss_pam_ldap_pkg }}
+  #    state: present
+    command: /usr/sbin/pkg add {{ nss_pam_ldap_pkg }}
+    register: pkg_command
+    changed_when: not pkg_command.stdout is search("is already installed")
+
+  - name: "Install packages"
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+    - pfSense-pkg-sudo
+    # For pfsense ansible tasks
+    - py27-ipaddress
+
+  - name: "Configure nslcd"
+    template:
+      src: nslcd.conf.j2
+      dest: /usr/local/etc/nslcd.conf
+      mode: 0600
+
+  - name: "Install AD cert"
+    copy:
+      src: ad.example.com.crt
+      dest: /root/ad.example.com.crt
+
+  - name: "Configure /etc/nsswitch.conf"
+    lineinfile:
+      path: /etc/nsswitch.conf
+      regexp: "^({{ item }}):"
+      backrefs: yes
+      line: '\1: files ldap'
+    with_items:
+    - group
+    - passwd
+
+  # Work around https://github.com/ansible/ansible/issues/41970
+  - name: "Enable nslcd in /etc/rc.conf.local"
+    lineinfile:
+      path: /etc/rc.conf.local
+      regexp: "^nslcd_enable=.*"
+      line: 'nslcd_enable="YES"'
+      create: yes
+
+  - name: "Enable and start nslcd"
+    service:
+      name: nslcd
+      enabled: true
+      state: started
+
+  - name: "Enable savehist"
+    lineinfile:
+      path: "/etc/skel/dot.tcshrc"
+      regexp: '^set savehist.*'
+      line: "set savehist='1024 merge'"
+
+  - name: "Setup admin users"
+    include_tasks: setup_user.yml
+    vars:
+      user: "{{ adminuser }}"
+    loop_control:
+      loop_var: adminuser
+    with_items:
+    - "{{ admin_users }}"
+    tags: users
+
+  # Need to include sudoers.d in the GUI
+  - name: "Give Domain Admins sudo rights"
+    copy:
+      dest: /usr/local/etc/sudoers.d/admin
+      owner: root
+      group: wheel
+      mode: 0440
+      content: |
+        %Domain\ Admins             ALL=(ALL) NOPASSWD: ALL
+
+  tags: pfsense_setup

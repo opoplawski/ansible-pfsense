@@ -1,0 +1,30 @@
+---
+- block:
+  - name: "Add fail2ban alias"
+    pfsense_alias:
+      name: fail2ban
+      type: urltable
+      address: http://127.0.0.1/aliastables/fail2ban
+      updatefreq: 128
+      descr: "For fail2ban"
+      detail: "updated by fail2ban"
+      state: present
+
+  - name: "Add fail2ban floating rules"
+    pfsense_rule:
+      name: "fail2ban dynamic block {{ item.name }}"
+      action: reject
+      interface: wan
+      floating: yes
+      ipprotocol: inet
+      protocol: any
+      direction: "{{ item.direction }}"
+      source: "{{ item.source }}"
+      destination: "{{ item.destination }}"
+      after: 'top'
+      state: present
+    with_items:
+    - { name: incoming, direction: "in", source: fail2ban, destination: any }
+    - { name: outgoing, direction: "out", source: any, destination: fail2ban }
+
+  tags: pfsense-fail2ban
