@@ -289,7 +289,6 @@ class pfSenseUser(object):
                 group_elt, group_idx = self._find_group(group)
                 if group_elt is None:
                     self.module.fail_json(msg='Group (%s) does not exist' % group)
-                member_found = False
                 for member_elt in group_elt.findall('member'):
                     if member_elt.text == uid:
                         mod_groups.append(group)
