@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_interface
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense interfaces
 description:

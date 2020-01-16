@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_ipsec
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense ipsec tunnels and phase 1 options
 description:
