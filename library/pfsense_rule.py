@@ -29,7 +29,6 @@ options:
     type: str
   action:
     description: The action of the rule
-    required: true
     default: pass
     choices: [ "pass", "block", "reject" ]
     type: str
@@ -65,12 +64,10 @@ options:
     type: str
   source:
     description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
-    required: true
     default: null
     type: str
   destination:
     description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
-    required: true
     default: null
     type: str
   log:

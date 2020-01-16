@@ -40,7 +40,6 @@ options:
     type: str
   state:
     description: State in which to leave the vlan
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str

@@ -27,7 +27,7 @@ options:
     type: str
   balance:
     description: The load balancing option.
-    required: true
+    required: false
     type: str
     choices: ['none', 'roundrobin', 'static-rr', 'leastconn', 'source', 'uri']
     default: 'none'
@@ -92,7 +92,6 @@ options:
     type: str
   state:
     description: State in which to leave the backend
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str

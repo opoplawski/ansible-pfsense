@@ -49,7 +49,6 @@ options:
     type: str
   state:
     description: State in which to leave the ipsec proposal.
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str

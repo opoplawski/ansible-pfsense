@@ -45,12 +45,10 @@ options:
     type: str
   source:
     description: The source address, in [!]{IP,HOST,ALIAS,any,IP:INTERFACE,NET:INTERFACE}[:port] format.
-    required: true
     default: null
     type: str
   destination:
     description: The destination address, in [!]{IP,HOST,ALIAS,any,IP:INTERFACE,NET:INTERFACE}[:port] format.
-    required: true
     default: null
     type: str
   target:

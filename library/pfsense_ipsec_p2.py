@@ -147,7 +147,6 @@ options:
     type: str
   state:
     description: State in which to leave the ipsec tunnel phase2
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str

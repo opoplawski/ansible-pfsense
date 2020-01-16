@@ -31,7 +31,7 @@ options:
     type: str
   mode:
     description: How to use the server.
-    required: True
+    required: false
     type: str
     choices: ['active', 'backup', 'disabled', 'inactive']
     default: 'active'
@@ -99,7 +99,6 @@ options:
     type: str
   state:
     description: State in which to leave the backend server
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str

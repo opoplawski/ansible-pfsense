@@ -24,7 +24,6 @@ notes:
 options:
   state:
     description: State in which to leave the interface.
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -34,11 +33,9 @@ options:
     type: str
   interface:
     description: Network port to which assign the interface.
-    required: true
     type: str
   enable:
     description: Enable interface.
-    required: true
     type: bool
   ipv4_type:
     description: IPv4 Configuration Type.

@@ -131,11 +131,11 @@ options:
     type: int
   descr:
     description: The description of the ipsec tunnel
+    required: true
     default: null
     type: str
   state:
     description: State in which to leave the ipsec tunnel
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str

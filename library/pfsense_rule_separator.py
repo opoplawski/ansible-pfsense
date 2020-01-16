@@ -27,13 +27,11 @@ options:
     type: str
   state:
     description: State in which to leave the separator
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
   interface:
     description: The interface for the separator
-    required: true
     type: str
   floating:
     description: Is the rule on floating tab
