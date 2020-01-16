@@ -14,5 +14,5 @@ TO_CHECK='lib/ansible/modules/network/pfsense/
     test/units/modules/network/pfsense/'
 
 cd ${ANSIBLE_HOME}
-ansible-test sanity --python 3.5 ${TO_CHECK}
-ansible-test sanity --python 2.7 ${TO_CHECK}
+ansible-test sanity --python 3.5 ${TO_CHECK} $*
+ansible-test sanity --python 2.7 ${TO_CHECK} $*
