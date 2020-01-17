@@ -60,7 +60,6 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self.root_elt = self.pfsense.get_element('filter')
         self.obj = dict()
 
-        self.diff = {'after': {}, 'before': {}}
         self.result['added'] = []
         self.result['deleted'] = []
         self.result['modified'] = []

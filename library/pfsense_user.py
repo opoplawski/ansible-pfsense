@@ -123,7 +123,6 @@ class pfSenseUser(object):
         self.system = self.pfsense.get_element('system')
         self.users = self.system.findall('user')
         self.groups = self.system.findall('group')
-        self.diff = {}
         self.change_descr = ''
 
     def _find_user(self, name):

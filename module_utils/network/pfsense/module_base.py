@@ -35,6 +35,9 @@ class PFSenseModuleBase(object):
         self.result['changed'] = False
         self.result['commands'] = []
 
+        self.diff = {'after': {}, 'before': {}}
+        self.result['diff'] = self.diff
+
     ##############################
     # params processing
     #

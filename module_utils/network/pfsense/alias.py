@@ -37,9 +37,6 @@ class PFSenseAliasModule(PFSenseModuleBase):
         self.root_elt = self.pfsense.get_element('aliases')
         self.obj = dict()
 
-        self.diff = {}
-        self.result['diff'] = self.diff
-
     ##############################
     # params processing
     #
