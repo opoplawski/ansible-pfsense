@@ -33,6 +33,7 @@ RULE_ARGUMENT_SPEC = dict(
     in_queue=dict(required=False, type='str'),
     out_queue=dict(required=False, type='str'),
     gateway=dict(default='default', type='str'),
+    tracker=dict(required=False, type='str'),
 )
 
 RULE_REQUIRED_IF = [
@@ -43,7 +44,7 @@ RULE_REQUIRED_IF = [
 # These are rule elements that are (currently) unmanaged by this module
 RULE_UNMANAGED_ELEMENTS = [
     'created', 'id', 'max', 'max-src-conn', 'max-src-nodes', 'max-src-states', 'os',
-    'statetimeout', 'statetype', 'tag', 'tagged', 'tracker', 'updated'
+    'statetimeout', 'statetype', 'tag', 'tagged', 'updated'
 ]
 
 
@@ -186,6 +187,9 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
             if params.get('floating') and params.get('direction') == 'any':
                 self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
+
+        if params.get('tracker') is not None and not params.get('tracker').isdigit():
+            self.module.fail_json(msg='tracker %s is not numeric' % params.get('tracker'))
 
     ##############################
     # XML processing
