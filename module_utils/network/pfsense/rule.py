@@ -33,7 +33,7 @@ RULE_ARGUMENT_SPEC = dict(
     in_queue=dict(required=False, type='str'),
     out_queue=dict(required=False, type='str'),
     gateway=dict(default='default', type='str'),
-    tracker=dict(required=False, type='str'),
+    tracker=dict(required=False, type='int'),
 )
 
 RULE_REQUIRED_IF = [
@@ -79,55 +79,42 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ return a dict from module params """
         params = self.params
 
-        rule = dict()
-        self.obj = rule
+        obj = dict()
+        self.obj = obj
 
-        def param_to_rule(param_field, rule_field):
-            """ set rule_field if param_field is defined """
-            if params.get(param_field) is not None:
-                rule[rule_field] = params[param_field]
-
-        def bool_to_rule(param_field, rule_field):
-            """ set rule_field if param_field is True """
-            if params.get(param_field):
-                rule[rule_field] = ''
-
-        rule['descr'] = params['name']
+        obj['descr'] = params['name']
 
         if params.get('floating'):
-            rule['floating'] = 'yes'
-            rule['interface'] = self._parse_floating_interfaces(params['interface'])
+            obj['floating'] = 'yes'
+            obj['interface'] = self._parse_floating_interfaces(params['interface'])
         else:
-            rule['interface'] = self.pfsense.parse_interface(params['interface'])
+            obj['interface'] = self.pfsense.parse_interface(params['interface'])
 
         if params['state'] == 'present':
-            rule['type'] = params['action']
-            rule['ipprotocol'] = params['ipprotocol']
-            rule['statetype'] = params['statetype']
-            rule['source'] = self.pfsense.parse_address(params['source'])
-            rule['destination'] = self.pfsense.parse_address(params['destination'])
+            obj['type'] = params['action']
+            obj['ipprotocol'] = params['ipprotocol']
+            obj['statetype'] = params['statetype']
+            obj['source'] = self.pfsense.parse_address(params['source'])
+            obj['destination'] = self.pfsense.parse_address(params['destination'])
 
-            if params['protocol'] != 'any':
-                rule['protocol'] = params['protocol']
+            self._get_ansible_param(obj, 'protocol', exclude='any')
+            self._get_ansible_param(obj, 'direction')
+            self._get_ansible_param(obj, 'queue', fname='defaultqueue')
+            self._get_ansible_param(obj, 'ackqueue')
+            self._get_ansible_param(obj, 'in_queue', fname='dnpipe')
+            self._get_ansible_param(obj, 'out_queue', fname='pdnpipe')
+            self._get_ansible_param(obj, 'associated-rule-id')
+            self._get_ansible_param(obj, 'tracker')
+            self._get_ansible_param(obj, 'gateway', exclude='default')
 
-            bool_to_rule('disabled', 'disabled')
-            bool_to_rule('log', 'log')
-
-            param_to_rule('direction', 'direction')
-            param_to_rule('queue', 'defaultqueue')
-            param_to_rule('ackqueue', 'ackqueue')
-            param_to_rule('in_queue', 'dnpipe')
-            param_to_rule('out_queue', 'pdnpipe')
-            param_to_rule('associated-rule-id', 'associated-rule-id')
-
-            if params.get('gateway') is not None and params['gateway'] != 'default':
-                rule['gateway'] = params['gateway']
+            self._get_ansible_param_bool(obj, 'disabled', value='')
+            self._get_ansible_param_bool(obj, 'log', value='')
 
         self._floating = 'floating' in self.obj and self.obj['floating'] == 'yes'
         self._after = params.get('after')
         self._before = params.get('before')
 
-        return rule
+        return obj
 
     def _parse_floating_interfaces(self, interfaces):
         """ validate param interface field when floating is true """
@@ -188,8 +175,8 @@ class PFSenseRuleModule(PFSenseModuleBase):
             if params.get('floating') and params.get('direction') == 'any':
                 self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
 
-        if params.get('tracker') is not None and not params.get('tracker').isdigit():
-            self.module.fail_json(msg='tracker %s is not numeric' % params.get('tracker'))
+        if params.get('tracker') is not None and params['tracker'] <= 0:
+            self.module.fail_json(msg='tracker {0} must be a positive integer'.format(params['tracker']))
 
     ##############################
     # XML processing
@@ -230,7 +217,8 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ create the XML target_elt """
         timestamp = '%d' % int(time.time())
         self.obj['id'] = ''
-        self.obj['tracker'] = timestamp
+        if 'tracker' not in self.obj:
+            self.obj['tracker'] = timestamp
         self.obj['created'] = self.obj['updated'] = dict()
         self.obj['created']['time'] = self.obj['updated']['time'] = timestamp
         self.obj['created']['username'] = self.obj['updated']['username'] = self.pfsense.get_username()
@@ -243,6 +231,9 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ update the XML target_elt """
         timestamp = '%d' % int(time.time())
         before = self._rule_element_to_dict()
+        if 'tracker' not in self.obj:
+            self.obj['tracker'] = before['tracker']
+
         if 'associated-rule-id' not in self.obj and 'associated-rule-id' in before and before['associated-rule-id'] != '':
             self.module.fail_json(msg='Target filter rule is associated with a NAT rule.')
 
@@ -490,6 +481,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_cli_field(self.params, 'in_queue')
             values += self.format_cli_field(self.params, 'out_queue')
             values += self.format_cli_field(self.params, 'gateway', default='default')
+            values += self.format_cli_field(self.params, 'tracker')
         else:
             fbefore = self._obj_to_log_fields(before)
             fafter = self._obj_to_log_fields(self.obj)
@@ -515,6 +507,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_updated_cli_field(self.obj, before, 'dnpipe', fname='in_queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'pdnpipe', fname='out_queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'tracker', add_comma=(values))
         return values
 
     @staticmethod

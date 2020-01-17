@@ -16,36 +16,18 @@ from ansible.modules.network.pfsense import pfsense_rule
 from .pfsense_module import TestPFSenseModule, load_fixture
 
 
-def args_from_var(var, state='present', **kwargs):
-    """ return arguments for pfsense_rule module from var """
-    args = {}
-    fields = ['name', 'source', 'destination', 'descr', 'interface', 'action']
-    fields.extend(['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway'])
-    fields.extend(['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue'])
-    for field in fields:
-        if field in var:
-            args[field] = var[field]
-
-    args['state'] = state
-    for key, value in kwargs.items():
-        args[key] = value
-
-    return args
-
-
 class TestPFSenseRuleModule(TestPFSenseModule):
 
     module = pfsense_rule
 
-    def load_fixtures(self, commands=None):
-        """ loading data """
-        config_file = 'pfsense_rule_config.xml'
-        self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
+    def __init__(self, *args, **kwargs):
+        super(TestPFSenseRuleModule, self).__init__(*args, **kwargs)
+        self.config_file = 'pfsense_rule_config.xml'
 
     @staticmethod
     def get_args_fields():
         """ return params fields """
-        fields = ['name', 'source', 'destination', 'descr', 'interface', 'action']
+        fields = ['name', 'source', 'destination', 'descr', 'interface', 'action', 'tracker']
         fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway']
         fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue']
         return fields
@@ -55,11 +37,6 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         """ dummy function needed to instantiate this test module from another in python 2.7 """
         pass
 
-    ########################################################
-    # Generic set of funcs used for testing rules
-    # First we run the module
-    # Then, we check return values
-    # Finally, we check the xml
     def parse_address(self, addr):
         """ return address parsed in dict """
         parts = addr.split(':')
@@ -185,6 +162,10 @@ class TestPFSenseRuleModule(TestPFSenseModule):
             self.assert_xml_elt_equal(target_elt, 'gateway', obj['gateway'])
         else:
             self.assert_not_find_xml_elt(target_elt, 'gateway')
+
+        # checking tracker
+        if 'tracker' in obj:
+            self.assert_xml_elt_equal(target_elt, 'tracker', obj['tracker'])
 
     def check_rule_idx(self, rule, target_idx):
         """ test the xml position of rule """

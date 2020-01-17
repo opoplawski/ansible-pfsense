@@ -101,8 +101,8 @@ options:
     type: str
     default: default
   tracker:
-    description: Rule tracking ID.  Must be a numeric value.  Defaults to timestamp of rule creation.
-    type: str
+    description: Rule tracking ID. Defaults to timestamp of rule creation.
+    type: int
 """
 
 EXAMPLES = """

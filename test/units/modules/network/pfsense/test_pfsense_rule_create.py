@@ -533,3 +533,15 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', ipprotocol='inet6', gateway='GWGroup')
         msg = 'Gateway "GWGroup" does not exist or does not match target rule ip protocol.'
         self.do_module_test(obj, failed=True, msg=msg)
+
+    def test_rule_create_tracker(self):
+        """ test creation of a new rule with tracker """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', tracker='1234')
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', tracker=1234"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_create_tracker_invalid(self):
+        """ test creation of a new rule with invalid tracker """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', tracker='-1234')
+        msg = 'tracker -1234 must be a positive integer'
+        self.do_module_test(obj, failed=True, msg=msg)

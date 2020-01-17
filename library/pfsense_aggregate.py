@@ -211,6 +211,9 @@ options:
         description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
         type: str
         default: default
+      tracker:
+        description: Rule tracking ID. Defaults to timestamp of rule creation.
+        type: int
   aggregated_rule_separators:
     description: Dict of rule separators to apply on the target
     required: False
@@ -539,7 +542,7 @@ class PFSenseModuleAggregate(object):
         # delete every other if required
         if self.module.params['purge_interfaces']:
             todel = []
-            for interface_elt in self.pfsense_interfaces.interfaces:
+            for interface_elt in self.pfsense_interfaces.root_elt:
                 if not self.want_interface(interface_elt, want):
                     params = {}
                     params['state'] = 'absent'

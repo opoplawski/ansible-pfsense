@@ -297,3 +297,9 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         obj = dict(name='antilock_out_1', source='any', destination='any:port_ssh', interface='lan', protocol='tcp', log=True)
         command = "update rule 'antilock_out_1' on 'lan' set gateway=none"
         self.do_module_test(obj, command=command)
+
+    def test_rule_update_tracker(self):
+        """ test updating tracker of a rule """
+        obj = dict(name='test_lan_100_5', source='any', destination='any', interface='lan_100', in_queue='one_limiter', protocol='tcp', tracker='1234')
+        command = "update rule 'test_lan_100_5' on 'lan_100' set tracker='1234'"
+        self.do_module_test(obj, command=command)
