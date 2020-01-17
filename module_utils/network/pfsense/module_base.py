@@ -231,7 +231,7 @@ class PFSenseModuleBase(object):
             return self.name.replace("pfsense_", "")
         return self.name
 
-    def format_cli_field(self, after, field, log_none=False, add_comma=True, fvalue=None, default=None, fname=None):
+    def format_cli_field(self, after, field, log_none=False, add_comma=True, fvalue=None, default=None, fname=None, none_value=None):
         """ format field for pseudo-CLI command """
         if fvalue is None:
             fvalue = self.fvalue_idem
@@ -239,10 +239,13 @@ class PFSenseModuleBase(object):
         if fname is None:
             fname = field
 
+        if none_value is None:
+            none_value = 'none'
+
         res = ''
         if field in after:
             if log_none and after[field] is None:
-                res = "{0}={1}".format(fname, fvalue('none'))
+                res = "{0}={1}".format(fname, fvalue(none_value))
             if after[field] is not None:
                 if default is None or after[field] != default:
                     if isinstance(after[field], str) and fvalue != self.fvalue_bool:
@@ -250,15 +253,18 @@ class PFSenseModuleBase(object):
                     else:
                         res = "{0}={1}".format(fname, fvalue(after[field]))
         elif log_none:
-            res = "{0}={1}".format(fname, fvalue('none'))
+            res = "{0}={1}".format(fname, fvalue(none_value))
 
         if add_comma and res:
             return ', ' + res
         return res
 
-    def format_updated_cli_field(self, after, before, field, log_none=True, add_comma=True, fvalue=None, default=None, fname=None):
+    def format_updated_cli_field(self, after, before, field, log_none=True, add_comma=True, fvalue=None, default=None, fname=None, none_value=None):
         """ format field for pseudo-CLI update command """
         log = False
+        if none_value is None:
+            none_value = 'none'
+
         if field in after and field in before:
             if fvalue is None and after[field] != before[field]:
                 log = True
@@ -267,13 +273,15 @@ class PFSenseModuleBase(object):
         elif fvalue is None:
             if field in after and field not in before or field not in after and field in before:
                 log = True
-        elif field in after and field not in before and fvalue(after[field]) != fvalue('none'):
+        elif field in after and field not in before and fvalue(after[field]) != fvalue(none_value):
             log = True
-        elif field not in after and field in before and fvalue(before[field]) != fvalue('none'):
+        elif field not in after and field in before and fvalue(before[field]) != fvalue(none_value):
             log = True
 
         if log:
-            return self.format_cli_field(after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default, fname=fname)
+            return self.format_cli_field(
+                after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default, fname=fname, none_value=none_value
+            )
         return ''
 
     @staticmethod

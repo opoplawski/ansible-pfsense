@@ -64,11 +64,12 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self.result['deleted'] = []
         self.result['modified'] = []
 
-        # internals params
         self.obj = None
-        self._floating = None
-        self._after = None
-        self._before = None
+        self._floating = None               # are we on floating rule
+        self._floating_interfaces = None    # rule's interfaces before change
+        self._after = None                  # insert/move after
+        self._before = None                 # insert/move before
+
         self._position_changed = False
 
     ##############################
@@ -119,7 +120,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
             param_to_rule('out_queue', 'pdnpipe')
             param_to_rule('associated-rule-id', 'associated-rule-id')
 
-            if 'gateway' in params and params['gateway'] != 'default':
+            if params.get('gateway') is not None and params['gateway'] != 'default':
                 rule['gateway'] = params['gateway']
 
         self._floating = 'floating' in self.obj and self.obj['floating'] == 'yes'
@@ -312,6 +313,10 @@ class PFSenseRuleModule(PFSenseModuleBase):
     def _find_target(self):
         """ find the XML target_elt """
         rule_elt, dummy = self._find_matching_rule()
+        if rule_elt is not None and self._floating:
+            ifs_elt = rule_elt.find('interface')
+            self._floating_interfaces = ','.join([self.pfsense.get_interface_display_name(interface) for interface in ifs_elt.text.split(',')])
+
         return rule_elt
 
     def _get_expected_rule_position(self):
@@ -460,6 +465,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
     def _interface_name(self):
         """ return formated interface name for logging """
         if self._floating:
+            if self._floating_interfaces is not None:
+                return 'floating(' + self._floating_interfaces + ')'
             return 'floating(' + self.params['interface'] + ')'
         return self.params['interface']
 
@@ -469,21 +476,20 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
         if before is None:
             values += self.format_cli_field(self.params, 'source')
             values += self.format_cli_field(self.params, 'destination')
-            values += self.format_cli_field(self.params, 'protocol')
-            values += self.format_cli_field(self.params, 'floating')
+            values += self.format_cli_field(self.params, 'protocol', default='any')
             values += self.format_cli_field(self.params, 'direction')
             values += self.format_cli_field(self.params, 'ipprotocol', default='inet')
             values += self.format_cli_field(self.params, 'statetype', default='keep state')
             values += self.format_cli_field(self.params, 'action', default='pass')
-            values += self.format_cli_field(self.params, 'disabled', default=False)
-            values += self.format_cli_field(self.params, 'log', default=False)
+            values += self.format_cli_field(self.params, 'disabled', fvalue=self.fvalue_bool, default=False)
+            values += self.format_cli_field(self.params, 'log', fvalue=self.fvalue_bool, default=False)
             values += self.format_cli_field(self.params, 'after')
             values += self.format_cli_field(self.params, 'before')
             values += self.format_cli_field(self.params, 'queue')
             values += self.format_cli_field(self.params, 'ackqueue')
             values += self.format_cli_field(self.params, 'in_queue')
             values += self.format_cli_field(self.params, 'out_queue')
-            values += self.format_cli_field(self.params, 'default', default='default')
+            values += self.format_cli_field(self.params, 'gateway', default='default')
         else:
             fbefore = self._obj_to_log_fields(before)
             fafter = self._obj_to_log_fields(self.obj)
@@ -492,22 +498,22 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
 
             values += self.format_updated_cli_field(fafter, fbefore, 'source', add_comma=(values))
             values += self.format_updated_cli_field(fafter, fbefore, 'destination', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'protocol', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'interface', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'protocol', none_value="'any'", add_comma=(values))
+            values += self.format_updated_cli_field(fafter, fbefore, 'interface', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'floating', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'direction', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'ipprotocol', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'statetype', add_comma=(values))
             values += self.format_updated_cli_field(self.params, before, 'action', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'disabled', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'log', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'disabled', fvalue=self.fvalue_bool, add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'log', fvalue=self.fvalue_bool, add_comma=(values))
             if self._position_changed:
                 values += self.format_updated_cli_field(fafter, {}, 'after', log_none=False, add_comma=(values))
                 values += self.format_updated_cli_field(fafter, {}, 'before', log_none=False, add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'queue', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'defaultqueue', fname='queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'ackqueue', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'in_queue', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'out_queue', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'dnpipe', fname='in_queue', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'pdnpipe', fname='out_queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values))
         return values
 
@@ -516,10 +522,12 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
         """ return formated address from dict """
         field = ''
         if isinstance(rule[addr], dict):
+            if 'not' in rule[addr]:
+                field += '!'
             if 'any' in rule[addr]:
-                field = 'any'
+                field += 'any'
             if 'address' in rule[addr]:
-                field = rule[addr]['address']
+                field += rule[addr]['address']
             if 'port' in rule[addr]:
                 if field:
                     field += ':'
@@ -533,5 +541,5 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
         res = {}
         res['source'] = self._obj_address_to_log_field(rule, 'source')
         res['destination'] = self._obj_address_to_log_field(rule, 'destination')
-        res['interface'] = self.pfsense.get_interface_display_name(rule['interface'])
+        res['interface'] = ','.join([self.pfsense.get_interface_display_name(interface) for interface in rule['interface'].split(',')])
         return res

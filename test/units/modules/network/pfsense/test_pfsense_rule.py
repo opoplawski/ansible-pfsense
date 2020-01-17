@@ -43,6 +43,14 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         self.parse.return_value = ElementTree(fromstring(load_fixture(config_file)))
 
     @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['name', 'source', 'destination', 'descr', 'interface', 'action']
+        fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway']
+        fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue']
+        return fields
+
+    @staticmethod
     def runTest():
         """ dummy function needed to instantiate this test module from another in python 2.7 """
         pass
@@ -98,84 +106,85 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         if 'not' not in addr_dict:
             self.assert_not_find_xml_elt(addr_elt, 'not')
 
-    def get_target_elt(self, rule, absent=False):
-        rule['interface'] = self.unalias_interface(rule['interface'])
-        if 'floating' in rule and rule['floating'] == 'yes':
-            return self.assert_has_xml_tag('filter', dict(descr=rule['name'], floating='yes'))
-        return self.assert_has_xml_tag('filter', dict(descr=rule['name'], interface=rule['interface']))
+    def get_target_elt(self, obj, absent=False):
+        """ return target elt from XML """
+        obj['interface'] = self.unalias_interface(obj['interface'])
+        if 'floating' in obj and obj['floating'] == 'yes':
+            return self.assert_has_xml_tag('filter', dict(descr=obj['name'], floating='yes'), absent=absent)
+        return self.assert_has_xml_tag('filter', dict(descr=obj['name'], interface=obj['interface']), absent=absent)
 
-    def check_target_elt(self, rule, rule_elt):
-        """ test the xml definition of rule """
+    def check_target_elt(self, obj, target_elt):
+        """ check XML definition of target elt """
 
         # checking source address and ports
-        self.check_rule_elt_addr(rule, rule_elt, 'source')
+        self.check_rule_elt_addr(obj, target_elt, 'source')
 
         # checking destination address and ports
-        self.check_rule_elt_addr(rule, rule_elt, 'destination')
+        self.check_rule_elt_addr(obj, target_elt, 'destination')
 
         # checking log option
-        if 'log' in rule and rule['log'] == 'yes':
-            self.assert_xml_elt_is_none_or_empty(rule_elt, 'log')
-        elif 'log' not in rule or rule['log'] == 'no':
-            self.assert_not_find_xml_elt(rule_elt, 'log')
+        if 'log' in obj and obj['log'] == 'yes':
+            self.assert_xml_elt_is_none_or_empty(target_elt, 'log')
+        elif 'log' not in obj or obj['log'] == 'no':
+            self.assert_not_find_xml_elt(target_elt, 'log')
 
         # checking action option
-        if 'action' in rule:
-            action = rule['action']
+        if 'action' in obj:
+            action = obj['action']
         else:
             action = 'pass'
-        self.assert_xml_elt_equal(rule_elt, 'type', action)
+        self.assert_xml_elt_equal(target_elt, 'type', action)
 
         # checking floating option
-        if 'floating' in rule and rule['floating'] == 'yes':
-            self.assert_xml_elt_equal(rule_elt, 'floating', 'yes')
-        elif 'floating' not in rule or rule['floating'] == 'no':
-            self.assert_not_find_xml_elt(rule_elt, 'floating')
+        if 'floating' in obj and obj['floating'] == 'yes':
+            self.assert_xml_elt_equal(target_elt, 'floating', 'yes')
+        elif 'floating' not in obj or obj['floating'] == 'no':
+            self.assert_not_find_xml_elt(target_elt, 'floating')
 
         # checking direction option
-        self.check_param_equal_or_not_find(rule, rule_elt, 'direction')
+        self.check_param_equal_or_not_find(obj, target_elt, 'direction')
 
         # checking default queue option
-        self.check_param_equal_or_not_find(rule, rule_elt, 'queue', 'defaultqueue')
+        self.check_param_equal_or_not_find(obj, target_elt, 'queue', 'defaultqueue')
 
         # checking acknowledge queue option
-        self.check_param_equal_or_not_find(rule, rule_elt, 'ackqueue')
+        self.check_param_equal_or_not_find(obj, target_elt, 'ackqueue')
 
         # limiters
-        self.check_param_equal_or_not_find(rule, rule_elt, 'in_queue', 'dnpipe')
-        self.check_param_equal_or_not_find(rule, rule_elt, 'out_queue', 'pdnpipe')
+        self.check_param_equal_or_not_find(obj, target_elt, 'in_queue', 'dnpipe')
+        self.check_param_equal_or_not_find(obj, target_elt, 'out_queue', 'pdnpipe')
 
         # checking ipprotocol option
-        if 'ipprotocol' in rule:
-            action = rule['ipprotocol']
+        if 'ipprotocol' in obj:
+            action = obj['ipprotocol']
         else:
             action = 'inet'
-        self.assert_xml_elt_equal(rule_elt, 'ipprotocol', action)
+        self.assert_xml_elt_equal(target_elt, 'ipprotocol', action)
 
         # checking protocol option
-        if 'protocol' in rule and rule['protocol'] != 'any':
-            self.assert_xml_elt_equal(rule_elt, 'protocol', rule['protocol'])
+        if 'protocol' in obj and obj['protocol'] != 'any':
+            self.assert_xml_elt_equal(target_elt, 'protocol', obj['protocol'])
         else:
-            self.assert_not_find_xml_elt(rule_elt, 'protocol')
+            self.assert_not_find_xml_elt(target_elt, 'protocol')
 
         # checking statetype option
-        if 'statetype' in rule and rule['statetype'] != 'keep state':
-            statetype = rule['statetype']
+        if 'statetype' in obj and obj['statetype'] != 'keep state':
+            statetype = obj['statetype']
         else:
             statetype = 'keep state'
-        self.assert_xml_elt_equal(rule_elt, 'statetype', statetype)
+        self.assert_xml_elt_equal(target_elt, 'statetype', statetype)
 
         # checking disabled option
-        if 'disabled' in rule and rule['disabled'] == 'yes':
-            self.assert_xml_elt_is_none_or_empty(rule_elt, 'disabled')
-        elif 'disabled' not in rule or rule['disabled'] == 'no':
-            self.assert_not_find_xml_elt(rule_elt, 'disabled')
+        if 'disabled' in obj and obj['disabled'] == 'yes':
+            self.assert_xml_elt_is_none_or_empty(target_elt, 'disabled')
+        elif 'disabled' not in obj or obj['disabled'] == 'no':
+            self.assert_not_find_xml_elt(target_elt, 'disabled')
 
         # checking gateway option
-        if 'gateway' in rule and rule['gateway'] != 'default':
-            self.assert_xml_elt_equal(rule_elt, 'gateway', rule['gateway'])
+        if 'gateway' in obj and obj['gateway'] != 'default':
+            self.assert_xml_elt_equal(target_elt, 'gateway', obj['gateway'])
         else:
-            self.assert_not_find_xml_elt(rule_elt, 'gateway')
+            self.assert_not_find_xml_elt(target_elt, 'gateway')
 
     def check_rule_idx(self, rule, target_idx):
         """ test the xml position of rule """
