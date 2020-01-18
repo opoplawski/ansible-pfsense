@@ -114,6 +114,36 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         command = "create rule 'one_rule' on 'lan', source='any', destination='any', protocol='icmp'"
         self.do_module_test(obj, command=command)
 
+    def test_rule_create_icmp_redir(self):
+        """ test creation of a new rule for icmp protocol """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='icmp', icmptype='redir', action='block')
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', protocol='icmp', icmptype='redir', action='block'"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_create_icmp_invalid_inet(self):
+        """ test creation of a new rule for icmp protocol """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='icmp', icmptype='neighbradv')
+        msg = 'ICMP types neighbradv are invalid with IP type inet'
+        self.do_module_test(obj, failed=True, msg=msg)
+
+    def test_rule_create_icmp_invalid_inet6(self):
+        """ test creation of a new rule for icmp protocol """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='icmp', ipprotocol='inet6', icmptype='trace')
+        msg = 'ICMP types trace are invalid with IP type inet6'
+        self.do_module_test(obj, failed=True, msg=msg)
+
+    def test_rule_create_icmp_invalid_inet46(self):
+        """ test creation of a new rule for icmp protocol """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='icmp', ipprotocol='inet46', icmptype='trace')
+        msg = 'ICMP types trace are invalid with IP type inet46'
+        self.do_module_test(obj, failed=True, msg=msg)
+
+    def test_rule_create_icmp_invalid_empty(self):
+        """ test creation of a new rule for icmp protocol """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='icmp', icmptype='')
+        msg = 'You must specify at least one icmptype or any for all of them'
+        self.do_module_test(obj, failed=True, msg=msg)
+
     def test_rule_create_protocol_any(self):
         """ test creation of a new rule for (self) """
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='any')
@@ -210,6 +240,12 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         msg = "Cannot parse address acme, not IP or alias"
         self.do_module_test(obj, failed=True, msg=msg)
 
+    def test_rule_create_invalid_ports(self):
+        """ test creation of a new rule with an invalid use of ports """
+        obj = dict(name='one_rule', source='192.193.194.195', destination='any:22', interface='lan', protocol='icmp')
+        msg = "you can't use ports on protocols other than tcp, udp or tcp/udp"
+        self.do_module_test(obj, failed=True, msg=msg)
+
     def test_rule_create_source_ip_invalid(self):
         """ test creation of a new rule with an invalid source ip """
         obj = dict(name='one_rule', source='192.193.194.195.196', destination='any', interface='lan')
@@ -290,8 +326,8 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
 
     def test_rule_create_ip_interface_with_port(self):
         """ test creation of a new rule with valid interface """
-        obj = dict(name='one_rule', source='IP:vt1:22', destination='any', interface='lan')
-        command = "create rule 'one_rule' on 'lan', source='IP:vt1:22', destination='any'"
+        obj = dict(name='one_rule', source='IP:vt1:22', destination='any', interface='lan', protocol='tcp')
+        command = "create rule 'one_rule' on 'lan', source='IP:vt1:22', destination='any', protocol='tcp'"
         self.do_module_test(obj, command=command)
 
     def test_rule_create_ip_interface_invalid(self):
@@ -308,26 +344,26 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
 
     def test_rule_create_port_number(self):
         """ test creation of a new rule with port """
-        obj = dict(name='one_rule', source='10.10.1.1', destination='10.10.10.1:80', interface='lan')
-        command = "create rule 'one_rule' on 'lan', source='10.10.1.1', destination='10.10.10.1:80'"
+        obj = dict(name='one_rule', source='10.10.1.1', destination='10.10.10.1:80', interface='lan', protocol='tcp')
+        command = "create rule 'one_rule' on 'lan', source='10.10.1.1', destination='10.10.10.1:80', protocol='tcp'"
         self.do_module_test(obj, command=command)
 
     def test_rule_create_port_alias(self):
         """ test creation of a new rule with port alias """
-        obj = dict(name='one_rule', source='10.10.1.1', destination='10.10.10.1:port_http', interface='lan')
-        command = "create rule 'one_rule' on 'lan', source='10.10.1.1', destination='10.10.10.1:port_http'"
+        obj = dict(name='one_rule', source='10.10.1.1', destination='10.10.10.1:port_http', interface='lan', protocol='tcp')
+        command = "create rule 'one_rule' on 'lan', source='10.10.1.1', destination='10.10.10.1:port_http', protocol='tcp'"
         self.do_module_test(obj, command=command)
 
     def test_rule_create_port_range(self):
         """ test creation of a new rule with range of ports """
-        obj = dict(name='one_rule', source='10.10.1.1:30000-40000', destination='10.10.10.1', interface='lan')
-        command = "create rule 'one_rule' on 'lan', source='10.10.1.1:30000-40000', destination='10.10.10.1'"
+        obj = dict(name='one_rule', source='10.10.1.1:30000-40000', destination='10.10.10.1', interface='lan', protocol='tcp')
+        command = "create rule 'one_rule' on 'lan', source='10.10.1.1:30000-40000', destination='10.10.10.1', protocol='tcp'"
         self.do_module_test(obj, command=command)
 
     def test_rule_create_port_alias_range(self):
         """ test creation of a new rule with range of alias ports """
-        obj = dict(name='one_rule', source='10.10.1.1:port_ssh-port_http', destination='10.10.10.1', interface='lan')
-        command = "create rule 'one_rule' on 'lan', source='10.10.1.1:port_ssh-port_http', destination='10.10.10.1'"
+        obj = dict(name='one_rule', source='10.10.1.1:port_ssh-port_http', destination='10.10.10.1', interface='lan', protocol='tcp')
+        command = "create rule 'one_rule' on 'lan', source='10.10.1.1:port_ssh-port_http', destination='10.10.10.1', protocol='tcp'"
         self.do_module_test(obj, command=command)
 
     def test_rule_create_port_alias_range_invalid_1(self):
@@ -350,7 +386,7 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
 
     def test_rule_create_port_number_invalid(self):
         """ test creation of a new rule with invalid port number """
-        obj = dict(name='one_rule', source='10.10.1.1:65536', destination='10.10.10.1', interface='lan')
+        obj = dict(name='one_rule', source='10.10.1.1:65536', destination='10.10.10.1', interface='lan', protocol='tcp')
         msg = "Cannot parse port 65536, not port number or alias"
         self.do_module_test(obj, failed=True, msg=msg)
 

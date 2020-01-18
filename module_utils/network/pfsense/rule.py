@@ -9,7 +9,6 @@ __metaclass__ = type
 
 import time
 import re
-
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 RULE_ARGUMENT_SPEC = dict(
@@ -34,11 +33,13 @@ RULE_ARGUMENT_SPEC = dict(
     out_queue=dict(required=False, type='str'),
     gateway=dict(default='default', type='str'),
     tracker=dict(required=False, type='int'),
+    icmptype=dict(default='any', required=False, type='str')
 )
 
 RULE_REQUIRED_IF = [
     ["floating", True, ["direction"]],
-    ["state", "present", ["source", "destination"]]
+    ["state", "present", ["source", "destination"]],
+    ["protocol", "icmp", ["icmptype"]],
 ]
 
 # These are rule elements that are (currently) unmanaged by this module
@@ -96,8 +97,12 @@ class PFSenseRuleModule(PFSenseModuleBase):
             obj['statetype'] = params['statetype']
             obj['source'] = self.pfsense.parse_address(params['source'])
             obj['destination'] = self.pfsense.parse_address(params['destination'])
+            if params['protocol'] not in ['tcp', 'udp', 'tcp/udp'] and ('port' in obj['source'] or 'port' in obj['destination']):
+                self.module.fail_json(msg="you can't use ports on protocols other than tcp, udp or tcp/udp")
 
             self._get_ansible_param(obj, 'protocol', exclude='any')
+            if params['protocol'] == 'icmp':
+                self._get_ansible_param(obj, 'icmptype')
             self._get_ansible_param(obj, 'direction')
             self._get_ansible_param(obj, 'queue', fname='defaultqueue')
             self._get_ansible_param(obj, 'ackqueue')
@@ -175,8 +180,38 @@ class PFSenseRuleModule(PFSenseModuleBase):
             if params.get('floating') and params.get('direction') == 'any':
                 self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
 
+        # tracker
         if params.get('tracker') is not None and params['tracker'] <= 0:
             self.module.fail_json(msg='tracker {0} must be a positive integer'.format(params['tracker']))
+
+        # ICMP
+        if params.get('protocol') == 'icmp' and params.get('icmptype') is not None:
+            both_types = ['any', 'echorep', 'echoreq', 'paramprob', 'redir', 'routeradv', 'routersol', 'timex', 'unreach']
+            v4_types = ['althost', 'dataconv', 'inforep', 'inforeq', 'ipv6-here', 'ipv6-where', 'maskrep', 'maskreq', 'mobredir', 'mobregrep', 'mobregreq']
+            v4_types += ['photuris', 'skip', 'squench', 'timerep', 'timereq', 'trace']
+            v6_types = ['fqdnrep', 'fqdnreq', 'groupqry', 'grouprep', 'groupterm', 'listendone', 'listenrep', 'listqry', 'mtrace', 'mtraceresp', 'neighbradv']
+            v6_types += ['neighbrsol', 'niqry', 'nirep', 'routrrenum', 'toobig', 'wrurep', 'wrureq']
+
+            icmptypes = list(set(map(str.strip, params['icmptype'].split(','))))
+            icmptypes.sort()
+            if '' in icmptypes:
+                icmptypes.remove('')
+            if len(icmptypes) == 0:
+                self.module.fail_json(msg='You must specify at least one icmptype or any for all of them')
+
+            invalids = set(icmptypes) - set(v4_types) - set(v6_types) - set(both_types)
+            if len(invalids) > 0:
+                self.module.fail_json(msg='ICMP types {0} does not exist'.format(','.join(invalids)))
+
+            if params['ipprotocol'] == 'inet':
+                left = set(icmptypes) - set(v4_types) - set(both_types)
+            elif params['ipprotocol'] == 'inet6':
+                left = set(icmptypes) - set(v6_types) - set(both_types)
+            else:   # inet46 only allow
+                left = set(icmptypes) - set(both_types)
+            if len(left) > 0:
+                self.module.fail_json(msg='ICMP types {0} are invalid with IP type {1}'.format(','.join(left), params['ipprotocol']))
+            params['icmptype'] = ','.join(icmptypes)
 
     ##############################
     # XML processing
@@ -377,7 +412,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway']
+        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype']
 
     def _get_rule_position(self, descr=None, fail=True):
         """ get rule position in interface/floating """
@@ -470,6 +505,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_cli_field(self.params, 'protocol', default='any')
             values += self.format_cli_field(self.params, 'direction')
             values += self.format_cli_field(self.params, 'ipprotocol', default='inet')
+            values += self.format_cli_field(self.params, 'icmptype', default='any')
             values += self.format_cli_field(self.params, 'statetype', default='keep state')
             values += self.format_cli_field(self.params, 'action', default='pass')
             values += self.format_cli_field(self.params, 'disabled', fvalue=self.fvalue_bool, default=False)
@@ -491,6 +527,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_updated_cli_field(fafter, fbefore, 'source', add_comma=(values))
             values += self.format_updated_cli_field(fafter, fbefore, 'destination', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'protocol', none_value="'any'", add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'icmptype', add_comma=(values))
             values += self.format_updated_cli_field(fafter, fbefore, 'interface', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'floating', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'direction', add_comma=(values))

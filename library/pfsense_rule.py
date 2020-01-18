@@ -103,6 +103,13 @@ options:
   tracker:
     description: Rule tracking ID. Defaults to timestamp of rule creation.
     type: int
+  icmptype:
+    description: One or more of these ICMP subtypes may be specified, separated by comma, or any for all of them. The types must match ip protocol:
+      althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here, ipv6-where, listendone,
+      listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp, neighbradv, neighbrsol, niqry, nirep, paramprob,
+      photuris, redir, routeradv, routersol, routrrenum, skip, squench, timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
+    default: any
+    type: str
 """
 
 EXAMPLES = """

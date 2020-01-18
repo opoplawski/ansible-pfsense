@@ -27,7 +27,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
     @staticmethod
     def get_args_fields():
         """ return params fields """
-        fields = ['name', 'source', 'destination', 'descr', 'interface', 'action', 'tracker']
+        fields = ['name', 'source', 'destination', 'descr', 'interface', 'action', 'tracker', 'icmptype']
         fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway']
         fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue']
         return fields
@@ -166,6 +166,10 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         # checking tracker
         if 'tracker' in obj:
             self.assert_xml_elt_equal(target_elt, 'tracker', obj['tracker'])
+
+        # checking icmptype
+        if 'icmptype' in obj:
+            self.assert_xml_elt_equal(target_elt, 'icmptype', obj['icmptype'])
 
     def check_rule_idx(self, rule, target_idx):
         """ test the xml position of rule """

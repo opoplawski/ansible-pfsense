@@ -227,8 +227,8 @@ class TestPFSenseAggregateModule(TestPFSenseModule):
             purge_rules=False,
             aggregated_rules=[
                 dict(name='one_rule', source='any', destination='any', interface='lan'),
-                dict(name='any2any_ssh', source='any', destination='any:2222', interface='lan'),
-                dict(name='any2any_http', source='any', destination='any:8080', interface='vpn'),
+                dict(name='any2any_ssh', source='any', destination='any:2222', interface='lan', protocol='tcp'),
+                dict(name='any2any_http', source='any', destination='any:8080', interface='vpn', protocol='tcp'),
                 dict(name='any2any_ssh', state='absent', interface='vpn'),
             ]
         )
@@ -248,8 +248,8 @@ class TestPFSenseAggregateModule(TestPFSenseModule):
             purge_rules=True,
             aggregated_rules=[
                 dict(name='one_rule', source='any', destination='any', interface='lan'),
-                dict(name='any2any_ssh', source='any', destination='any:2222', interface='lan'),
-                dict(name='any2any_http', source='any', destination='any:8080', interface='vpn'),
+                dict(name='any2any_ssh', source='any', destination='any:2222', interface='lan', protocol='tcp'),
+                dict(name='any2any_http', source='any', destination='any:8080', interface='vpn', protocol='tcp'),
                 dict(name='any2any_ssh', state='absent', interface='vpn'),
             ]
         )

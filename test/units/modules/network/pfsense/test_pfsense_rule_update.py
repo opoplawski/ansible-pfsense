@@ -303,3 +303,9 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         obj = dict(name='test_lan_100_5', source='any', destination='any', interface='lan_100', in_queue='one_limiter', protocol='tcp', tracker='1234')
         command = "update rule 'test_lan_100_5' on 'lan_100' set tracker='1234'"
         self.do_module_test(obj, command=command)
+
+    def test_rule_update_icmp(self):
+        """ test updating ipprotocol to icmptype """
+        obj = dict(name='r1', source='any', destination='any', interface='vt1', protocol='icmp', icmptype='echorep,echoreq')
+        command = "update rule 'r1' on 'vt1' set protocol='icmp', icmptype='echorep,echoreq'"
+        self.do_module_test(obj, command=command)
