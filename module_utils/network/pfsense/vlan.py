@@ -32,6 +32,8 @@ class PFSenseVlanModule(PFSenseModuleBase):
             self.root_elt = self.pfsense.new_element('vlans')
             self.pfsense.root.append(self.root_elt)
 
+        self.setup_vlan_cmds = ""
+
         # get physical interfaces on which vlans can be set
         self.interfaces = self.pfsense.php(
             'require_once("/etc/inc/interfaces.inc");'
@@ -103,6 +105,40 @@ class PFSenseVlanModule(PFSenseModuleBase):
     ##############################
     # XML processing
     #
+    def _cmd_create(self):
+        """ return the php shell to create the vlan's interface """
+        cmd = "$vlan = array();\n"
+        cmd += "$vlan['if'] = '{0}';\n".format(self.obj['if'])
+        cmd += "$vlan['tag'] = '{0}';\n".format(self.obj['tag'])
+        cmd += "$vlan['pcp'] = '{0}';\n".format(self.obj['pcp'])
+        cmd += "$vlan['descr'] = '{0}';\n".format(self.obj['descr'])
+        cmd += "$vlan['vlanif'] = '{0}';\n".format(self.obj['vlanif'])
+        cmd += "$vlanif = interface_vlan_configure($vlan);\n"
+
+        cmd += "if ($vlanif == NULL || $vlanif != $vlan['vlanif']) pfSense_interface_destroy('%s');\n" % (self.obj['vlanif'])
+
+        # if vlan is assigned to an interface, configuration needs to be applied again
+        interface = self.pfsense.get_interface_by_physical_name('{0}.{1}'.format(self.obj['if'], self.obj['tag']))
+        if interface is not None:
+            cmd += "interface_configure('{0}', true);\n".format(interface)
+
+        return cmd
+
+    def _copy_and_add_target(self):
+        """ create the XML target_elt """
+        super(PFSenseVlanModule, self)._copy_and_add_target()
+        self.setup_vlan_cmds += self._cmd_create()
+
+    def _copy_and_update_target(self):
+        """ update the XML target_elt """
+        old_vlanif = self.target_elt.find('vlanif').text
+        (before, changed) = super(PFSenseVlanModule, self)._copy_and_update_target()
+        if changed:
+            self.setup_vlan_cmds += "pfSense_interface_destroy('{0}');\n".format(old_vlanif)
+            self.setup_vlan_cmds += self._cmd_create()
+
+        return (before, changed)
+
     def _create_target(self):
         """ create the XML target_elt """
         return self.pfsense.new_element('vlan')
@@ -117,14 +153,19 @@ class PFSenseVlanModule(PFSenseModuleBase):
             self.module.fail_json(
                 msg='vlan {0} on {1} cannot be deleted because it is still being used as an interface'.format(self.obj['tag'], self.obj['if'])
             )
+        self.setup_vlan_cmds += "pfSense_interface_destroy('{0}');\n".format(self.target_elt.find('vlanif').text)
 
     ##############################
     # run
     #
     def _update(self):
         """ make the target pfsense reload """
-        return self.pfsense.phpshell('''require_once("filter.inc");
-if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
+        cmd = 'require_once("filter.inc");\n'
+        if self.setup_vlan_cmds != "":
+            cmd += 'require_once("interfaces.inc");\n'
+            cmd += self.setup_vlan_cmds
+        cmd += "if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }"
+        return self.pfsense.phpshell(cmd)
 
     ##############################
     # Logging

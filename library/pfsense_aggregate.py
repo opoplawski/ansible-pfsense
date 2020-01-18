@@ -392,6 +392,14 @@ class PFSenseModuleAggregate(object):
     def _update(self):
         run = False
         cmd = 'require_once("filter.inc");\n'
+        if self.pfsense_vlans.setup_vlan_cmds != "":
+            cmd += 'require_once("interfaces.inc");\n'
+            cmd += self.pfsense_vlans.setup_vlan_cmds
+
+        if self.pfsense_interfaces.setup_interface_cmds != "":
+            cmd += 'require_once("interfaces.inc");\n'
+            cmd += self.pfsense_interfaces.setup_interface_cmds
+
         cmd += 'if (filter_configure() == 0) { \n'
         if self.pfsense_aliases.result['changed']:
             run = True

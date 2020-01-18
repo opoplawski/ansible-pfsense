@@ -49,6 +49,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
         self.root_elt = self.pfsense.interfaces
         self.target_elt = None
+        self.setup_interface_cmds = ""
 
     ##############################
     # params processing
@@ -165,6 +166,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         """ create the XML target_elt """
         self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
         self._create_gateway()
+        self.setup_interface_cmds += "interface_configure('{0}', true);\n".format(self.target_elt.tag)
 
     def _copy_and_update_target(self):
         """ update the XML target_elt """
@@ -175,6 +177,9 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
         if self._create_gateway():
             changed = True
+
+        if changed:
+            self.setup_interface_cmds += "interface_bring_down('{0}'); interface_configure('{0}', true);\n".format(self.target_elt.tag)
 
         return (before, changed)
 
@@ -302,6 +307,8 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
         self._remove_all_separators(self.target_elt.tag)
         self._remove_all_rules(self.target_elt.tag)
+
+        self.setup_interface_cmds += "interface_bring_down('{0}');\n".format(self.target_elt.tag)
 
     def _remove_all_rules(self, interface):
         """ delete all interface rules """
@@ -440,9 +447,13 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             'echo json_encode($mediaopts_list);')
 
     def _update(self):
-        """ make the target pfsense reload aliases """
-        return self.pfsense.phpshell('''require_once("filter.inc");
-if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
+        """ make the target pfsense reload interfaces """
+        cmd = 'require_once("filter.inc");\n'
+        if self.setup_interface_cmds != "":
+            cmd += 'require_once("interfaces.inc");\n'
+            cmd += self.setup_interface_cmds
+        cmd += "if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }"
+        return self.pfsense.phpshell(cmd)
 
     ##############################
     # Logging
