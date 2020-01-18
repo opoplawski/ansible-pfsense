@@ -34,3 +34,25 @@ def check_name(self, name, objtype):
 
     if msg is not None:
         self.module.fail_json(msg=msg)
+
+
+def check_ip_address(self, address, ipprotocol, objtype, allow_networks=False, fail_ifnotip=False):
+    """ check address according to ipprotocol """
+    if address is None:
+        return
+    if allow_networks:
+        ipv4 = self.is_ipv4_network(address, False)
+        ipv6 = self.is_ipv6_network(address, False)
+    else:
+        ipv4 = self.is_ipv4_address(address)
+        ipv6 = self.is_ipv6_address(address)
+
+    if ipprotocol == 'inet':
+        if ipv6 or not ipv4 and fail_ifnotip:
+            self.module.fail_json(msg='{0} must use an IPv4 address'.format(objtype))
+    elif ipprotocol == 'inet6':
+        if ipv4 or not ipv6 and fail_ifnotip:
+            self.module.fail_json(msg='{0} must use an IPv6 address'.format(objtype))
+    elif ipprotocol == 'inet46':
+        if ipv4 or ipv6:
+            self.module.fail_json(msg='IPv4 and IPv6 addresses can not be used in objects that apply to both IPv4 and IPv6 (except within an alias).')

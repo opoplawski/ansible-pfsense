@@ -1163,7 +1163,7 @@ class PFSenseDataParser(object):
                 if not self.parse_rules(rule, separator):
                     ret = False
                 continue
-            elif name == 'options':
+            if name == 'options':
                 parent_separator.options = rule
                 continue
 

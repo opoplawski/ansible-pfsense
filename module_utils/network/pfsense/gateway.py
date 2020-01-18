@@ -162,17 +162,9 @@ class PFSenseGatewayModule(PFSenseModuleBase):
                 if params['gateway'] != 'dynamic':
                     self.module.fail_json(msg="The gateway use 'dynamic' as a target. This is read-only, so you must set gateway as dynamic too")
             else:
-                if params['ipprotocol'] == 'inet':
-                    if not self.pfsense.is_ipv4_address(params['gateway']):
-                        self.module.fail_json(msg='gateway must use an IPv4 address')
-                    if params.get('monitor') is not None and params['monitor'] != '' and not self.pfsense.is_ipv4_address(params['monitor']):
-                        self.module.fail_json(msg='monitor must use an IPv4 address')
-
-                else:
-                    if not self.pfsense.is_ipv6_address(params['gateway']):
-                        self.module.fail_json(msg='gateway must use an IPv6 address')
-                    if params.get('monitor') is not None and params['monitor'] != '' and not self.pfsense.is_ipv6_address(params['monitor']):
-                        self.module.fail_json(msg='monitor must use an IPv6 address')
+                self.pfsense.check_ip_address(params['gateway'], params['ipprotocol'], 'gateway', fail_ifnotip=True)
+                if params.get('monitor') is not None and params['monitor'] != '':
+                    self.pfsense.check_ip_address(params['monitor'], params['ipprotocol'], 'monitor', fail_ifnotip=True)
 
             self.pfsense.check_name(params['name'], 'gateway')
 

@@ -183,7 +183,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
             floating_rule = floating_elt is not None and floating_elt.text == 'yes'
             if floating and not floating_rule:
                 continue
-            elif not floating:
+            if not floating:
                 if floating_rule or interface_elt is None or interface_elt.text is None or interface_elt.text != rule['interface']:
                     continue
             idx += 1
