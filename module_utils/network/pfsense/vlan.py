@@ -115,12 +115,14 @@ class PFSenseVlanModule(PFSenseModuleBase):
         cmd += "$vlan['vlanif'] = '{0}';\n".format(self.obj['vlanif'])
         cmd += "$vlanif = interface_vlan_configure($vlan);\n"
 
-        cmd += "if ($vlanif == NULL || $vlanif != $vlan['vlanif']) pfSense_interface_destroy('%s');\n" % (self.obj['vlanif'])
+        cmd += "if ($vlanif == NULL || $vlanif != $vlan['vlanif']) {pfSense_interface_destroy('%s');} else {\n" % (self.obj['vlanif'])
 
         # if vlan is assigned to an interface, configuration needs to be applied again
         interface = self.pfsense.get_interface_by_physical_name('{0}.{1}'.format(self.obj['if'], self.obj['tag']))
         if interface is not None:
             cmd += "interface_configure('{0}', true);\n".format(interface)
+
+        cmd += '}\n'
 
         return cmd
 
@@ -158,14 +160,18 @@ class PFSenseVlanModule(PFSenseModuleBase):
     ##############################
     # run
     #
-    def _update(self):
-        """ make the target pfsense reload """
+    def get_update_cmds(self):
+        """ build and return php commands to setup interfaces """
         cmd = 'require_once("filter.inc");\n'
         if self.setup_vlan_cmds != "":
             cmd += 'require_once("interfaces.inc");\n'
             cmd += self.setup_vlan_cmds
         cmd += "if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }"
-        return self.pfsense.phpshell(cmd)
+        return cmd
+
+    def _update(self):
+        """ make the target pfsense reload """
+        return self.pfsense.phpshell(self.get_update_cmds())
 
     ##############################
     # Logging

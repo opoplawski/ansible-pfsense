@@ -393,20 +393,17 @@ class PFSenseModuleAggregate(object):
         run = False
         cmd = 'require_once("filter.inc");\n'
         if self.pfsense_vlans.setup_vlan_cmds != "":
-            cmd += 'require_once("interfaces.inc");\n'
-            cmd += self.pfsense_vlans.setup_vlan_cmds
+            run = True
+            cmd += self.pfsense_vlans.get_update_cmds()
 
-        if self.pfsense_interfaces.setup_interface_cmds != "":
-            cmd += 'require_once("interfaces.inc");\n'
-            cmd += self.pfsense_interfaces.setup_interface_cmds
+        if self.pfsense_interfaces.result['changed']:
+            run = True
+            cmd += self.pfsense_interfaces.get_update_cmds()
 
         cmd += 'if (filter_configure() == 0) { \n'
         if self.pfsense_aliases.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'aliases\');\n'
-        if self.pfsense_interfaces.result['changed']:
-            run = True
-            cmd += 'clear_subsystem_dirty(\'interfaces\');\n'
         if self.pfsense_rules.result['changed'] or self.pfsense_rule_separators.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'filter\');\n'
