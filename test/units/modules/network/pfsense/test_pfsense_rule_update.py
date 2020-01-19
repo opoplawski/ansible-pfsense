@@ -159,7 +159,7 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
     def test_rule_update_negate_remove_destination(self):
         """ test updating destination of a rule remove the not """
         obj = dict(name='not_rule_dst', source='any', destination='srv_admin:port_ssh', interface='lan', protocol='tcp')
-        command = "update rule 'not_rule_dst' on 'lan' set destination='srv_admin:port_ssh'"
+        command = "update rule 'not_rule_dst' on 'lan' set destination='srv_admin'"
         self.do_module_test(obj, command=command)
 
     def test_rule_update_before(self):
@@ -308,4 +308,16 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         """ test updating ipprotocol to icmptype """
         obj = dict(name='r1', source='any', destination='any', interface='vt1', protocol='icmp', icmptype='echorep,echoreq')
         command = "update rule 'r1' on 'vt1' set protocol='icmp', icmptype='echorep,echoreq'"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_update_port_old_syntax(self):
+        """ test updating gateway of a rule """
+        obj = dict(name='test_rule_3', source='any', destination='any:port_ssh', interface='wan', protocol='tcp')
+        command = "update rule 'test_rule_3' on 'wan' set destination_port='port_ssh'"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_update_port_new_syntax(self):
+        """ test updating gateway of a rule """
+        obj = dict(name='test_rule_3', source='any', destination='any', destination_port='port_ssh', interface='wan', protocol='tcp')
+        command = "update rule 'test_rule_3' on 'wan' set destination_port='port_ssh'"
         self.do_module_test(obj, command=command)

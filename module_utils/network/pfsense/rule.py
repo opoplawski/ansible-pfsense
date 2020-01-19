@@ -22,7 +22,9 @@ RULE_ARGUMENT_SPEC = dict(
     ipprotocol=dict(default='inet', choices=['inet', 'inet46', 'inet6']),
     protocol=dict(default='any', choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp"]),
     source=dict(required=False, type='str'),
+    source_port=dict(required=False, type='str'),
     destination=dict(required=False, type='str'),
+    destination_port=dict(required=False, type='str'),
     log=dict(required=False, type='bool'),
     after=dict(required=False, type='str'),
     before=dict(required=False, type='str'),
@@ -95,10 +97,23 @@ class PFSenseRuleModule(PFSenseModuleBase):
             obj['type'] = params['action']
             obj['ipprotocol'] = params['ipprotocol']
             obj['statetype'] = params['statetype']
+
             obj['source'] = self.pfsense.parse_address(params['source'])
+            if params.get('source_port'):
+                self.pfsense.parse_port(params['source_port'], obj['source'])
+
             obj['destination'] = self.pfsense.parse_address(params['destination'])
+            if params.get('destination_port'):
+                self.pfsense.parse_port(params['destination_port'], obj['destination'])
+
             if params['protocol'] not in ['tcp', 'udp', 'tcp/udp'] and ('port' in obj['source'] or 'port' in obj['destination']):
                 self.module.fail_json(msg="you can't use ports on protocols other than tcp, udp or tcp/udp")
+
+            # for param in ['destination', 'source']:
+            #    if 'address' in obj[param]:
+            #        self.pfsense.check_ip_address(obj[param]['address'], obj['ipprotocol'], 'rule')
+            #    if 'network' in obj[param]:
+            #        self.pfsense.check_ip_address(obj[param]['network'], obj['ipprotocol'], 'rule', allow_networks=True)
 
             self._get_ansible_param(obj, 'protocol', exclude='any')
             if params['protocol'] == 'icmp':
@@ -472,7 +487,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
         # Convert addresses to argument format
         for addr_item in ['source', 'destination']:
-            rule[addr_item] = self.pfsense.addr_normalize(rule[addr_item])
+            rule[addr_item], rule[addr_item + '_port'] = self.pfsense.addr_normalize(rule[addr_item])
 
         return rule
 
@@ -501,7 +516,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
         values = ''
         if before is None:
             values += self.format_cli_field(self.params, 'source')
+            values += self.format_cli_field(self.params, 'source_port')
             values += self.format_cli_field(self.params, 'destination')
+            values += self.format_cli_field(self.params, 'destination_port')
             values += self.format_cli_field(self.params, 'protocol', default='any')
             values += self.format_cli_field(self.params, 'direction')
             values += self.format_cli_field(self.params, 'ipprotocol', default='inet')
@@ -525,7 +542,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             fafter['after'] = self._after
 
             values += self.format_updated_cli_field(fafter, fbefore, 'source', add_comma=(values))
+            values += self.format_updated_cli_field(fafter, fbefore, 'source_port', add_comma=(values))
             values += self.format_updated_cli_field(fafter, fbefore, 'destination', add_comma=(values))
+            values += self.format_updated_cli_field(fafter, fbefore, 'destination_port', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'protocol', none_value="'any'", add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'icmptype', add_comma=(values))
             values += self.format_updated_cli_field(fafter, fbefore, 'interface', add_comma=(values))
@@ -551,6 +570,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
     def _obj_address_to_log_field(rule, addr):
         """ return formated address from dict """
         field = ''
+        field_port = ''
         if isinstance(rule[addr], dict):
             if 'not' in rule[addr]:
                 field += '!'
@@ -559,17 +579,16 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             if 'address' in rule[addr]:
                 field += rule[addr]['address']
             if 'port' in rule[addr]:
-                if field:
-                    field += ':'
-                field += rule[addr]['port']
+                field_port += rule[addr]['port']
         else:
             field = rule[addr]
-        return field
+            field_port = rule[addr + '_port']
+        return field, field_port
 
     def _obj_to_log_fields(self, rule):
         """ return formated source and destination from dict """
         res = {}
-        res['source'] = self._obj_address_to_log_field(rule, 'source')
-        res['destination'] = self._obj_address_to_log_field(rule, 'destination')
+        res['source'], res['source_port'] = self._obj_address_to_log_field(rule, 'source')
+        res['destination'], res['destination_port'] = self._obj_address_to_log_field(rule, 'destination')
         res['interface'] = ','.join([self.pfsense.get_interface_display_name(interface) for interface in rule['interface'].split(',')])
         return res

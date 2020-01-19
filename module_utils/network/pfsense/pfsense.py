@@ -22,7 +22,7 @@ class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
     # pylint: disable=import-outside-toplevel
-    from ansible.module_utils.network.pfsense.__impl.parse_address import parse_address
+    from ansible.module_utils.network.pfsense.__impl.parse_address import parse_address, parse_port
     from ansible.module_utils.network.pfsense.__impl.checks import check_name, check_ip_address
     # pylint: enable=import-outside-toplevel
 
@@ -47,6 +47,7 @@ class PFSenseModule(object):
     def addr_normalize(addr):
         """ return address element formatted like module argument """
         address = ''
+        ports = ''
         if 'address' in addr:
             address = addr['address']
         if 'any' in addr:
@@ -56,10 +57,10 @@ class PFSenseModule(object):
         if address == '':
             raise ValueError('UNKNOWN addr %s' % addr)
         if 'port' in addr:
-            address += ':%s' % (addr['port'])
+            ports = addr['port']
         if 'not' in addr:
             address = '!' + address
-        return address
+        return address, ports
 
     def get_element(self, node):
         """ return <node> configuration element """

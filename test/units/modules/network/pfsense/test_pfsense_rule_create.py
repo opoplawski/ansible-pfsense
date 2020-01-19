@@ -375,7 +375,7 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
     def test_rule_create_port_alias_range_invalid_2(self):
         """ test creation of a new rule with range of invalid alias ports """
         obj = dict(name='one_rule', source='10.10.1.1:-openvpn_port', destination='10.10.10.1', interface='lan')
-        msg = "Cannot parse address 10.10.1.1:-openvpn_port"
+        msg = "Cannot parse port -openvpn_port"
         self.do_module_test(obj, failed=True, msg=msg)
 
     def test_rule_create_port_alias_range_invalid_3(self):

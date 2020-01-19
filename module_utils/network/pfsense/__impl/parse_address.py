@@ -48,17 +48,24 @@ def parse_address(self, param, allow_self=True):
             ret['address'] = address
 
     if ports is not None:
-        ports = ports.split('-')
-        if len(ports) > 2 or ports[0] is None or ports[0] == '' or len(ports) == 2 and (ports[1] is None or ports[1] == ''):
-            self.module.fail_json(msg='Cannot parse address %s' % (param))
-
-        if not self.is_port_or_alias(ports[0]):
-            self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[0]))
-        ret['port'] = ports[0]
-
-        if len(ports) > 1:
-            if not self.is_port_or_alias(ports[1]):
-                self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[1]))
-            ret['port'] += '-' + ports[1]
+        self.parse_port(ports, ret)
+        msg = "the :ports syntax at end of addresses is deprecated and support will be removed soon. Please use source_port and destination_port options."
+        self.module.warn(msg)
 
     return ret
+
+
+def parse_port(self, src_ports, ret):
+    """ validate and parse port address field and set it in ret """
+    ports = src_ports.split('-')
+    if len(ports) > 2 or ports[0] is None or ports[0] == '' or len(ports) == 2 and (ports[1] is None or ports[1] == ''):
+        self.module.fail_json(msg='Cannot parse port %s' % (src_ports))
+
+    if not self.is_port_or_alias(ports[0]):
+        self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[0]))
+    ret['port'] = ports[0]
+
+    if len(ports) > 1:
+        if not self.is_port_or_alias(ports[1]):
+            self.module.fail_json(msg='Cannot parse port %s, not port number or alias' % (ports[1]))
+        ret['port'] += '-' + ports[1]

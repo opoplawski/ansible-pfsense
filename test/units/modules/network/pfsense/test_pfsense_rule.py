@@ -27,7 +27,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
     @staticmethod
     def get_args_fields():
         """ return params fields """
-        fields = ['name', 'source', 'destination', 'descr', 'interface', 'action', 'tracker', 'icmptype']
+        fields = ['name', 'source', 'source_port', 'destination', 'destination_port', 'descr', 'interface', 'action', 'tracker', 'icmptype']
         fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway']
         fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue']
         return fields

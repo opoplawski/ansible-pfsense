@@ -63,11 +63,19 @@ options:
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
     type: str
   source:
-    description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
+    description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
+    default: null
+    type: str
+  source_port:
+    description: The source port(s), separated by dash in case of range
     default: null
     type: str
   destination:
-    description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
+    description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
+    default: null
+    type: str
+  destination_port:
+    description: The destination port(s), separated by dash in case of range
     default: null
     type: str
   log:

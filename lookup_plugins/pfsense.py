@@ -48,7 +48,7 @@ EXAMPLES = """
 RETURN = """
   _list:
     description:
-      - list of dictonaries with aliases, rules or rule_separators
+      - list of dictionaries with aliases, rules or rule_separators
     type: list
 """
 
@@ -56,12 +56,11 @@ RETURN = """
 To determine if a rule and corresponding aliases has to be declared on a pfsense
 and on which interfaces, the plugin check if rule source or destination is
 matching any local or routed network on the pfsense. To avoid having every rule
-declared on a wan interface, 0.0.0.0/0 is considered as an internet only network,
-excluding any private network address. If a network is declared as
-routed (accessible thru) on an interface and is also defined as the local network
-on an interface of the target pfsense, it is automaticly removed (it allows easy
-routing declaration). The same apply to adjacent networks, which indicates neighbor
-networks that are routed thru a pfSense.
+declared on a wan interface, if a rule can be declared on multiple interfaces,
+it is not of the ones routing 0.0.0.0/0 if there is another which is not routing it.
+If a network is declared as routed (accessible thru) on an interface and is also defined
+as the local network on an interface of the target pfsense, the local network is preffered.
+The same apply to adjacent networks, which indicates neighbor networks that are routed thru a pfSense.
 
 Following pfSense rule definition (one host/alias per source/destination,
 one port/alias per source/destination), each rule declared in the yaml is breaked
@@ -454,7 +453,12 @@ class PFSenseHostAlias(object):
     def compute_routed_interfaces(self, data):
         """ Find all interfaces on all pfsense where the alias may be used as a routed source """
         for pfsense in data.pfsenses_obj.values():
+            # if the target alias is local, we does not consider the other interfaces
             self.routed_interfaces[pfsense.name] = set()
+
+            if pfsense.name in self.local_interfaces:
+                continue
+
             for alias_ip in self.ips:
                 interfaces = pfsense.interfaces_routed_networks_contains(alias_ip)
                 self.routed_interfaces[pfsense.name].update(interfaces)
@@ -565,6 +569,7 @@ class PFSenseHostAlias(object):
         target_ar_interfaces = None
         for alias_ip in self.ips:
             interfaces = pfsense.interfaces_adjacent_or_routed_networks_contains(alias_ip)
+            pfsense.hack_internet_routing(interfaces)
             if not target_ar_interfaces:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
@@ -572,6 +577,7 @@ class PFSenseHostAlias(object):
 
         for alias_net in self.networks:
             interfaces = pfsense.interfaces_adjacent_or_routed_networks_contains(alias_net)
+            pfsense.hack_internet_routing(interfaces)
             if not target_ar_interfaces:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
@@ -581,6 +587,7 @@ class PFSenseHostAlias(object):
         target_local_interfaces = None
         for alias_ip in self.ips:
             interfaces = pfsense.interfaces_local_networks_contains(alias_ip)
+            pfsense.hack_internet_routing(interfaces)
             if not target_local_interfaces:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
@@ -588,14 +595,15 @@ class PFSenseHostAlias(object):
 
         for alias_net in self.networks:
             interfaces = pfsense.interfaces_local_networks_contains(alias_net)
+            pfsense.hack_internet_routing(interfaces)
             if not target_local_interfaces:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
                 return False
 
-        # if we are on local and remote, split
+        # if we are on local and remote, split if there is multiple targets
         if target_local_interfaces and target_ar_interfaces:
-            return False
+            return len(self.ips) + len(self.networks) == 1
 
         return True
 
@@ -812,6 +820,29 @@ class PFSense(object):
         res = self.interfaces_routed_networks_contains(address)
         res.update(self.interfaces_adjacent_networks_contains(address))
         return res
+
+    @static_vars(
+        internet=ipaddress.IPv4Network((u"0.0.0.0", u"0.0.0.0"))
+    )
+    def hack_internet_routing(self, interfaces):
+        """ internet (defined as route to 0.0.0.0/0) is an issue to automaticly detect interfaces on which routing is done because every host or network match.
+            if multiple interfaces can be used and some of them are connected to internet while there is at least another one which is not,
+            we consider the internet ones as mistakes and remove them """
+
+        has_non_internet = False
+        internet_interfaces = set()
+        for interface in interfaces:
+            found = False
+            for network in self.interfaces[interface].routed_networks:
+                if network == self.hack_internet_routing.internet:
+                    found = True
+                    internet_interfaces.add(interface)
+                    break
+            if not found:
+                has_non_internet = True
+
+        if has_non_internet:
+            interfaces -= internet_interfaces
 
 
 class PFSenseData(object):
@@ -1251,49 +1282,6 @@ class PFSenseDataParser(object):
                     self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
                     return False
 
-                # we remove the local networks from the routed_networks of other interfaces
-                if src.local_network:
-                    todo = dst.routed_networks
-                    dst.routed_networks = set()
-                    while todo:
-                        network = todo.pop()
-                        if network.prefixlen == 0:
-                            dst.routed_networks.add(network)
-                        elif network.compare_networks(src.local_network) == 0:
-                            pass
-                        elif src.local_network.subnet_of(network):
-                            new_networks = set(network.address_exclude(src.local_network))
-                            todo.update(new_networks)
-                        elif network.overlaps(src.local_network):
-                            self._data.set_error("Local network of " + src_name + " overlaps with routed network "
-                                                 + network.exploded + " of " + dst_name + " in " + name)
-                            return False
-                        else:
-                            dst.routed_networks.add(network)
-
-                # we remove the adjacent networks from the routed_networks of other interfaces
-                todo = dst.routed_networks
-                dst.routed_networks = set()
-                while todo:
-                    network = todo.pop()
-                    if network.prefixlen == 0:
-                        dst.routed_networks.add(network)
-                    else:
-                        to_add = True
-                        for adjacent_network in src.adjacent_networks:
-                            if network.compare_networks(adjacent_network) == 0:
-                                to_add = False
-                            elif adjacent_network.subnet_of(network):
-                                to_add = False
-                                new_networks = set(network.address_exclude(adjacent_network))
-                                todo.update(new_networks)
-                            elif network.overlaps(adjacent_network):
-                                self._data.set_error("Adjacent network of " + src_name + " overlaps with routed network "
-                                                     + network.exploded + " of " + dst_name + " in " + name)
-                                return False
-                        if to_add:
-                            dst.routed_networks.add(network)
-
         return True
 
     def parse_pfsense_interfaces(self, pfsense, name):
@@ -1692,7 +1680,7 @@ class PFSenseRuleFactory(object):
         if src_is_bcast and rule_obj.dst[0].is_whole_local(self._data.target):
             return rule_obj.dst[0].local_interfaces[self._data.target.name] | rule_obj.dst[0].routed_interfaces[self._data.target.name]
 
-        if rule_obj.src[0].is_whole_local(self._data.target) and dst_is_bcast:
+        if dst_is_bcast and rule_obj.src[0].is_whole_local(self._data.target):
             return rule_obj.src[0].local_interfaces[self._data.target.name] | rule_obj.src[0].routed_interfaces[self._data.target.name]
 
         # we return no rules for:
@@ -1836,12 +1824,11 @@ class PFSenseRuleFactory(object):
         if rule_obj.protocol:
             rule['protocol'] = ' '.join(rule_obj.protocol)
 
-        rule['src'] = rule_product_ports(rule, 'src', 'src_port')
-        rule['dst'] = rule_product_ports(rule, 'dst', 'dst_port')
-
         base = rule_product_dict(base, rule, 'src', 'source')
         base = rule_product_dict(base, rule, 'dst', 'destination')
         base = rule_product_dict(base, rule, 'protocol')
+        base = rule_product_dict(base, rule, 'src_port', 'source_port')
+        base = rule_product_dict(base, rule, 'dst_port', 'destination_port')
 
         for interface in rule_obj.interfaces:
             if len(base) == 1:
@@ -1941,9 +1928,16 @@ class PFSenseRuleFactory(object):
             for rule in rules:
                 if interface != rule['interface']:
                     continue
-                definition = ("          - { name: \"" + rule['name'] + "\", source: \""
-                              + rule['source'] + "\", destination: \"" + rule['destination']
-                              + "\", interface: \"" + rule['interface'] + "\", action: \"" + rule['action'] + "\"")
+                definition = '          - { name: "%s", source: "%s", ' % (rule['name'], rule['source'])
+                if 'source_port' in rule:
+                    definition += 'source_port: "{0}", '.format(rule['source_port'])
+
+                definition += 'destination: "{0}", '.format(rule['destination'])
+                if 'destination_port' in rule:
+                    definition += 'destination_port: "{0}", '.format(rule['destination_port'])
+
+                definition += 'interface: "{0}", action: "{1}", '.format(rule['interface'], rule['action'])
+
                 if rule.get('protocol'):
                     definition += ", protocol: \"" + rule['protocol'] + "\""
                 if rule.get('descr'):
