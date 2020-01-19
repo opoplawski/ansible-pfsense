@@ -101,6 +101,9 @@ class PFSenseModule(object):
 
     def get_interface_display_name(self, iface):
         """ return pfsense interface display name """
+        if iface == 'enc0':
+            return 'IPsec'
+
         for interface in self.interfaces:
             if interface.tag == iface:
                 descr_elt = interface.find('descr')

@@ -205,8 +205,8 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
-OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'filter']
-OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue']
+OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter']
+OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype']
 
 display = Display()
 
@@ -374,6 +374,12 @@ class PFSenseHostAlias(object):
         # define all interfaces on which the alias may be defined as a routed source
         self.routed_interfaces = {}
 
+        self._computed = False
+
+    def __str__(self):
+        return "name={0}, descr={1}, definition={2}, ips={3}, networks={4}, local_interfaces={5}, routed_interfaces={6}, fake_alias_ip={7}".format(
+            self.name, self.descr, self.definition, self.ips, self.networks, self.local_interfaces, self.routed_interfaces, self.fake_alias_ip)
+
     def compute_any(self, data):
         """ Do all computations for object 'any' """
         # we add all interfaces of all pfsenses
@@ -384,10 +390,12 @@ class PFSenseHostAlias(object):
 
     def compute_all(self, data):
         """ Do all computations """
-        if self.name != 'any':
-            self.compute_addresses(data)
-            self.compute_local_interfaces(data)
-            self.compute_routed_interfaces(data)
+        if not self._computed:
+            self._computed = True
+            if self.name != 'any':
+                self.compute_addresses(data)
+                self.compute_local_interfaces(data)
+                self.compute_routed_interfaces(data)
 
     def compute_addresses(self, data):
         """ Convert all aliases to structured ip addresses or networks """
@@ -945,11 +953,13 @@ class PFSenseDataParser(object):
         net_defs = 0
         for value in values:
             if is_valid_ip(value):
-                self._data.hosts_aliases_obj[value] = self.create_obj_host_alias(value)
+                if value not in self._data.hosts_aliases_obj:
+                    self._data.hosts_aliases_obj[value] = self.create_obj_host_alias(value)
                 continue
 
             if is_valid_network(value):
-                self._data.hosts_aliases_obj[value] = self.create_obj_host_alias(value)
+                if value not in self._data.hosts_aliases_obj:
+                    self._data.hosts_aliases_obj[value] = self.create_obj_host_alias(value)
                 net_defs = net_defs + 1
                 continue
 
@@ -1089,10 +1099,8 @@ class PFSenseDataParser(object):
         obj.definition = [src]
         if is_valid_ip(src):
             obj.fake_alias_ip = True
-            obj.compute_all(self._data)
         elif is_valid_network(src):
             obj.fake_alias_network = True
-            obj.compute_all(self._data)
         elif src == 'any':
             return self.create_obj_any_alias()
         else:
@@ -1152,6 +1160,8 @@ class PFSenseDataParser(object):
 
         for name, rule in parent.items():
             # not a rule
+            if rule is None:
+                continue
             if not self._data.is_child_def(rule):
                 separator = PFSenseRuleSeparator()
                 separator.parent = parent_separator

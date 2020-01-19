@@ -65,7 +65,7 @@ class TestPFSenseAggregateModule(TestPFSenseModule):
 
         tag = self.find_xml_tag(parent_tag, dict(descr=rule, interface=interface))
         if tag is not None:
-            self.fail('Rule found: ' + rule)
+            self.fail('Rule found: ' + rule + ' on ' + interface)
 
     def assert_find_rule_separator(self, separator, interface):
         """ test if a rule separator exist on interface """

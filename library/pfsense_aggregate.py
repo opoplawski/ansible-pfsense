@@ -392,7 +392,7 @@ class PFSenseModuleAggregate(object):
     def _update(self):
         run = False
         cmd = 'require_once("filter.inc");\n'
-        if self.pfsense_vlans.setup_vlan_cmds != "":
+        if self.pfsense_vlans.result['changed']:
             run = True
             cmd += self.pfsense_vlans.get_update_cmds()
 
@@ -503,9 +503,7 @@ class PFSenseModuleAggregate(object):
                     params = {}
                     params['state'] = 'absent'
                     params['name'] = rule_elt.find('descr').text
-                    if params['name'] is None:
-                        params['name'] = ''
-                    params['interface'] = rule_elt.find('interface').text
+                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text)
                     if rule_elt.find('floating') is not None:
                         params['floating'] = True
                     todel.append(params)
