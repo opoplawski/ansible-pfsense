@@ -72,10 +72,10 @@ class PFSenseAliasModule(PFSenseModuleBase):
             alias_elt = self.pfsense.find_alias(params['name'])
             if alias_elt is not None:
                 if params['type'] != alias_elt.find('type').text:
-                    self.module.fail_json(msg='An alias with this name and a different type already exists')
+                    self.module.fail_json(msg='An alias with this name and a different type already exists: \'{0}\''.format(params['name']))
 
-            if self.pfsense.get_interface_pfsense_by_name(params['name']) is not None:
-                self.module.fail_json(msg='An interface description with this name already exists')
+            if self.pfsense.get_interface_by_display_name(params['name']) is not None:
+                self.module.fail_json(msg='An interface description with this name already exists: \'{0}\''.format(params['name']))
 
             missings = ['type', 'address']
             for param, value in params.items():

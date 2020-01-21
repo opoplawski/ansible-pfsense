@@ -40,8 +40,8 @@ def parse_address(self, param, allow_self=True):
         elif allow_self and address == '(self)':
             ret['network'] = '(self)'
         # rule with interface name (LAN, WAN...)
-        elif self.is_interface_name(address):
-            ret['network'] = self.get_interface_pfsense_by_name(address)
+        elif self.is_interface_display_name(address):
+            ret['network'] = self.get_interface_by_display_name(address)
         else:
             if not self.is_ip_or_alias(address):
                 self.module.fail_json(msg='Cannot parse address %s, not IP or alias' % (address))

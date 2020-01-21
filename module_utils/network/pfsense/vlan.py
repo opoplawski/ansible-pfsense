@@ -63,9 +63,9 @@ class PFSenseVlanModule(PFSenseModuleBase):
 
         obj['tag'] = str(params['vlan_id'])
         if params['interface'] not in self.interfaces:
-            obj['if'] = self.pfsense.get_interface_physical_name_by_name(params['interface'])
+            obj['if'] = self.pfsense.get_interface_port_by_display_name(params['interface'])
             if obj['if'] is None:
-                obj['if'] = self.pfsense.get_interface_physical_name(params['interface'])
+                obj['if'] = self.pfsense.get_interface_port(params['interface'])
         else:
             obj['if'] = params['interface']
 
@@ -87,9 +87,9 @@ class PFSenseVlanModule(PFSenseModuleBase):
         # check interface
         if params['interface'] not in self.interfaces:
             # check with assign or friendly name
-            interface = self.pfsense.get_interface_physical_name_by_name(params['interface'])
+            interface = self.pfsense.get_interface_port_by_display_name(params['interface'])
             if interface is None:
-                interface = self.pfsense.get_interface_physical_name(params['interface'])
+                interface = self.pfsense.get_interface_port(params['interface'])
 
             if interface is None or interface not in self.interfaces:
                 self.module.fail_json(msg='Vlans can\'t be set on interface {0}'.format(params['interface']))
@@ -118,7 +118,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
         cmd += "if ($vlanif == NULL || $vlanif != $vlan['vlanif']) {pfSense_interface_destroy('%s');} else {\n" % (self.obj['vlanif'])
 
         # if vlan is assigned to an interface, configuration needs to be applied again
-        interface = self.pfsense.get_interface_by_physical_name('{0}.{1}'.format(self.obj['if'], self.obj['tag']))
+        interface = self.pfsense.get_interface_by_port('{0}.{1}'.format(self.obj['if'], self.obj['tag']))
         if interface is not None:
             cmd += "interface_configure('{0}', true);\n".format(interface)
 
@@ -151,7 +151,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
 
     def _pre_remove_target_elt(self):
         """ processing before removing elt """
-        if self.pfsense.get_interface_by_physical_name('{0}.{1}'.format(self.obj['if'], self.obj['tag'])) is not None:
+        if self.pfsense.get_interface_by_port('{0}.{1}'.format(self.obj['if'], self.obj['tag'])) is not None:
             self.module.fail_json(
                 msg='vlan {0} on {1} cannot be deleted because it is still being used as an interface'.format(self.obj['tag'], self.obj['if'])
             )

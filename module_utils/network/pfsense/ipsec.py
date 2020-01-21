@@ -155,7 +155,7 @@ class PFSenseIpsecModule(PFSenseModuleBase):
         ipsec['descr'] = params['descr']
 
         if params['state'] == 'present':
-            ipsec['interface'] = self._parse_ipsec_interface(params['interface'])
+            ipsec['interface'] = self.pfsense.parse_interface(params['interface'], with_virtual=False)
             ipsec['iketype'] = params['iketype']
 
             if params.get('mode') is not None:
@@ -214,16 +214,6 @@ class PFSenseIpsecModule(PFSenseModuleBase):
                 ipsec['mobike'] = params['mobike']
 
         return ipsec
-
-    def _parse_ipsec_interface(self, interface):
-        """ validate and return the tunnel interface param """
-        if self.pfsense.is_interface_name(interface):
-            return self.pfsense.get_interface_pfsense_by_name(interface)
-        elif self.pfsense.is_interface_pfsense(interface):
-            return interface
-
-        self.module.fail_json(msg='%s is not a valid interface' % (interface))
-        return None
 
     def _validate_params(self):
         """ do some extra checks on input parameters """

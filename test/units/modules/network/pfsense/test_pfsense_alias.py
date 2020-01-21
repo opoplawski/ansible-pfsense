@@ -244,7 +244,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def test_create_alias_duplicate(self):
         """ test creation of a duplicate alias """
         alias = dict(name='port_ssh', address='10.0.0.1 10.0.0.2', type='host')
-        self.do_alias_creation_test(alias, failed=True, msg='An alias with this name and a different type already exists')
+        self.do_alias_creation_test(alias, failed=True, msg="An alias with this name and a different type already exists: 'port_ssh'")
 
     def test_create_alias_invalid_name(self):
         """ test creation of a new alias with invalid name """
@@ -256,7 +256,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def test_create_alias_invalid_name_interface(self):
         """ test creation of a new alias with invalid name """
         alias = dict(name='lan_100', address='10.0.0.1 10.0.0.2', type='host')
-        self.do_alias_creation_test(alias, failed=True, msg='An interface description with this name already exists')
+        self.do_alias_creation_test(alias, failed=True, msg="An interface description with this name already exists: 'lan_100'")
 
     def test_create_alias_invalid_updatefreq(self):
         """ test creation of a new host alias with incoherent params """

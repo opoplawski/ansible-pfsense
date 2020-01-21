@@ -22,6 +22,16 @@ class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
     # pylint: disable=import-outside-toplevel
+    from ansible.module_utils.network.pfsense.__impl.interfaces import (
+        get_interface_display_name,
+        get_interface_port,
+        get_interface_port_by_display_name,
+        get_interface_by_display_name,
+        get_interface_by_port,
+        is_interface_display_name,
+        is_interface_port,
+        parse_interface,
+    )
     from ansible.module_utils.network.pfsense.__impl.parse_address import parse_address, parse_port
     from ansible.module_utils.network.pfsense.__impl.checks import check_name, check_ip_address
     # pylint: enable=import-outside-toplevel
@@ -84,82 +94,6 @@ class PFSenseModule(object):
                 changed = True
                 elt.remove(param_elt)
         return changed
-
-    def get_interface_pfsense_by_name(self, name):
-        """ return pfsense interface by name """
-        for interface in self.interfaces:
-            descr_elt = interface.find('descr')
-            if descr_elt is not None and descr_elt.text.strip() == name:
-                return interface.tag
-        return None
-
-    def get_interface_by_physical_name(self, name):
-        """ return pfsense interface physical name """
-        for interface in self.interfaces:
-            if interface.find('if').text.strip() == name:
-                return interface.tag
-        return None
-
-    def get_interface_display_name(self, iface):
-        """ return pfsense interface display name """
-        if iface == 'enc0':
-            return 'IPsec'
-
-        for interface in self.interfaces:
-            if interface.tag == iface:
-                descr_elt = interface.find('descr')
-                if descr_elt is not None:
-                    return descr_elt.text.strip()
-                break
-        return iface
-
-    def get_interface_physical_name(self, iface):
-        """ return pfsense interface physical name """
-        for interface in self.interfaces:
-            if interface.tag == iface:
-                return interface.find('if').text.strip()
-        return None
-
-    def get_interface_physical_name_by_name(self, name):
-        """ return pfsense interface physical name by name """
-        for interface in self.interfaces:
-            descr_elt = interface.find('descr')
-            if descr_elt is not None and descr_elt.text.strip() == name:
-                return interface.find('if').text.strip()
-        return None
-
-    def is_interface_pfsense(self, name):
-        """ determines if arg is a pfsense interface or not """
-        for interface in self.interfaces:
-            interface_elt = interface.tag.strip()
-            if interface_elt == name:
-                return True
-        return False
-
-    def is_interface_name(self, name):
-        """ determines if arg is an interface name or not """
-        for interface in self.interfaces:
-            descr_elt = interface.find('descr')
-            if descr_elt is not None:
-                if descr_elt.text.strip() == name:
-                    return True
-        return False
-
-    def parse_interface(self, interface, fail=True):
-        """ validate param interface field """
-        if (interface == 'enc0' or interface == 'IPsec') and self.is_ipsec_enabled():
-            return 'enc0'
-        if (interface == 'openvpn' or interface == 'OpenVPN') and self.is_openvpn_enabled():
-            return 'openvpn'
-
-        if self.is_interface_name(interface):
-            return self.get_interface_pfsense_by_name(interface)
-        elif self.is_interface_pfsense(interface):
-            return interface
-
-        if fail:
-            self.module.fail_json(msg='%s is not a valid interface' % (interface))
-        return None
 
     def is_ipsec_enabled(self):
         """ return True if ipsec is enabled """
