@@ -139,11 +139,13 @@ class PFSenseNatPortForwardModule(PFSenseModuleBase):
         """ create the XML target_elt """
         self._set_associated_rule()
         self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
         self._insert(self.target_elt)
 
     def _copy_and_update_target(self):
         """ update the XML target_elt """
         before = self.pfsense.element_to_dict(self.target_elt)
+        self.diff['before'] = before
         changed = self._set_associated_rule(before)
 
         if self.pfsense.copy_dict_to_element(self.obj, self.target_elt):
@@ -155,6 +157,7 @@ class PFSenseNatPortForwardModule(PFSenseModuleBase):
         if self._update_rule_position(self.target_elt):
             changed = True
 
+        self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
         return (before, changed)
 
     def _create_associated_rule(self):
@@ -314,6 +317,8 @@ class PFSenseNatPortForwardModule(PFSenseModuleBase):
             self.position_changed = False
             return False
 
+        self.diff['before']['position'] = current_position
+        self.diff['after']['position'] = expected_position
         self.root_elt.remove(rule_elt)
         self._insert(rule_elt)
         self.position_changed = True
