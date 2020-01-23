@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 from string import hexdigits
 from hashlib import md5
 import sys
@@ -46,7 +46,7 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseNatOutboundModule, self).__init__(module, pfsense)
-        self.name = "pfsense_nat_outbound"
+        self.name = "pfsensible.core.nat_outbound"
         self.obj = dict()
 
         self.after = None

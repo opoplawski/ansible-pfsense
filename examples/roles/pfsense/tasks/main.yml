@@ -1,7 +1,7 @@
 ---
 - block:
   - name: "Add aliases"
-    pfsense_alias:
+    pfsensible.core.alias:
       name: "{{ item.name }}"
       type: "{{ item.type }}"
       address: "{{ item.address }}"
@@ -14,14 +14,14 @@
         address: "172.16.10.10 172.16.10.11"
         descr: "Active Directory Servers",
         detail: "ad1||ad2" }
-    - "{{ pfsense_aliases }}"
+    - "{{ pfsensible.core.aliases }}"
 
   - name: "Set local network"
     set_fact:
       localnet: "{{ (ansible_igb0.ipv4[0].network ~ '/' ~  ansible_igb0.ipv4[0].netmask) | ipaddr('net') }}"
 
   - name: "Add Internal traffic rules"
-    pfsense_rule:
+    pfsensible.core.rule:
       name: "Allow Internal traffic to {{ item }}"
       action: pass
       interface: lan
@@ -36,7 +36,7 @@
     - 192.168.0.0/16
 
   - name: "Add Allow proxies out rule"
-    pfsense_rule:
+    pfsensible.core.rule:
       name: 'Allow proxies out'
       action: pass
       interface: lan
@@ -48,7 +48,7 @@
       state: present
 
   - name: "Add Internal DNS out rule"
-    pfsense_rule:
+    pfsensible.core.rule:
       name: 'Allow Internal DNS traffic out'
       action: pass
       interface: lan

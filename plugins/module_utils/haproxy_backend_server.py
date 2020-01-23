@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 import re
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 HAPROXY_BACKEND_SERVER_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -44,7 +44,7 @@ class PFSenseHaproxyBackendServerModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseHaproxyBackendServerModule, self).__init__(module, pfsense)
-        self.name = "pfsense_haproxy_backend_server"
+        self.name = "pfsensible.core.haproxy_backend_server"
         self.root_elt = None
         self.obj = dict()
 

@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.haproxy_backend
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense haproxy backends
 description:
@@ -27,7 +27,7 @@ options:
     type: str
   balance:
     description: The load balancing option.
-    required: true
+    required: false
     type: str
     choices: ['none', 'roundrobin', 'static-rr', 'leastconn', 'source', 'uri']
     default: 'none'
@@ -57,7 +57,6 @@ options:
     type: int
   check_type:
     description: Health check method.
-    required: true
     type: str
     choices: ['none', 'Basic', 'HTTP', 'Agent', 'LDAP', 'MySQL', 'PostgreSQL', 'Redis', 'SMTP', 'ESMTP', 'SSL']
     default: 'none'
@@ -92,7 +91,6 @@ options:
     type: str
   state:
     description: State in which to leave the backend
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -121,7 +119,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.haproxy_backend import PFSenseHaproxyBackendModule, HAPROXY_BACKEND_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.haproxy_backend import PFSenseHaproxyBackendModule, HAPROXY_BACKEND_ARGUMENT_SPEC
 
 
 def main():

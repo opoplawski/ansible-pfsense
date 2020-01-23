@@ -1,7 +1,7 @@
 ---
 - block:
   - name: "Add fail2ban alias"
-    pfsense_alias:
+    pfsensible.core.alias:
       name: fail2ban
       type: urltable
       address: http://127.0.0.1/aliastables/fail2ban
@@ -11,7 +11,7 @@
       state: present
 
   - name: "Add fail2ban floating rules"
-    pfsense_rule:
+    pfsensible.core.rule:
       name: "fail2ban dynamic block {{ item.name }}"
       action: reject
       interface: wan

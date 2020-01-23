@@ -11,31 +11,26 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from units.modules.utils import set_module_args
-from .test_pfsense_rule import TestPFSenseRuleModule, args_from_var
+from .test_pfsense_rule import TestPFSenseRuleModule
 
 
 class TestPFSenseRuleMiscModule(TestPFSenseRuleModule):
-
-    def do_rule_deletion_test(self, rule):
-        """ test deletion of a rule """
-        set_module_args(args_from_var(rule, 'absent'))
-        self.execute_module(changed=True)
-        self.assert_has_xml_tag('filter', dict(name=rule['name'], interface=rule['interface']), absent=True)
 
     ##############
     # delete
     #
     def test_rule_delete(self):
-        """ test updating position of a rule to top """
-        rule = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp')
-        self.do_rule_deletion_test(rule)
+        """ test deleting a rule """
+        obj = dict(name='test_rule_3', source='any', destination='any', interface='wan', protocol='tcp')
+        command = "delete rule 'test_rule_3' on 'wan'"
+        self.do_module_test(obj, command=command, delete=True)
 
     ##############
     # misc
     #
     def test_check_mode(self):
-        """ test updating an host alias without generating result """
-        rule = dict(name='one_rule', source='any', destination='any', interface='lan')
-        set_module_args(args_from_var(rule, _ansible_check_mode=True))
+        """ test check mode """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan')
+        set_module_args(self.args_from_var(obj, _ansible_check_mode=True))
         self.execute_module(changed=True)
         self.assertFalse(self.load_xml_result())

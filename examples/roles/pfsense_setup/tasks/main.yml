@@ -94,4 +94,4 @@
       content: |
         %Domain\ Admins             ALL=(ALL) NOPASSWD: ALL
 
-  tags: pfsense_setup
+  tags: pfsensible.core.setup

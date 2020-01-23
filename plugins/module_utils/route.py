@@ -5,8 +5,7 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible_collections.pfsensible.core.plugins.module_utils.pfsense_module_base import PFSenseModuleBase
-from ansible.module_utils.compat.ipaddress import ip_address, ip_network
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 ROUTE_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -29,7 +28,7 @@ class PFSenseRouteModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseRouteModule, self).__init__(module, pfsense)
-        self.name = "pfsense_route"
+        self.name = "pfsensible.core.route"
         self.root_elt = self.pfsense.get_element('staticroutes')
         self.obj = dict()
         self.route_cmd = list()

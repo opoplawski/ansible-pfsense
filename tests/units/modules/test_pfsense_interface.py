@@ -107,13 +107,13 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     def test_interface_create_no_address(self):
         """ test creation of a new interface with no address """
         interface = dict(descr='VOICE', interface='vmx0.100')
-        command = "create interface 'VOICE', port='vmx0.100', ipv4_type='none', speed_duplex='autoselect'"
+        command = "create interface 'VOICE', port='vmx0.100'"
         self.do_module_test(interface, command=command)
 
     def test_interface_create_static(self):
         """ test creation of a new interface with a static ip """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen=24)
-        command = "create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen='24', speed_duplex='autoselect'"
+        command = "create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen='24'"
         self.do_module_test(interface, command=command)
 
     def test_interface_create_gateway(self):
@@ -122,13 +122,13 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         interface.update(dict(create_ipv4_gateway=True, ipv4_gateway_address='10.20.30.1'))
         command1 = "create gateway 'voice_gw', interface='opt4', ip='10.20.30.1'"
         command2 = ("create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40'"
-                    ", ipv4_prefixlen='24', ipv4_gateway='voice_gw', speed_duplex='autoselect'")
+                    ", ipv4_prefixlen='24', ipv4_gateway='voice_gw'")
         self.do_module_test(interface, command=[command1, command2])
 
     def test_interface_create_none_mac_mtu_mss(self):
         """ test creation of a new interface """
         interface = dict(descr='VOICE', interface='vmx0.100', mac='00:11:22:33:44:55', mtu=1500, mss=1100)
-        command = "create interface 'VOICE', port='vmx0.100', ipv4_type='none', mac='00:11:22:33:44:55', mtu='1500', mss='1100', speed_duplex='autoselect'"
+        command = "create interface 'VOICE', port='vmx0.100', mac='00:11:22:33:44:55', mtu='1500', mss='1100'"
         self.do_module_test(interface, command=command)
 
     def test_interface_delete(self):
@@ -142,11 +142,11 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         interface = dict(descr='lan', state='absent')
         commands = [
             "delete rule_separator 'test_separator', interface='lan'",
-            "update rule 'floating_rule_2', interface='floating' set interface='wan,opt3'",
-            "delete rule 'floating_rule_1', interface='floating'",
-            "delete rule 'antilock_out_1', interface='lan'",
-            "delete rule 'antilock_out_2', interface='lan'",
-            "delete rule 'antilock_out_3', interface='lan'",
+            "update rule 'floating_rule_2' on 'floating(lan,wan,lan_1100)' set interface='wan,lan_1100'",
+            "delete rule 'floating_rule_1' on 'floating(lan)'",
+            "delete rule 'antilock_out_1' on 'lan'",
+            "delete rule 'antilock_out_2' on 'lan'",
+            "delete rule 'antilock_out_3' on 'lan'",
             "delete interface 'lan'"
         ]
         self.do_module_test(interface, delete=True, command=commands)

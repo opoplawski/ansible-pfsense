@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.rule_separator
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense rule separators
 description:
@@ -27,13 +27,11 @@ options:
     type: str
   state:
     description: State in which to leave the separator
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
   interface:
     description: The interface for the separator
-    required: true
     type: str
   floating:
     description: Is the rule on floating tab
@@ -74,10 +72,10 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import PFSenseRuleSeparatorModule
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
 
 
 def main():

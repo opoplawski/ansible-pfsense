@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.route
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense routes
 description:
@@ -40,7 +40,6 @@ options:
     type: bool
   state:
     description: State in which to leave the route
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -69,7 +68,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.route import PFSenseRouteModule, ROUTE_ARGUMENT_SPEC, ROUTE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.route import PFSenseRouteModule, ROUTE_ARGUMENT_SPEC, ROUTE_REQUIRED_IF
 
 
 def main():

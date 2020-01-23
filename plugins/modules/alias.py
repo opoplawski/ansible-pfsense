@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.alias
-version_added: "2.9"
+version_added: "2.10"
 author: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
 short_description: Manage pfSense aliases
 description:
@@ -28,7 +28,6 @@ options:
     type: str
   state:
     description: State in which to leave the alias
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -82,7 +81,7 @@ diff:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
 
 
 def main():

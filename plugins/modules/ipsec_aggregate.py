@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.ipsec_aggregate
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage multiple pfSense ipsec tunnels, phases 1, phases 2 and proposals
 description:
@@ -138,10 +138,10 @@ options:
       descr:
         description: The description of the ipsec tunnel
         default: null
+        required: True
         type: str
       state:
         description: State in which to leave the ipsec tunnel
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -182,7 +182,6 @@ options:
         type: str
       state:
         description: State in which to leave the ipsec proposal.
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -313,7 +312,7 @@ options:
         type: str
       descr:
         description: The description of the ipsec tunnel phase2
-        required: true
+        required: True
         type: str
       p1_descr:
         description: The description of the ipsec tunnel
@@ -321,7 +320,6 @@ options:
         type: str
       state:
         description: State in which to leave the ipsec tunnel phase2
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -391,13 +389,13 @@ result_ipsec_p2s:
 """
 
 from ansible_collections.pfsensible.core.plugins.module_utils.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
-from ansible.module_utils.network.pfsense.ipsec_proposal import PFSenseIpsecProposalModule
-from ansible.module_utils.network.pfsense.ipsec_proposal import IPSEC_PROPOSAL_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.ipsec_proposal import IPSEC_PROPOSAL_REQUIRED_IF
-from ansible.module_utils.network.pfsense.ipsec_p2 import PFSenseIpsecP2Module
-from ansible.module_utils.network.pfsense.ipsec_p2 import IPSEC_P2_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.ipsec_p2 import IPSEC_P2_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec import PFSenseIpsecModule, IPSEC_ARGUMENT_SPEC, IPSEC_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_proposal import PFSenseIpsecProposalModule
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_proposal import IPSEC_PROPOSAL_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_proposal import IPSEC_PROPOSAL_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_p2 import PFSenseIpsecP2Module
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_p2 import IPSEC_P2_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_p2 import IPSEC_P2_REQUIRED_IF
 
 from ansible.module_utils.basic import AnsibleModule
 from copy import deepcopy
@@ -409,12 +407,12 @@ class PFSenseModuleIpsecAggregate(object):
     def __init__(self, module):
         self.module = module
         self.pfsense = PFSenseModule(module)
-        self.pfsensible.core.ipsec = PFSenseIpsecModule(module, self.pfsense)
-        self.pfsensible.core.ipsec_proposal = PFSenseIpsecProposalModule(module, self.pfsense)
-        self.pfsensible.core.ipsec_p2 = PFSenseIpsecP2Module(module, self.pfsense)
+        self.pfsense_ipsec = PFSenseIpsecModule(module, self.pfsense)
+        self.pfsense_ipsec_proposal = PFSenseIpsecProposalModule(module, self.pfsense)
+        self.pfsense_ipsec_p2 = PFSenseIpsecP2Module(module, self.pfsense)
 
     def _update(self):
-        if self.pfsensible.core.ipsec.result['changed'] or self.pfsense_ipsec_proposal.result['changed'] or self.pfsense_ipsec_p2.result['changed']:
+        if self.pfsense_ipsec.result['changed'] or self.pfsense_ipsec_proposal.result['changed'] or self.pfsense_ipsec_p2.result['changed']:
             return self.pfsense.phpshell(
                 "require_once('vpn.inc');"
                 "$ipsec_dynamic_hosts = vpn_ipsec_configure();"
@@ -442,7 +440,7 @@ class PFSenseModuleIpsecAggregate(object):
         return False
 
     def proposal_elt_to_params(self, ipsec_elt, proposal_elt):
-        """ return the pfsensible.core.ipsec_proposal params corresponding the proposal_elt """
+        """ return the pfsense_ipsec_proposal params corresponding the proposal_elt """
         params = {}
         proposal = self.pfsense.element_to_dict(proposal_elt)
         params['encryption'] = proposal['encryption-algorithm']['name']
@@ -507,12 +505,12 @@ class PFSenseModuleIpsecAggregate(object):
         # processing aggregated parameter
         if want is not None:
             for param in want:
-                self.pfsensible.core.ipsec.run(param)
+                self.pfsense_ipsec.run(param)
 
         # delete every other if required
         if self.module.params['purge_ipsecs']:
             todel = []
-            for ipsec_elt in self.pfsensible.core.ipsec.root_elt:
+            for ipsec_elt in self.pfsense_ipsec.root_elt:
                 if ipsec_elt.tag != 'phase1':
                     continue
                 if not self.want_ipsec(ipsec_elt, want):
@@ -524,7 +522,7 @@ class PFSenseModuleIpsecAggregate(object):
                     todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.ipsec.run(params)
+                self.pfsense_ipsec.run(params)
 
     def run_ipsec_proposals(self):
         """ process input params to add/update/delete all ipsecs tunnels """
@@ -533,12 +531,12 @@ class PFSenseModuleIpsecAggregate(object):
         # processing aggregated parameter
         if want is not None:
             for param in want:
-                self.pfsensible.core.ipsec_proposal.run(param)
+                self.pfsense_ipsec_proposal.run(param)
 
         # delete every other if required
         if self.module.params['purge_ipsec_proposals']:
             todel = []
-            for ipsec_elt in self.pfsensible.core.ipsec_proposal.ipsec:
+            for ipsec_elt in self.pfsense_ipsec_proposal.ipsec:
                 if ipsec_elt.tag != 'phase1':
                     continue
 
@@ -557,7 +555,7 @@ class PFSenseModuleIpsecAggregate(object):
                         todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.ipsec_proposal.run(params)
+                self.pfsense_ipsec_proposal.run(params)
 
     def run_ipsec_p2s(self):
         """ process input params to add/update/delete all ipsecs tunnels """
@@ -566,12 +564,12 @@ class PFSenseModuleIpsecAggregate(object):
         # processing aggregated parameter
         if want is not None:
             for param in want:
-                self.pfsensible.core.ipsec_p2.run(param)
+                self.pfsense_ipsec_p2.run(param)
 
         # delete every other if required
         if self.module.params['purge_ipsec_p2s']:
             todel = []
-            for phase2_elt in self.pfsensible.core.ipsec_p2.root_elt:
+            for phase2_elt in self.pfsense_ipsec_p2.root_elt:
                 if phase2_elt.tag != 'phase2':
                     continue
                 if not self.want_ipsec_phase2(phase2_elt, want):
@@ -584,13 +582,13 @@ class PFSenseModuleIpsecAggregate(object):
                     todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.ipsec_p2.run(params)
+                self.pfsense_ipsec_p2.run(params)
 
     def commit_changes(self):
         """ apply changes and exit module """
         stdout = ''
         stderr = ''
-        changed = self.pfsensible.core.ipsec.result['changed'] or self.pfsense_ipsec_proposal.result['changed'] or self.pfsense_ipsec_p2.result['changed']
+        changed = self.pfsense_ipsec.result['changed'] or self.pfsense_ipsec_proposal.result['changed'] or self.pfsense_ipsec_p2.result['changed']
 
         if changed and not self.module.check_mode:
             self.pfsense.write_config(descr='aggregated change')
@@ -598,9 +596,9 @@ class PFSenseModuleIpsecAggregate(object):
                 (dummy, stdout, stderr) = self._update()
 
         result = {}
-        result['result_ipsecs'] = self.pfsensible.core.ipsec.result['commands']
-        result['result_ipsec_proposals'] = self.pfsensible.core.ipsec_proposal.result['commands']
-        result['result_ipsec_p2s'] = self.pfsensible.core.ipsec_p2.result['commands']
+        result['result_ipsecs'] = self.pfsense_ipsec.result['commands']
+        result['result_ipsec_proposals'] = self.pfsense_ipsec_proposal.result['commands']
+        result['result_ipsec_p2s'] = self.pfsense_ipsec_p2.result['commands']
         result['changed'] = changed
         result['stdout'] = stdout
         result['stderr'] = stderr

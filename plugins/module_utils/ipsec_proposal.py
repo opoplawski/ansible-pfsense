@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible_collections.pfsensible.core.plugins.module_utils.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 
 IPSEC_PROPOSAL_ARGUMENT_SPEC = dict(
@@ -36,7 +36,7 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseIpsecProposalModule, self).__init__(module, pfsense)
-        self.name = "pfsense_ipsec_proposal"
+        self.name = "pfsensible.core.ipsec_proposal"
         self.root_elt = None
         self.obj = dict()
         self.apply = True

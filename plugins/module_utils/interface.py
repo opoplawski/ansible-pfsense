@@ -6,8 +6,8 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 import re
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
-from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.rule import PFSenseRuleModule
 from ansible.module_utils.compat.ipaddress import ip_network
 
 INTERFACE_ARGUMENT_SPEC = dict(
@@ -44,11 +44,12 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseInterfaceModule, self).__init__(module, pfsense)
-        self.name = "pfsense_interface"
+        self.name = "pfsensible.core.interface"
         self.obj = dict()
 
         self.root_elt = self.pfsense.interfaces
         self.target_elt = None
+        self.setup_interface_cmds = ""
 
     ##############################
     # params processing
@@ -165,6 +166,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         """ create the XML target_elt """
         self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
         self._create_gateway()
+        self.setup_interface_cmds += "interface_configure('{0}', true);\n".format(self.target_elt.tag)
 
     def _copy_and_update_target(self):
         """ update the XML target_elt """
@@ -175,6 +177,13 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
         if self._create_gateway():
             changed = True
+
+        if changed:
+            if self.params['enable']:
+                self.setup_interface_cmds += "interface_bring_down('{0}', false);\n".format(self.target_elt.tag)
+                self.setup_interface_cmds += "interface_configure('{0}', true);\n".format(self.target_elt.tag)
+            else:
+                self.setup_interface_cmds += "interface_bring_down('{0}', true);\n".format(self.target_elt.tag)
 
         return (before, changed)
 
@@ -299,8 +308,11 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     def _pre_remove_target_elt(self):
         """ processing before removing elt """
         self.obj['if'] = self.target_elt.find('if').text
+
         self._remove_all_separators(self.target_elt.tag)
         self._remove_all_rules(self.target_elt.tag)
+
+        self.setup_interface_cmds += "interface_bring_down('{0}');\n".format(self.target_elt.tag)
 
     def _remove_all_rules(self, interface):
         """ delete all interface rules """
@@ -312,11 +324,13 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         for rule_elt in self.pfsense.rules:
             if rule_elt.find('floating') is not None:
                 interfaces = rule_elt.find('interface').text.split(',')
+                old_ifs = ','.join([self.pfsense.get_interface_display_name(old_interface) for old_interface in interfaces])
                 if interface in interfaces:
                     if len(interfaces) > 1:
                         interfaces.remove(interface)
+                        new_ifs = ','.join([self.pfsense.get_interface_display_name(new_interface) for new_interface in interfaces])
                         rule_elt.find('interface').text = ','.join(interfaces)
-                        cmd = 'update rule \'{0}\', interface=\'floating\' set interface=\'{1}\''.format(rule_elt.find('descr').text, ','.join(interfaces))
+                        cmd = 'update rule \'{0}\' on \'floating({1})\' set interface=\'{2}\''.format(rule_elt.find('descr').text, old_ifs, new_ifs)
                         self.result['commands'].append(cmd)
                         continue
                     todel.append(rule_elt)
@@ -436,10 +450,29 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             '}\n'
             'echo json_encode($mediaopts_list);')
 
+    def get_update_cmds(self):
+        """ build and return php commands to setup interfaces """
+        cmd = 'require_once("filter.inc");\n'
+        cmd += 'require_once("interfaces.inc");\n'
+        cmd += 'require_once("services.inc");\n'
+        cmd += 'require_once("gwlb.inc");\n'
+        cmd += 'require_once("rrd.inc");\n'
+        cmd += 'require_once("shaper.inc");\n'
+
+        if self.setup_interface_cmds != "":
+            cmd += self.setup_interface_cmds
+
+        cmd += 'services_snmpd_configure();\n'
+        cmd += 'setup_gateways_monitor();\n'
+        cmd += "clear_subsystem_dirty('interfaces');\n"
+        cmd += "filter_configure();\n"
+        cmd += "enable_rrd_graphing();\n"
+        cmd += "if (is_subsystem_dirty('staticroutes') && (system_routing_configure() == 0)) clear_subsystem_dirty('staticroutes');"
+        return cmd
+
     def _update(self):
-        """ make the target pfsense reload aliases """
-        return self.pfsense.phpshell('''require_once("filter.inc");
-if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
+        """ make the target pfsense reload interfaces """
+        return self.pfsense.phpshell(self.get_update_cmds())
 
     ##############################
     # Logging
@@ -454,7 +487,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
         if before is None:
             values += self.format_cli_field(self.obj, 'if', fname='port')
             values += self.format_cli_field(self.obj, 'enable', fvalue=self.fvalue_bool)
-            values += self.format_cli_field(self.params, 'ipv4_type')
+            values += self.format_cli_field(self.params, 'ipv4_type', default='none')
             values += self.format_cli_field(self.params, 'mac')
             values += self.format_cli_field(self.obj, 'mtu')
             values += self.format_cli_field(self.obj, 'mss')
@@ -463,8 +496,9 @@ if (filter_configure() == 0) { clear_subsystem_dirty('interfaces'); }''')
             values += self.format_cli_field(self.obj, 'gateway', fname='ipv4_gateway')
             values += self.format_cli_field(self.obj, 'blockpriv', fvalue=self.fvalue_bool)
             values += self.format_cli_field(self.obj, 'blockbogons', fvalue=self.fvalue_bool)
-            values += self.format_cli_field(self.params, 'speed_duplex', fname='speed_duplex')
+            values += self.format_cli_field(self.params, 'speed_duplex', fname='speed_duplex', default='autoselect')
         else:
+            # todo: - detect before ipv4_type for proper logging
             values += self.format_updated_cli_field(self.obj, before, 'descr', add_comma=(values), fname='interface')
             values += self.format_updated_cli_field(self.obj, before, 'if', add_comma=(values), fname='port')
             values += self.format_updated_cli_field(self.obj, before, 'enable', add_comma=(values), fvalue=self.fvalue_bool)

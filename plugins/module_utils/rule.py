@@ -9,41 +9,45 @@ __metaclass__ = type
 
 import time
 import re
-
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 RULE_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
-    action=dict(default='pass', required=False, choices=['pass', "block", 'reject']),
+    action=dict(default='pass', choices=['pass', "block", 'reject']),
     state=dict(default='present', choices=['present', 'absent']),
     disabled=dict(default=False, required=False, type='bool'),
     interface=dict(required=True, type='str'),
     floating=dict(required=False, type='bool'),
     direction=dict(required=False, choices=["any", "in", "out"]),
-    ipprotocol=dict(required=False, default='inet', choices=['inet', 'inet46', 'inet6']),
-    protocol=dict(default='any', required=False, choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp"]),
+    ipprotocol=dict(default='inet', choices=['inet', 'inet46', 'inet6']),
+    protocol=dict(default='any', choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp"]),
     source=dict(required=False, type='str'),
+    source_port=dict(required=False, type='str'),
     destination=dict(required=False, type='str'),
+    destination_port=dict(required=False, type='str'),
     log=dict(required=False, type='bool'),
     after=dict(required=False, type='str'),
     before=dict(required=False, type='str'),
-    statetype=dict(required=False, default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none']),
+    statetype=dict(default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none']),
     queue=dict(required=False, type='str'),
     ackqueue=dict(required=False, type='str'),
     in_queue=dict(required=False, type='str'),
     out_queue=dict(required=False, type='str'),
-    gateway=dict(required=False, type='str', default='default'),
+    gateway=dict(default='default', type='str'),
+    tracker=dict(required=False, type='int'),
+    icmptype=dict(default='any', required=False, type='str')
 )
 
 RULE_REQUIRED_IF = [
     ["floating", True, ["direction"]],
-    ["state", "present", ["source", "destination"]]
+    ["state", "present", ["source", "destination"]],
+    ["protocol", "icmp", ["icmptype"]],
 ]
 
 # These are rule elements that are (currently) unmanaged by this module
 RULE_UNMANAGED_ELEMENTS = [
     'created', 'id', 'max', 'max-src-conn', 'max-src-nodes', 'max-src-states', 'os',
-    'statetimeout', 'statetype', 'tag', 'tagged', 'tracker', 'updated'
+    'statetimeout', 'statetype', 'tag', 'tagged', 'updated'
 ]
 
 
@@ -55,20 +59,20 @@ class PFSenseRuleModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseRuleModule, self).__init__(module, pfsense)
-        self.name = "pfsense_rule"
+        self.name = "pfsensible.core.rule"
         self.root_elt = self.pfsense.get_element('filter')
         self.obj = dict()
 
-        self.diff = {'after': {}, 'before': {}}
         self.result['added'] = []
         self.result['deleted'] = []
         self.result['modified'] = []
 
-        # internals params
         self.obj = None
-        self._floating = None
-        self._after = None
-        self._before = None
+        self._floating = None               # are we on floating rule
+        self._floating_interfaces = None    # rule's interfaces before change
+        self._after = None                  # insert/move after
+        self._before = None                 # insert/move before
+
         self._position_changed = False
 
     ##############################
@@ -78,55 +82,59 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ return a dict from module params """
         params = self.params
 
-        rule = dict()
-        self.obj = rule
+        obj = dict()
+        self.obj = obj
 
-        def param_to_rule(param_field, rule_field):
-            """ set rule_field if param_field is defined """
-            if params.get(param_field) is not None:
-                rule[rule_field] = params[param_field]
-
-        def bool_to_rule(param_field, rule_field):
-            """ set rule_field if param_field is True """
-            if params.get(param_field):
-                rule[rule_field] = ''
-
-        rule['descr'] = params['name']
+        obj['descr'] = params['name']
 
         if params.get('floating'):
-            rule['floating'] = 'yes'
-            rule['interface'] = self._parse_floating_interfaces(params['interface'])
+            obj['floating'] = 'yes'
+            obj['interface'] = self._parse_floating_interfaces(params['interface'])
         else:
-            rule['interface'] = self.pfsense.parse_interface(params['interface'])
+            obj['interface'] = self.pfsense.parse_interface(params['interface'])
 
         if params['state'] == 'present':
-            rule['type'] = params['action']
-            rule['ipprotocol'] = params['ipprotocol']
-            rule['statetype'] = params['statetype']
-            rule['source'] = self.pfsense.parse_address(params['source'])
-            rule['destination'] = self.pfsense.parse_address(params['destination'])
+            obj['type'] = params['action']
+            obj['ipprotocol'] = params['ipprotocol']
+            obj['statetype'] = params['statetype']
 
-            if params['protocol'] != 'any':
-                rule['protocol'] = params['protocol']
+            obj['source'] = self.pfsense.parse_address(params['source'])
+            if params.get('source_port'):
+                self.pfsense.parse_port(params['source_port'], obj['source'])
 
-            bool_to_rule('disabled', 'disabled')
-            bool_to_rule('log', 'log')
+            obj['destination'] = self.pfsense.parse_address(params['destination'])
+            if params.get('destination_port'):
+                self.pfsense.parse_port(params['destination_port'], obj['destination'])
 
-            param_to_rule('direction', 'direction')
-            param_to_rule('queue', 'defaultqueue')
-            param_to_rule('ackqueue', 'ackqueue')
-            param_to_rule('in_queue', 'dnpipe')
-            param_to_rule('out_queue', 'pdnpipe')
-            param_to_rule('associated-rule-id', 'associated-rule-id')
+            if params['protocol'] not in ['tcp', 'udp', 'tcp/udp'] and ('port' in obj['source'] or 'port' in obj['destination']):
+                self.module.fail_json(msg="you can't use ports on protocols other than tcp, udp or tcp/udp")
 
-            if 'gateway' in params and params['gateway'] != 'default':
-                rule['gateway'] = params['gateway']
+            # for param in ['destination', 'source']:
+            #    if 'address' in obj[param]:
+            #        self.pfsense.check_ip_address(obj[param]['address'], obj['ipprotocol'], 'rule')
+            #    if 'network' in obj[param]:
+            #        self.pfsense.check_ip_address(obj[param]['network'], obj['ipprotocol'], 'rule', allow_networks=True)
+
+            self._get_ansible_param(obj, 'protocol', exclude='any')
+            if params['protocol'] == 'icmp':
+                self._get_ansible_param(obj, 'icmptype')
+            self._get_ansible_param(obj, 'direction')
+            self._get_ansible_param(obj, 'queue', fname='defaultqueue')
+            self._get_ansible_param(obj, 'ackqueue')
+            self._get_ansible_param(obj, 'in_queue', fname='dnpipe')
+            self._get_ansible_param(obj, 'out_queue', fname='pdnpipe')
+            self._get_ansible_param(obj, 'associated-rule-id')
+            self._get_ansible_param(obj, 'tracker')
+            self._get_ansible_param(obj, 'gateway', exclude='default')
+
+            self._get_ansible_param_bool(obj, 'disabled', value='')
+            self._get_ansible_param_bool(obj, 'log', value='')
 
         self._floating = 'floating' in self.obj and self.obj['floating'] == 'yes'
         self._after = params.get('after')
         self._before = params.get('before')
 
-        return rule
+        return obj
 
     def _parse_floating_interfaces(self, interfaces):
         """ validate param interface field when floating is true """
@@ -187,6 +195,39 @@ class PFSenseRuleModule(PFSenseModuleBase):
             if params.get('floating') and params.get('direction') == 'any':
                 self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
 
+        # tracker
+        if params.get('tracker') is not None and params['tracker'] <= 0:
+            self.module.fail_json(msg='tracker {0} must be a positive integer'.format(params['tracker']))
+
+        # ICMP
+        if params.get('protocol') == 'icmp' and params.get('icmptype') is not None:
+            both_types = ['any', 'echorep', 'echoreq', 'paramprob', 'redir', 'routeradv', 'routersol', 'timex', 'unreach']
+            v4_types = ['althost', 'dataconv', 'inforep', 'inforeq', 'ipv6-here', 'ipv6-where', 'maskrep', 'maskreq', 'mobredir', 'mobregrep', 'mobregreq']
+            v4_types += ['photuris', 'skip', 'squench', 'timerep', 'timereq', 'trace']
+            v6_types = ['fqdnrep', 'fqdnreq', 'groupqry', 'grouprep', 'groupterm', 'listendone', 'listenrep', 'listqry', 'mtrace', 'mtraceresp', 'neighbradv']
+            v6_types += ['neighbrsol', 'niqry', 'nirep', 'routrrenum', 'toobig', 'wrurep', 'wrureq']
+
+            icmptypes = list(set(map(str.strip, params['icmptype'].split(','))))
+            icmptypes.sort()
+            if '' in icmptypes:
+                icmptypes.remove('')
+            if len(icmptypes) == 0:
+                self.module.fail_json(msg='You must specify at least one icmptype or any for all of them')
+
+            invalids = set(icmptypes) - set(v4_types) - set(v6_types) - set(both_types)
+            if len(invalids) > 0:
+                self.module.fail_json(msg='ICMP types {0} does not exist'.format(','.join(invalids)))
+
+            if params['ipprotocol'] == 'inet':
+                left = set(icmptypes) - set(v4_types) - set(both_types)
+            elif params['ipprotocol'] == 'inet6':
+                left = set(icmptypes) - set(v6_types) - set(both_types)
+            else:   # inet46 only allow
+                left = set(icmptypes) - set(both_types)
+            if len(left) > 0:
+                self.module.fail_json(msg='ICMP types {0} are invalid with IP type {1}'.format(','.join(left), params['ipprotocol']))
+            params['icmptype'] = ','.join(icmptypes)
+
     ##############################
     # XML processing
     #
@@ -226,7 +267,8 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ create the XML target_elt """
         timestamp = '%d' % int(time.time())
         self.obj['id'] = ''
-        self.obj['tracker'] = timestamp
+        if 'tracker' not in self.obj:
+            self.obj['tracker'] = timestamp
         self.obj['created'] = self.obj['updated'] = dict()
         self.obj['created']['time'] = self.obj['updated']['time'] = timestamp
         self.obj['created']['username'] = self.obj['updated']['username'] = self.pfsense.get_username()
@@ -239,6 +281,9 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ update the XML target_elt """
         timestamp = '%d' % int(time.time())
         before = self._rule_element_to_dict()
+        if 'tracker' not in self.obj:
+            self.obj['tracker'] = before['tracker']
+
         if 'associated-rule-id' not in self.obj and 'associated-rule-id' in before and before['associated-rule-id'] != '':
             self.module.fail_json(msg='Target filter rule is associated with a NAT rule.')
 
@@ -309,6 +354,10 @@ class PFSenseRuleModule(PFSenseModuleBase):
     def _find_target(self):
         """ find the XML target_elt """
         rule_elt, dummy = self._find_matching_rule()
+        if rule_elt is not None and self._floating:
+            ifs_elt = rule_elt.find('interface')
+            self._floating_interfaces = ','.join([self.pfsense.get_interface_display_name(interface) for interface in ifs_elt.text.split(',')])
+
         return rule_elt
 
     def _get_expected_rule_position(self):
@@ -378,7 +427,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway']
+        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype']
 
     def _get_rule_position(self, descr=None, fail=True):
         """ get rule position in interface/floating """
@@ -438,7 +487,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
         # Convert addresses to argument format
         for addr_item in ['source', 'destination']:
-            rule[addr_item] = self.pfsense.addr_normalize(rule[addr_item])
+            rule[addr_item], rule[addr_item + '_port'] = self.pfsense.addr_normalize(rule[addr_item])
 
         return rule
 
@@ -452,96 +501,94 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
     #
     def _get_obj_name(self):
         """ return obj's name """
-        return "'" + self.obj['descr'] + "'"
+        return "'{0}' on '{1}'".format(self.obj['descr'], self._interface_name())
 
     def _interface_name(self):
         """ return formated interface name for logging """
         if self._floating:
-            return 'floating(' + self.obj['interface'] + ')'
-        return self.obj['interface']
+            if self._floating_interfaces is not None:
+                return 'floating(' + self._floating_interfaces + ')'
+            return 'floating(' + self.params['interface'] + ')'
+        return self.params['interface']
 
     def _log_fields(self, before=None):
         """ generate pseudo-CLI command fields parameters to create an obj """
         values = ''
         if before is None:
             values += self.format_cli_field(self.params, 'source')
+            values += self.format_cli_field(self.params, 'source_port')
             values += self.format_cli_field(self.params, 'destination')
-            values += self.format_cli_field(self.params, 'protocol')
-            values += self.format_cli_field(self.params, 'interface')
-            values += self.format_cli_field(self.params, 'floating')
+            values += self.format_cli_field(self.params, 'destination_port')
+            values += self.format_cli_field(self.params, 'protocol', default='any')
             values += self.format_cli_field(self.params, 'direction')
             values += self.format_cli_field(self.params, 'ipprotocol', default='inet')
+            values += self.format_cli_field(self.params, 'icmptype', default='any')
             values += self.format_cli_field(self.params, 'statetype', default='keep state')
             values += self.format_cli_field(self.params, 'action', default='pass')
-            values += self.format_cli_field(self.params, 'disabled', default=False)
-            values += self.format_cli_field(self.params, 'log', default=False)
+            values += self.format_cli_field(self.params, 'disabled', fvalue=self.fvalue_bool, default=False)
+            values += self.format_cli_field(self.params, 'log', fvalue=self.fvalue_bool, default=False)
             values += self.format_cli_field(self.params, 'after')
             values += self.format_cli_field(self.params, 'before')
             values += self.format_cli_field(self.params, 'queue')
             values += self.format_cli_field(self.params, 'ackqueue')
             values += self.format_cli_field(self.params, 'in_queue')
             values += self.format_cli_field(self.params, 'out_queue')
-            values += self.format_cli_field(self.params, 'default', default='default')
+            values += self.format_cli_field(self.params, 'gateway', default='default')
+            values += self.format_cli_field(self.params, 'tracker')
         else:
             fbefore = self._obj_to_log_fields(before)
             fafter = self._obj_to_log_fields(self.obj)
             fafter['before'] = self._before
             fafter['after'] = self._after
 
-            log = ''
-            if self._floating:
-                log += ", interface='floating'"
-            else:
-                log += ", interface='{0}'".format(self.pfsense.get_interface_display_name(self.obj['interface']))
-
             values += self.format_updated_cli_field(fafter, fbefore, 'source', add_comma=(values))
+            values += self.format_updated_cli_field(fafter, fbefore, 'source_port', add_comma=(values))
             values += self.format_updated_cli_field(fafter, fbefore, 'destination', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'protocol', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'interface', add_comma=(values))
+            values += self.format_updated_cli_field(fafter, fbefore, 'destination_port', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'protocol', none_value="'any'", add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'icmptype', add_comma=(values))
+            values += self.format_updated_cli_field(fafter, fbefore, 'interface', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'floating', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'direction', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'ipprotocol', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'statetype', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'action', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'disabled', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'log', add_comma=(values))
+            values += self.format_updated_cli_field(self.params, before, 'action', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'disabled', fvalue=self.fvalue_bool, add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'log', fvalue=self.fvalue_bool, add_comma=(values))
             if self._position_changed:
                 values += self.format_updated_cli_field(fafter, {}, 'after', log_none=False, add_comma=(values))
                 values += self.format_updated_cli_field(fafter, {}, 'before', log_none=False, add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'queue', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'defaultqueue', fname='queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'ackqueue', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'in_queue', add_comma=(values))
-            values += self.format_updated_cli_field(self.obj, before, 'out_queue', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'dnpipe', fname='in_queue', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'pdnpipe', fname='out_queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values))
-            values = log + values
+            values += self.format_updated_cli_field(self.obj, before, 'tracker', add_comma=(values))
         return values
-
-    def _log_fields_delete(self):
-        """ generate pseudo-CLI command fields parameters to delete an obj """
-        if self._floating:
-            return ", interface='floating'"
-        return ", interface='{0}'".format(self.pfsense.get_interface_display_name(self.obj['interface']))
 
     @staticmethod
     def _obj_address_to_log_field(rule, addr):
         """ return formated address from dict """
         field = ''
+        field_port = ''
         if isinstance(rule[addr], dict):
+            if 'not' in rule[addr]:
+                field += '!'
             if 'any' in rule[addr]:
-                field = 'any'
+                field += 'any'
             if 'address' in rule[addr]:
-                field = rule[addr]['address']
+                field += rule[addr]['address']
             if 'port' in rule[addr]:
-                if field:
-                    field += ':'
-                field += rule[addr]['port']
+                field_port += rule[addr]['port']
         else:
             field = rule[addr]
-        return field
+            field_port = rule[addr + '_port']
+        return field, field_port
 
     def _obj_to_log_fields(self, rule):
         """ return formated source and destination from dict """
         res = {}
-        res['source'] = self._obj_address_to_log_field(rule, 'source')
-        res['destination'] = self._obj_address_to_log_field(rule, 'destination')
+        res['source'], res['source_port'] = self._obj_address_to_log_field(rule, 'source')
+        res['destination'], res['destination_port'] = self._obj_address_to_log_field(rule, 'destination')
+        res['interface'] = ','.join([self.pfsense.get_interface_display_name(interface) for interface in rule['interface'].split(',')])
         return res

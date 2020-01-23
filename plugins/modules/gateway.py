@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.gateway
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense gateways
 description:
@@ -70,7 +70,6 @@ options:
     type: int
   state:
     description: State in which to leave the gateway
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -99,7 +98,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.gateway import PFSenseGatewayModule, GATEWAY_ARGUMENT_SPEC, GATEWAY_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.gateway import PFSenseGatewayModule, GATEWAY_ARGUMENT_SPEC, GATEWAY_REQUIRED_IF
 
 
 def main():

@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.ipsec_proposal
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense ipsec proposals
 description:
@@ -49,7 +49,6 @@ options:
     type: str
   state:
     description: State in which to leave the ipsec proposal.
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -94,7 +93,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.ipsec_proposal import PFSenseIpsecProposalModule, IPSEC_PROPOSAL_ARGUMENT_SPEC, IPSEC_PROPOSAL_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_proposal import PFSenseIpsecProposalModule, IPSEC_PROPOSAL_ARGUMENT_SPEC, IPSEC_PROPOSAL_REQUIRED_IF
 
 
 def main():

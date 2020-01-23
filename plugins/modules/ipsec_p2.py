@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.ipsec_p2
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense ipsec tunnels phase 2 options
 description:
@@ -147,7 +147,6 @@ options:
     type: str
   state:
     description: State in which to leave the ipsec tunnel phase2
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -189,7 +188,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.ipsec_p2 import PFSenseIpsecP2Module, IPSEC_P2_ARGUMENT_SPEC, IPSEC_P2_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_p2 import PFSenseIpsecP2Module, IPSEC_P2_ARGUMENT_SPEC, IPSEC_P2_REQUIRED_IF
 
 
 def main():

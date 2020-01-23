@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.aggregate
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage multiple pfSense aliases, rules, rule separators, interfaces and vlans
 description:
@@ -33,7 +33,6 @@ options:
         type: str
       state:
         description: State in which to leave the alias
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -65,7 +64,6 @@ options:
     suboptions:
       state:
         description: State in which to leave the interface.
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -75,11 +73,9 @@ options:
         type: str
       interface:
         description: Network port to which assign the interface.
-        required: true
         type: str
       enable:
         description: Enable interface.
-        required: true
         type: bool
       ipv4_type:
         description: IPv4 Configuration Type.
@@ -144,7 +140,6 @@ options:
         type: str
       action:
         description: The action of the rule
-        required: true
         default: pass
         choices: [ "pass", "block", "reject" ]
         type: str
@@ -179,13 +174,19 @@ options:
         choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
         type: str
       source:
-        description: The source address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
-        required: true
+        description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
+        default: null
+        type: str
+      source_port:
+        description: The source port(s), separated by dash in case of range
         default: null
         type: str
       destination:
-        description: The destination address, in [!]{IP,HOST,ALIAS,any,(self)}[:port], IP:INTERFACE or NET:INTERFACE format
-        required: true
+        description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
+        default: null
+        type: str
+      destination_port:
+        description: The destination port(s), separated by dash in case of range
         default: null
         type: str
       log:
@@ -218,6 +219,17 @@ options:
         description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
         type: str
         default: default
+      tracker:
+        description: Rule tracking ID. Defaults to timestamp of rule creation.
+        type: int
+      icmptype:
+        description:
+          One or more of these ICMP subtypes may be specified, separated by comma, or any for all of them. The types must match ip protocol.
+          althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here, ipv6-where, listendone,
+          listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp, neighbradv, neighbrsol, niqry, nirep, paramprob,
+          photuris, redir, routeradv, routersol, routrrenum, skip, squench, timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
+        default: any
+        type: str
   aggregated_rule_separators:
     description: Dict of rule separators to apply on the target
     required: False
@@ -229,13 +241,11 @@ options:
         type: str
       state:
         description: State in which to leave the separator
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
       interface:
         description: The interface for the separator
-        required: true
         type: str
       floating:
         description: Is the rule on floating tab
@@ -274,7 +284,6 @@ options:
         type: str
       state:
         description: State in which to leave the vlan
-        required: true
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -362,16 +371,16 @@ result_vlans:
 """
 
 from ansible_collections.pfsensible.core.plugins.module_utils.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
-from ansible.module_utils.network.pfsense.interface import PFSenseInterfaceModule
-from ansible.module_utils.network.pfsense.interface import INTERFACE_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.interface import INTERFACE_REQUIRED_IF
-from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
-from ansible.module_utils.network.pfsense.rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
-from ansible.module_utils.network.pfsense.vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.interface import PFSenseInterfaceModule
+from ansible_collections.pfsensible.core.plugins.module_utils.interface import INTERFACE_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.interface import INTERFACE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import PFSenseRuleSeparatorModule
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
+from ansible_collections.pfsensible.core.plugins.module_utils.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible_collections.pfsensible.core.plugins.module_utils.vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -382,23 +391,28 @@ class PFSenseModuleAggregate(object):
     def __init__(self, module):
         self.module = module
         self.pfsense = PFSenseModule(module)
-        self.pfsensible.core.aliases = PFSenseAliasModule(module, self.pfsense)
-        self.pfsensible.core.interfaces = PFSenseInterfaceModule(module, self.pfsense)
-        self.pfsensible.core.rules = PFSenseRuleModule(module, self.pfsense)
-        self.pfsensible.core.rule_separators = PFSenseRuleSeparatorModule(module, self.pfsense)
-        self.pfsensible.core.vlans = PFSenseVlanModule(module, self.pfsense)
+        self.pfsense_aliases = PFSenseAliasModule(module, self.pfsense)
+        self.pfsense_interfaces = PFSenseInterfaceModule(module, self.pfsense)
+        self.pfsense_rules = PFSenseRuleModule(module, self.pfsense)
+        self.pfsense_rule_separators = PFSenseRuleSeparatorModule(module, self.pfsense)
+        self.pfsense_vlans = PFSenseVlanModule(module, self.pfsense)
 
     def _update(self):
         run = False
         cmd = 'require_once("filter.inc");\n'
+        if self.pfsense_vlans.result['changed']:
+            run = True
+            cmd += self.pfsense_vlans.get_update_cmds()
+
+        if self.pfsense_interfaces.result['changed']:
+            run = True
+            cmd += self.pfsense_interfaces.get_update_cmds()
+
         cmd += 'if (filter_configure() == 0) { \n'
-        if self.pfsensible.core.aliases.result['changed']:
+        if self.pfsense_aliases.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'aliases\');\n'
-        if self.pfsensible.core.interfaces.result['changed']:
-            run = True
-            cmd += 'clear_subsystem_dirty(\'interfaces\');\n'
-        if self.pfsensible.core.rules.result['changed'] or self.pfsense_rule_separators.result['changed']:
+        if self.pfsense_rules.result['changed'] or self.pfsense_rule_separators.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'filter\');\n'
         cmd += '}'
@@ -492,22 +506,22 @@ class PFSenseModuleAggregate(object):
         # delete every other rule if required
         if self.module.params['purge_rules']:
             todel = []
-            for rule_elt in self.pfsensible.core.rules.root_elt:
+            for rule_elt in self.pfsense_rules.root_elt:
                 if not self.want_rule(rule_elt, want):
                     params = {}
                     params['state'] = 'absent'
                     params['name'] = rule_elt.find('descr').text
-                    params['interface'] = rule_elt.find('interface').text
+                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text)
                     if rule_elt.find('floating') is not None:
                         params['floating'] = True
                     todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.rules.run(params)
+                self.pfsense_rules.run(params)
 
         # processing aggregated parameters
         for params in want:
-            self.pfsensible.core.rules.run(params)
+            self.pfsense_rules.run(params)
 
     def run_aliases(self):
         """ process input params to add/update/delete all aliases """
@@ -518,12 +532,12 @@ class PFSenseModuleAggregate(object):
 
         # processing aggregated parameter
         for param in want:
-            self.pfsensible.core.aliases.run(param)
+            self.pfsense_aliases.run(param)
 
         # delete every other alias if required
         if self.module.params['purge_aliases']:
             todel = []
-            for alias_elt in self.pfsensible.core.aliases.root_elt:
+            for alias_elt in self.pfsense_aliases.root_elt:
                 if not self.want_alias(alias_elt, want):
                     params = {}
                     params['state'] = 'absent'
@@ -531,7 +545,7 @@ class PFSenseModuleAggregate(object):
                     todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.aliases.run(params)
+                self.pfsense_aliases.run(params)
 
     def run_interfaces(self):
         """ process input params to add/update/delete all interfaces """
@@ -542,12 +556,12 @@ class PFSenseModuleAggregate(object):
 
         # processing aggregated parameter
         for param in want:
-            self.pfsensible.core.interfaces.run(param)
+            self.pfsense_interfaces.run(param)
 
         # delete every other if required
         if self.module.params['purge_interfaces']:
             todel = []
-            for interface_elt in self.pfsensible.core.interfaces.interfaces:
+            for interface_elt in self.pfsense_interfaces.root_elt:
                 if not self.want_interface(interface_elt, want):
                     params = {}
                     params['state'] = 'absent'
@@ -557,7 +571,7 @@ class PFSenseModuleAggregate(object):
                         todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.interfaces.run(params)
+                self.pfsense_interfaces.run(params)
 
     def run_rule_separators(self):
         """ process input params to add/update/delete all separators """
@@ -568,12 +582,12 @@ class PFSenseModuleAggregate(object):
 
         # processing aggregated parameter
         for param in want:
-            self.pfsensible.core.rule_separators.run(param)
+            self.pfsense_rule_separators.run(param)
 
         # delete every other if required
         if self.module.params['purge_rule_separators']:
             todel = []
-            for interface_elt in self.pfsensible.core.rule_separators.separators:
+            for interface_elt in self.pfsense_rule_separators.separators:
                 for separator_elt in interface_elt:
                     if not self.want_rule_separator(separator_elt, want):
                         params = {}
@@ -586,7 +600,7 @@ class PFSenseModuleAggregate(object):
                         todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.rule_separators.run(params)
+                self.pfsense_rule_separators.run(params)
 
     def run_vlans(self):
         """ process input params to add/update/delete all vlans """
@@ -597,12 +611,12 @@ class PFSenseModuleAggregate(object):
 
         # processing aggregated parameter
         for param in want:
-            self.pfsensible.core.vlans.run(param)
+            self.pfsense_vlans.run(param)
 
         # delete every other if required
         if self.module.params['purge_vlans']:
             todel = []
-            for vlan_elt in self.pfsensible.core.vlans.root_elt:
+            for vlan_elt in self.pfsense_vlans.root_elt:
                 if not self.want_vlan(vlan_elt, want):
                     params = {}
                     params['state'] = 'absent'
@@ -611,15 +625,15 @@ class PFSenseModuleAggregate(object):
                     todel.append(params)
 
             for params in todel:
-                self.pfsensible.core.vlans.run(params)
+                self.pfsense_vlans.run(params)
 
     def commit_changes(self):
         """ apply changes and exit module """
         stdout = ''
         stderr = ''
         changed = (
-            self.pfsensible.core.aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_rules.result['changed']
-            or self.pfsensible.core.rule_separators.result['changed'] or self.pfsense_vlans.result['changed']
+            self.pfsense_aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_rules.result['changed']
+            or self.pfsense_rule_separators.result['changed'] or self.pfsense_vlans.result['changed']
         )
 
         if changed and not self.module.check_mode:
@@ -627,11 +641,11 @@ class PFSenseModuleAggregate(object):
             (dummy, stdout, stderr) = self._update()
 
         result = {}
-        result['result_aliases'] = self.pfsensible.core.aliases.result['commands']
-        result['result_interfaces'] = self.pfsensible.core.interfaces.result['commands']
-        result['result_rules'] = self.pfsensible.core.rules.result['commands']
-        result['result_rule_separators'] = self.pfsensible.core.rule_separators.result['commands']
-        result['result_vlans'] = self.pfsensible.core.vlans.result['commands']
+        result['result_aliases'] = self.pfsense_aliases.result['commands']
+        result['result_interfaces'] = self.pfsense_interfaces.result['commands']
+        result['result_rules'] = self.pfsense_rules.result['commands']
+        result['result_rule_separators'] = self.pfsense_rule_separators.result['commands']
+        result['result_vlans'] = self.pfsense_vlans.result['commands']
         result['changed'] = changed
         result['stdout'] = stdout
         result['stderr'] = stderr

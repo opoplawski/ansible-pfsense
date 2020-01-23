@@ -6,7 +6,7 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 RULE_SEPARATOR_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
@@ -30,7 +30,7 @@ class PFSenseRuleSeparatorModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseRuleSeparatorModule, self).__init__(module, pfsense)
-        self.name = "pfsense_rule_separator"
+        self.name = "pfsensible.core.rule_separator"
         self.root_elt = None
         self.obj = dict()
 

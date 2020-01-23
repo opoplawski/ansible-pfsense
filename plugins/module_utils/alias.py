@@ -6,8 +6,7 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-import re
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 ALIAS_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
@@ -20,6 +19,7 @@ ALIAS_ARGUMENT_SPEC = dict(
 )
 
 ALIAS_REQUIRED_IF = [
+    ["state", "present", ["type", "address"]],
     ["type", "urltable", ["updatefreq"]],
     ["type", "urltable_ports", ["updatefreq"]],
 ]
@@ -33,12 +33,9 @@ class PFSenseAliasModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseAliasModule, self).__init__(module, pfsense)
-        self.name = "pfsense_alias"
+        self.name = "pfsensible.core.alias"
         self.root_elt = self.pfsense.get_element('aliases')
         self.obj = dict()
-
-        self.diff = {}
-        self.result['diff'] = self.diff
 
     ##############################
     # params processing
@@ -75,10 +72,10 @@ class PFSenseAliasModule(PFSenseModuleBase):
             alias_elt = self.pfsense.find_alias(params['name'])
             if alias_elt is not None:
                 if params['type'] != alias_elt.find('type').text:
-                    self.module.fail_json(msg='An alias with this name and a different type already exists')
+                    self.module.fail_json(msg='An alias with this name and a different type already exists: \'{0}\''.format(params['name']))
 
-            if self.pfsense.get_interface_pfsense_by_name(params['name']) is not None:
-                self.module.fail_json(msg='An interface description with this name already exists')
+            if self.pfsense.get_interface_by_display_name(params['name']) is not None:
+                self.module.fail_json(msg='An interface description with this name already exists: \'{0}\''.format(params['name']))
 
             missings = ['type', 'address']
             for param, value in params.items():

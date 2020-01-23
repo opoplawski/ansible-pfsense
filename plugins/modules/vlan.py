@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.vlan
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense vlans
 description:
@@ -40,7 +40,6 @@ options:
     type: str
   state:
     description: State in which to leave the vlan
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -71,7 +70,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 
 def main():

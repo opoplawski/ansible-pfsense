@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible_collections.pfsensible.core.plugins.module_utils.pfsense import PFSenseModule
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 from copy import deepcopy
 
 IPSEC_P2_ARGUMENT_SPEC = dict(
@@ -76,7 +76,7 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseIpsecP2Module, self).__init__(module, pfsense)
-        self.name = "pfsense_ipsec_p2"
+        self.name = "pfsensible.core.ipsec_p2"
         self.apply = True
         self.obj = dict()
 
@@ -130,7 +130,7 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             phase2[name]['netbits'] = str(phase2[name]['netbits'])
         phase2[name] = dict()
 
-        interface = self._parse_ipsec_interface(address)
+        interface = self.pfsense.parse_interface(address, fail=False, with_virtual=False)
         if interface is not None:
             if phase2['mode'] == 'vti':
                 msg = 'VTI requires a valid local network or IP address for its endpoint address.'
@@ -195,15 +195,6 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             self._check_for_duplicate_phase2(obj)
 
         return obj
-
-    def _parse_ipsec_interface(self, interface):
-        """ validate and return an interface param """
-        if self.pfsense.is_interface_name(interface):
-            return self.pfsense.get_interface_pfsense_by_name(interface)
-        elif self.pfsense.is_interface_pfsense(interface):
-            return interface
-
-        return None
 
     def _validate_params(self):
         """ do some extra checks on input parameters """

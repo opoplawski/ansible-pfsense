@@ -15,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.rule
-version_added: "2.9"
+version_added: "2.10"
 author: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
 short_description: Manage pfSense rules
 description:
@@ -29,7 +29,6 @@ options:
     type: str
   action:
     description: The action of the rule
-    required: true
     default: pass
     choices: [ "pass", "block", "reject" ]
     type: str
@@ -64,13 +63,19 @@ options:
     choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
     type: str
   source:
-    description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
-    required: true
+    description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
+    default: null
+    type: str
+  source_port:
+    description: The source port(s), separated by dash in case of range
     default: null
     type: str
   destination:
-    description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE}[:port] format.
-    required: true
+    description: The destination address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
+    default: null
+    type: str
+  destination_port:
+    description: The destination port(s), separated by dash in case of range
     default: null
     type: str
   log:
@@ -103,6 +108,17 @@ options:
     description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
     type: str
     default: default
+  tracker:
+    description: Rule tracking ID. Defaults to timestamp of rule creation.
+    type: int
+  icmptype:
+    description:
+      One or more of these ICMP subtypes may be specified, separated by comma, or any for all of them. The types must match ip protocol.
+      althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here, ipv6-where, listendone,
+      listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp, neighbradv, neighbrsol, niqry, nirep, paramprob,
+      photuris, redir, routeradv, routersol, routrrenum, skip, squench, timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
+    default: any
+    type: str
 """
 
 EXAMPLES = """
@@ -135,7 +151,7 @@ RETURN = """
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
 
 
 def main():

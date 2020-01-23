@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsensible.core.interface
-version_added: "2.9"
+version_added: "2.10"
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense interfaces
 description:
@@ -24,7 +24,6 @@ notes:
 options:
   state:
     description: State in which to leave the interface.
-    required: true
     choices: [ "present", "absent" ]
     default: present
     type: str
@@ -34,11 +33,9 @@ options:
     type: str
   interface:
     description: Network port to which assign the interface.
-    required: true
     type: str
   enable:
     description: Enable interface.
-    required: true
     type: bool
   ipv4_type:
     description: IPv4 Configuration Type.
@@ -119,7 +116,7 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.interface import PFSenseInterfaceModule, INTERFACE_ARGUMENT_SPEC, INTERFACE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.interface import PFSenseInterfaceModule, INTERFACE_ARGUMENT_SPEC, INTERFACE_REQUIRED_IF
 
 
 def main():

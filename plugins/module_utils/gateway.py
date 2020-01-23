@@ -5,9 +5,8 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 from ansible.module_utils.compat.ipaddress import ip_address, ip_network
-import re
 
 GATEWAY_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -37,7 +36,7 @@ class PFSenseGatewayModule(PFSenseModuleBase):
     #
     def __init__(self, module, pfsense=None):
         super(PFSenseGatewayModule, self).__init__(module, pfsense)
-        self.name = "pfsense_gateway"
+        self.name = "pfsensible.core.gateway"
         self.root_elt = self.pfsense.get_element('gateways')
         self.obj = dict()
         self.interface_elt = None
@@ -163,17 +162,9 @@ class PFSenseGatewayModule(PFSenseModuleBase):
                 if params['gateway'] != 'dynamic':
                     self.module.fail_json(msg="The gateway use 'dynamic' as a target. This is read-only, so you must set gateway as dynamic too")
             else:
-                if params['ipprotocol'] == 'inet':
-                    if not self.pfsense.is_ipv4_address(params['gateway']):
-                        self.module.fail_json(msg='gateway must use an IPv4 address')
-                    if params.get('monitor') is not None and params['monitor'] != '' and not self.pfsense.is_ipv4_address(params['monitor']):
-                        self.module.fail_json(msg='monitor must use an IPv4 address')
-
-                else:
-                    if not self.pfsense.is_ipv6_address(params['gateway']):
-                        self.module.fail_json(msg='gateway must use an IPv6 address')
-                    if params.get('monitor') is not None and params['monitor'] != '' and not self.pfsense.is_ipv6_address(params['monitor']):
-                        self.module.fail_json(msg='monitor must use an IPv6 address')
+                self.pfsense.check_ip_address(params['gateway'], params['ipprotocol'], 'gateway', fail_ifnotip=True)
+                if params.get('monitor') is not None and params['monitor'] != '':
+                    self.pfsense.check_ip_address(params['monitor'], params['ipprotocol'], 'monitor', fail_ifnotip=True)
 
             self.pfsense.check_name(params['name'], 'gateway')
 
