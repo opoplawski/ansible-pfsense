@@ -32,7 +32,7 @@ class PFSenseModule(object):
         is_interface_port,
         parse_interface,
     )
-    from ansible_collections.pfsensible.core.plugins.module_utils.__impl.parse_address import parse_address, parse_port
+    from ansible_collections.pfsensible.core.plugins.module_utils.__impl.parse_address_port import parse_address, parse_port
     from ansible_collections.pfsensible.core.plugins.module_utils.__impl.checks import check_name, check_ip_address
     # pylint: enable=import-outside-toplevel
 
