@@ -255,6 +255,10 @@ class PFSenseModule(object):
 
     def get_caref(self, name):
         """ get CA refid for name """
+        # global is a special case
+        if name == 'global':
+            return 'global'
+        # Otherwise search for added CAs
         cas = self.get_elements('ca')
         for elt in cas:
             if elt.find('descr').text == name:

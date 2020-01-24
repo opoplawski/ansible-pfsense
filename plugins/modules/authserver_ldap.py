@@ -44,7 +44,8 @@ options:
     choices: [ "tcp", "starttls", "ssl" ]
     type: str
   ca:
-    description: Certificat Authority
+    description: Certificate Authority
+    default: global
     type: str
   protver:
     description: LDAP protocol version
@@ -64,6 +65,14 @@ options:
     type: str
   authcn:
     description: Authentication containers added to basedn
+    required: true
+    type: str
+  extended_enabled:
+    description: Enable extended query
+    default: False
+    type: bool
+  extended_query:
+    description: Extended query
     type: str
   binddn:
     description: Search bind DN
@@ -94,12 +103,13 @@ EXAMPLES = """
 - name: Add adservers authentication server
   pfsensible.core.authserver_ldap:
     name: AD
-    hostname: adserver.example.com
+    host: adserver.example.com
     port: 636
     transport: ssl
     scope: subtree
+    authcn: cn=users
     basedn: dc=example,dc=com
-    binddb: cn=bind,ou=Service Accounts,dc=example,dc=com
+    binddn: cn=bind,ou=Service Accounts,dc=example,dc=com
     bindpw: "{{ vaulted_bindpw }}"
     attr_user: samAccountName
     attr_member: memberOf
@@ -127,6 +137,7 @@ class PFSenseAuthserverLDAP(object):
         self.pfsense = PFSenseModule(module)
         self.system = self.pfsense.get_element('system')
         self.authservers = self.system.findall('authserver')
+        self.diff = { 'after': {}, 'before': {} }
 
     def _find_authserver_ldap(self, name):
         found = None
@@ -144,36 +155,38 @@ class PFSenseAuthserverLDAP(object):
 
         # Replace the text CA name with the caref id
         authserver['ldap_caref'] = self.pfsense.get_caref(authserver['ca'])
-        if authserver['ldap_caref'] is None and authserver['transport'] != 'tcp':
+        # CA is required for SSL/TLS
+        if authserver['ldap_caref'] is None and authserver['ldap_urltype'] != 'TCP - Standard':
             self.module.fail_json(msg="could not find CA '%s'" % (authserver['ca']))
         del authserver['ca']
         if authserver_elt is None:
             changed = True
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
             authserver_elt = self.pfsense.new_element('authserver')
             authserver['refid'] = self.pfsense.uniqid()
             self.pfsense.copy_dict_to_element(authserver, authserver_elt)
             self.system.insert(i + 1, authserver_elt)
-            self.pfsense.write_config(descr='ansible pfsensible.core.authserver_ldap added %s' % (authserver['name']))
+            change_descr='ansible pfsensible.core.authserver_ldap added %s' % (authserver['name'])
         else:
+            self.diff['before'] = self.pfsense.element_to_dict(authserver_elt)
             changed = self.pfsense.copy_dict_to_element(authserver, authserver_elt)
-            if self.module.check_mode:
-                self.module.exit_json(changed=changed)
-            if changed:
-                self.pfsense.write_config(descr='ansible pfsensible.core.authserver_ldap updated "%s"' % (authserver['name']))
-        self.module.exit_json(changed=changed)
+            change_descr='ansible pfsensible.core.authserver_ldap updated "%s"' % (authserver['name'])
+
+        self.diff['after'] = self.pfsense.element_to_dict(authserver_elt)
+        if changed and not self.module.check_mode:
+            self.pfsense.write_config(descr=change_descr)
+        self.module.exit_json(changed=changed, diff=self.diff)
 
     def remove(self, authserver):
         authserver_elt, dummy = self._find_authserver_ldap(authserver['name'])
         changed = False
         if authserver_elt is not None:
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
+            self.diff['before'] = self.pfsense.element_to_dict(authserver_elt)
             self.authservers.remove(authserver_elt)
             changed = True
+
+        if changed and not self.module.check_mode:
             self.pfsense.write_config(descr='ansible pfsensible.core.authserver_ldap removed "%s"' % (authserver['name']))
-        self.module.exit_json(changed=changed)
+        self.module.exit_json(changed=changed, diff=self.diff)
 
 
 def main():
@@ -184,12 +197,12 @@ def main():
                 'required': True,
                 'choices': ['present', 'absent']
             },
-            'host': {'required': True, 'type': 'str'},
+            'host': {'type': 'str'},
             'port': {'default': '389', 'type': 'str'},
             'transport': {
                 'choices': ['tcp', 'starttls', 'ssl']
             },
-            'ca': {'required': False, 'type': 'str'},
+            'ca': {'default': 'global', 'type': 'str'},
             'protver': {
                 'default': '3',
                 'choices': ['2', '3']
@@ -200,6 +213,8 @@ def main():
             },
             'basedn': {'required': False, 'type': 'str'},
             'authcn': {'required': False, 'type': 'str'},
+            'extended_enabled': {'default': False, 'type': 'bool'},
+            'extended_query': {'default': '', 'type': 'str'},
             'binddn': {'required': False, 'type': 'str'},
             'bindpw': {'required': False, 'type': 'str'},
             'attr_user': {'default': 'cn', 'type': 'str'},
@@ -208,9 +223,7 @@ def main():
             'attr_groupobj': {'default': 'posixGroup', 'type': 'str'},
         },
         required_if=[
-            ["state", "present", ["host", "port", "transport", "ca", "scope"]],
-            ["transport", "starttls", ["ca"]],
-            ["transport", "ssl", ["ca"]],
+            ["state", "present", ["host", "port", "transport", "scope", "authcn"]],
         ],
         supports_check_mode=True)
 
@@ -225,15 +238,22 @@ def main():
     elif state == 'present':
         authserver['host'] = module.params['host']
         authserver['ldap_port'] = module.params['port']
-        urltype = dict({'tcp': '', 'starttls': '', 'ssl': 'SSL - Encrypted'})
+        urltype = dict({'tcp': 'TCP - Standard', 'starttls': 'TCP - STARTTLS', 'ssl': 'SSL - Encrypted'})
         authserver['ldap_urltype'] = urltype[module.params['transport']]
         authserver['ldap_protver'] = module.params['protver']
         authserver['ldap_timeout'] = module.params['timeout']
         authserver['ldap_scope'] = module.params['scope']
         authserver['ldap_basedn'] = module.params['basedn']
         authserver['ldap_authcn'] = module.params['authcn']
-        authserver['ldap_binddn'] = module.params['binddn']
-        authserver['ldap_bindpw'] = module.params['bindpw']
+        if module.params['extended_enabled']:
+            authserver['ldap_extended_enabled'] = 'yes'
+        else:
+            authserver['ldap_extended_enabled'] = ''
+        authserver['ldap_extended_query'] = module.params['extended_query']
+        if module.params['binddn']:
+            authserver['ldap_binddn'] = module.params['binddn']
+        if module.params['bindpw']:
+            authserver['ldap_bindpw'] = module.params['bindpw']
         authserver['ldap_attr_user'] = module.params['attr_user']
         authserver['ldap_attr_group'] = module.params['attr_group']
         authserver['ldap_attr_member'] = module.params['attr_member']
