@@ -8,13 +8,17 @@ Ansible Galaxy (as of version 2.9) now has an option for collections.  A collect
 format for delivering all type of Ansible content (not just roles as it was before).  We have renamed
 the collection 'pfsensible.core' for galaxy distribution.  To install:
 
-`ansible-galaxy collection install pfsensible.core`
+```
+ansible-galaxy collection install pfsensible.core
+```
 
 Optionally, you can specify the path of the collection installation with the `-p` option.
 
-`ansible-galaxy collection install pfsensible.core -p ./collections`
+```
+ansible-galaxy collection install pfsensible.core -p ./path_to_collections
+```
 
-Aditionally, you can set the `collections_paths` option in your `ansible.cfg` file to automatically designate install locations.
+Additionally, you can set the `collections_paths` option in your `ansible.cfg` file to automatically designate install locations.
 
 ```ini
 # ansible.cfg
@@ -24,10 +28,12 @@ collections_paths=collections
 
 ## Configuration
 
-The python interpreter is in a non-standard location on pfSense, so you will
-need to set:
+The Python interpreter is in a non-standard location on pfSense, so you will
+need to set in your playbook vars:
 
- ansible_python_interpreter: /usr/local/bin/python2.7
+```
+ansible_python_interpreter: /usr/local/bin/python2.7
+```
 
 ## Modules
 The following modules are currently available:
@@ -57,7 +63,7 @@ These modules allow you to make important changes at once and, using the purge p
 
 ## Operation
 
-It works by editing /cf/conf/config.xml using xml.etree.ElementTree, then
+Modules in the collection works by editing `/cf/conf/config.xml` using xml.etree.ElementTree, then
 calling the appropriate php update function via the pfsense php developer
 shell.
 
