@@ -63,7 +63,7 @@ These modules allow you to make important changes at once and, using the purge p
 
 ## Operation
 
-Modules in the collection works by editing `/cf/conf/config.xml` using xml.etree.ElementTree, then
+Modules in the collection work by editing `/cf/conf/config.xml` using xml.etree.ElementTree, then
 calling the appropriate php update function via the pfsense php developer
 shell.
 
