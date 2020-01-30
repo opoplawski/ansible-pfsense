@@ -25,8 +25,8 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     @staticmethod
     def get_args_fields():
         """ return params fields """
-        fields = ['descr', 'interface', 'enable', 'ipv4_type', 'mac', 'mtu', 'mss', 'speed_duplex']
-        fields += ['ipv4_address', 'ipv4_prefixlen', 'ipv4_gateway', 'create_ipv4_gateway', 'ipv4_gateway_address', 'blockpriv', 'blockbogons']
+        fields = ['descr', 'interface', 'enable', 'mac', 'mtu', 'mss', 'speed_duplex', 'blockpriv', 'blockbogons']
+        fields += ['ipv4_type', 'ipv4_address', 'ipv4_prefixlen', 'ipv4_gateway', 'ipv6_type', 'ipv6_address', 'ipv6_prefixlen', 'ipv6_gateway']
         return fields
 
     def setUp(self):
@@ -72,7 +72,7 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         else:
             self.assert_not_find_xml_elt(interface_elt, 'blockbogons')
 
-        # type related
+        # ipv4 type related
         if interface.get('ipv4_type') is None or interface.get('ipv4_type') == 'none':
             self.assert_not_find_xml_elt(interface_elt, 'ipaddr')
             self.assert_not_find_xml_elt(interface_elt, 'subnet')
@@ -84,6 +84,19 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
                 self.assert_xml_elt_equal(interface_elt, 'subnet', str(interface['ipv4_prefixlen']))
             if interface.get('ipv4_gateway'):
                 self.assert_xml_elt_equal(interface_elt, 'gateway', interface['ipv4_gateway'])
+
+        # ipv6 type related
+        if interface.get('ipv6_type') is None or interface.get('ipv6_type') in ['none', 'slaac']:
+            self.assert_not_find_xml_elt(interface_elt, 'ipaddrv6')
+            self.assert_not_find_xml_elt(interface_elt, 'subnetv6')
+            self.assert_not_find_xml_elt(interface_elt, 'gatewayv6')
+        elif interface.get('ipv6_type') == 'static':
+            if interface.get('ipv6_address'):
+                self.assert_xml_elt_equal(interface_elt, 'ipaddrv6', interface['ipv6_address'])
+            if interface.get('ipv6_prefixlen'):
+                self.assert_xml_elt_equal(interface_elt, 'subnetv6', str(interface['ipv6_prefixlen']))
+            if interface.get('ipv6_gateway'):
+                self.assert_xml_elt_equal(interface_elt, 'gatewayv6', interface['ipv6_gateway'])
 
         # mac, mss, mtu
         if interface.get('mac'):
@@ -116,14 +129,17 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         command = "create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen='24'"
         self.do_module_test(interface, command=command)
 
-    def test_interface_create_gateway(self):
-        """ test creation of a new interface with a static ip and a gateway """
-        interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen=24, ipv4_gateway='voice_gw')
-        interface.update(dict(create_ipv4_gateway=True, ipv4_gateway_address='10.20.30.1'))
-        command1 = "create gateway 'voice_gw', interface='opt4', ip='10.20.30.1'"
-        command2 = ("create interface 'VOICE', port='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40'"
-                    ", ipv4_prefixlen='24', ipv4_gateway='voice_gw'")
-        self.do_module_test(interface, command=[command1, command2])
+    def test_interface_create_static_ipv6(self):
+        """ test creation of a new interface with a static ipv6 """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv6_type='static', ipv6_address='3001::2001:22', ipv6_prefixlen=56)
+        command = "create interface 'VOICE', port='vmx0.100', ipv6_type='static', ipv6_address='3001::2001:22', ipv6_prefixlen='56'"
+        self.do_module_test(interface, command=command)
+
+    def test_interface_create_slaac(self):
+        """ test creation of a new interface with slaac """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv6_type='slaac')
+        command = "create interface 'VOICE', port='vmx0.100', ipv6_type='slaac'"
+        self.do_module_test(interface, command=command)
 
     def test_interface_create_none_mac_mtu_mss(self):
         """ test creation of a new interface """
@@ -211,17 +227,35 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     def test_interface_error_eq(self):
         """ test error same ipv4 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.242', ipv4_prefixlen=32)
-        msg = "IPv4 address 192.168.1.242/32 is being used by or overlaps with: lan (192.168.1.242/24)"
+        msg = "IP address 192.168.1.242/32 is being used by or overlaps with: lan (192.168.1.242/24)"
         self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_overlaps1(self):
         """ test error same ipv4 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.1', ipv4_prefixlen=30)
-        msg = "IPv4 address 192.168.1.1/30 is being used by or overlaps with: lan (192.168.1.242/24)"
+        msg = "IP address 192.168.1.1/30 is being used by or overlaps with: lan (192.168.1.242/24)"
         self.do_module_test(interface, failed=True, msg=msg)
 
     def test_interface_error_overlaps2(self):
         """ test error same ipv4 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='192.168.1.1', ipv4_prefixlen=22)
-        msg = "IPv4 address 192.168.1.1/22 is being used by or overlaps with: lan (192.168.1.242/24)"
+        msg = "IP address 192.168.1.1/22 is being used by or overlaps with: lan (192.168.1.242/24)"
+        self.do_module_test(interface, failed=True, msg=msg)
+
+    def test_interface_error_inet6_eq(self):
+        """ test error same ipv6 address """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv6_type='static', ipv6_address='2001::2001:22', ipv6_prefixlen=127)
+        msg = "IP address 2001::2001:22/127 is being used by or overlaps with: lan (2001::2001:22/64)"
+        self.do_module_test(interface, failed=True, msg=msg)
+
+    def test_interface_error_inet6_overlaps1(self):
+        """ test error same ipv6 address """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv6_type='static', ipv6_address='2001::2001:1', ipv6_prefixlen=64)
+        msg = "IP address 2001::2001:1/64 is being used by or overlaps with: lan (2001::2001:22/64)"
+        self.do_module_test(interface, failed=True, msg=msg)
+
+    def test_interface_error_inet6_overlaps2(self):
+        """ test error same ipv6 address """
+        interface = dict(descr='VOICE', interface='vmx0.100', ipv6_type='static', ipv6_address='2001::2001', ipv6_prefixlen=56)
+        msg = "IP address 2001::2001/56 is being used by or overlaps with: lan (2001::2001:22/64)"
         self.do_module_test(interface, failed=True, msg=msg)

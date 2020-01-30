@@ -79,7 +79,12 @@ options:
         type: bool
       ipv4_type:
         description: IPv4 Configuration Type.
-        choices: [ "none", "static" ]
+        choices: [ "none", "static", "dhcp" ]
+        default: 'none'
+        type: str
+      ipv6_type:
+        description: IPv4 Configuration Type.
+        choices: [ "none", "static", "slaac" ]
         default: 'none'
         type: str
       mac:
@@ -112,6 +117,19 @@ options:
         description: IPv4 gateway for this interface.
         required: false
         type: str
+      ipv6_address:
+        description: IPv6 Address.
+        required: false
+        type: str
+      ipv6_prefixlen:
+        description: IPv6 subnet prefix length.
+        required: false
+        default: 128
+        type: int
+      ipv6_gateway:
+        description: IPv6 gateway for this interface.
+        required: false
+        type: str
       blockpriv:
         description: Blocks traffic from IP addresses that are reserved for private networks.
         required: false
@@ -120,14 +138,6 @@ options:
         description: Blocks traffic from reserved IP addresses (but not RFC 1918) or not yet assigned by IANA.
         required: false
         type: bool
-      create_ipv4_gateway:
-        description: Create the specified IPv4 gateway if it does not exist
-        required: false
-        type: bool
-      ipv4_gateway_address:
-        description: IPv4 gateway address to set on the interface
-        required: false
-        type: str
   aggregated_rules:
     description: Dict of rules to apply on the target
     required: False
@@ -171,14 +181,17 @@ options:
       protocol:
         description: The protocol
         default: any
-        choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
+        choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf" ]
         type: str
       source:
         description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
         default: null
         type: str
       source_port:
-        description: The source port(s), separated by dash in case of range
+        description:
+          - Source port or port range specification.
+          - This can either be a alias or a port number.
+          - An inclusive range can also be specified, using the format C(first-last)..
         default: null
         type: str
       destination:
@@ -186,17 +199,20 @@ options:
         default: null
         type: str
       destination_port:
-        description: The destination port(s), separated by dash in case of range
+        description:
+          - Destination port or port range specification.
+          - This can either be a alias or a port number.
+          - An inclusive range can also be specified, using the format C(first-last)..
         default: null
         type: str
       log:
         description: Log packets matched by rule
         type: bool
       after:
-        description: Rule to go after, or "top"
+        description: Rule to go after, or C(top)
         type: str
       before:
-        description: Rule to go before, or "bottom"
+        description: Rule to go before, or C(bottom)
         type: str
       statetype:
         description: State type
@@ -216,7 +232,7 @@ options:
         description: Limiter queue for traffic leaving the chosen interface
         type: str
       gateway:
-        description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
+        description: Leave as C(default) to use the system routing table or choose a gateway to utilize policy based routing.
         type: str
         default: default
       tracker:
@@ -224,10 +240,12 @@ options:
         type: int
       icmptype:
         description:
-          One or more of these ICMP subtypes may be specified, separated by comma, or any for all of them. The types must match ip protocol.
-          althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here, ipv6-where, listendone,
-          listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp, neighbradv, neighbrsol, niqry, nirep, paramprob,
-          photuris, redir, routeradv, routersol, routrrenum, skip, squench, timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
+          - One or more of these ICMP subtypes may be specified, separated by comma, or C(any) for all of them.
+          - The types must match ip protocol.
+          - althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here,
+          - ipv6-where, listendone, listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp,
+          - neighbradv, neighbrsol, niqry, nirep, paramprob, photuris, redir, routeradv, routersol, routrrenum, skip, squench,
+          - timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
         default: any
         type: str
   aggregated_rule_separators:

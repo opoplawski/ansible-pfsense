@@ -6,13 +6,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from ansible.module_utils.compat.ipaddress import ip_address, ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 import json
 import shutil
 import os
 import pwd
 import random
-import re
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
@@ -24,6 +22,7 @@ class PFSenseModule(object):
     # pylint: disable=import-outside-toplevel
     from ansible.module_utils.network.pfsense.__impl.interfaces import (
         get_interface_display_name,
+        get_interface_elt,
         get_interface_port,
         get_interface_port_by_display_name,
         get_interface_by_display_name,
@@ -32,7 +31,15 @@ class PFSenseModule(object):
         is_interface_port,
         parse_interface,
     )
-    from ansible.module_utils.network.pfsense.__impl.parse_address_port import parse_address, parse_port
+    from ansible.module_utils.network.pfsense.__impl.addresses import (
+        is_ipv4_address,
+        is_ipv6_address,
+        is_ipv4_network,
+        is_ipv6_network,
+        parse_address,
+        parse_ip_network,
+        parse_port,
+    )
     from ansible.module_utils.network.pfsense.__impl.checks import check_name, check_ip_address
     # pylint: enable=import-outside-toplevel
 
@@ -294,88 +301,11 @@ class PFSenseModule(object):
             return True
 
         # Is it an IP address or network?
-        if self.is_ip_address(address) or self.is_ip_network(address):
+        if self.is_ipv4_address(address) or self.is_ipv4_network(address) or self.is_ipv6_address(address) or self.is_ipv6_network(address):
             return True
 
         # None of the above
         return False
-
-    @staticmethod
-    def is_ip_address(address):
-        """ test if address is a valid ip address """
-        try:
-            ip_address(u'{0}'.format(address))
-            return True
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv4_address(address):
-        """ test if address is a valid ipv4 address """
-        try:
-            addr = ip_address(u'{0}'.format(address))
-            return isinstance(addr, IPv4Address)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv6_address(address):
-        """ test if address is a valid ipv6 address """
-        try:
-            addr = ip_address(u'{0}'.format(address))
-            return isinstance(addr, IPv6Address)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ip_network(address, strict=True):
-        """ test if address is a valid ip network """
-        try:
-            ip_network(u'{0}'.format(address), strict=strict)
-            return True
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv4_network(address, strict=True):
-        """ test if address is a valid ipv4 network """
-        try:
-            addr = ip_network(u'{0}'.format(address), strict=strict)
-            return isinstance(addr, IPv4Network)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv6_network(address, strict=True):
-        """ test if address is a valid ipv6 network """
-        try:
-            addr = ip_network(u'{0}'.format(address), strict=strict)
-            return isinstance(addr, IPv6Network)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def parse_ip_network(address, strict=True, returns_ip=True):
-        """ return cidr parts of address """
-        try:
-            addr = ip_network(u'{0}'.format(address), strict=strict)
-            if strict or not returns_ip:
-                return (str(addr.network_address), addr.prefixlen)
-            else:
-                # we parse the address with ipaddr just for type checking
-                # but we use a regex to return the result as it dont kept the address bits
-                group = re.match(r'(.*)/(.*)', address)
-                if group:
-                    return (group.group(1), group.group(2))
-        except ValueError:
-            pass
-        return None
 
     def is_port_or_alias(self, port):
         """ return True if port is a valid port number or an alias """

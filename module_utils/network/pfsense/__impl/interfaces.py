@@ -42,6 +42,14 @@ def get_interface_display_name(self, interface_id):
     return interface_id
 
 
+def get_interface_elt(self, interface_id):
+    """ return interface """
+    for interface in self.interfaces:
+        if interface.tag == interface_id:
+            return interface
+    return None
+
+
 def get_interface_port(self, interface_id):
     """ return interface port """
     for interface in self.interfaces:

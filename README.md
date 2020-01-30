@@ -47,7 +47,7 @@ The following modules are currently available:
 * [pfsense_ca](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ca) for Certificate Authorities
 * [pfsense_gateway](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_gateway) for routing gateways
 * [pfsense_group](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_group) for groups
-* [pfsense_interface](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_interface) for interfaces (EXPERIMENTAL)
+* [pfsense_interface](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_interface) for interfaces
 * [pfsense_ipsec](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec) for ipsec tunnels and phase 1 options
 * [pfsense_ipsec_proposal](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_proposal) for ipsec proposals
 * [pfsense_ipsec_p2](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_p2) for ipsec tunnels phase 2 options

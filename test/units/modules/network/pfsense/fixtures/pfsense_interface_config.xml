@@ -121,8 +121,8 @@
 			<subnet>24</subnet>
 			<spoofmac></spoofmac>
 			<gateway></gateway>
-			<ipaddrv6></ipaddrv6>
-			<subnetv6></subnetv6>
+			<ipaddrv6>2001::2001:22</ipaddrv6>
+			<subnetv6>64</subnetv6>
 			<gatewayv6></gatewayv6>
 		</lan>
 		<opt1>

@@ -129,9 +129,9 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
         # rule with this firewall
         elif allow_self and address == '(self)':
             ret[target] = '(self)'
-        elif self.pfsense.is_ip_address(address):
+        elif self.pfsense.is_ipv4_address(address):
             ret[target] = address + '/32'
-        elif self.pfsense.is_ip_network(address, False):
+        elif self.pfsense.is_ipv4_network(address, False):
             (addr, bits) = self.pfsense.parse_ip_network(address, False, False)
             ret[target] = addr + '/' + str(bits)
         elif self.pfsense.find_alias(address, 'host') is not None or self.pfsense.find_alias(address, 'network') is not None:
@@ -183,7 +183,7 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
                 obj['target'] = address
                 if obj['poolopts'] != '' and not obj['poolopts'].startswith('round-robin'):
                     self.module.fail_json(msg='Only Round Robin pool options may be chosen when selecting an alias.')
-            elif self.pfsense.is_ip_address(address):
+            elif self.pfsense.is_ipv4_address(address):
                 obj['target'] = 'other-subnet'
                 obj['targetip'] = address
                 obj['targetip_subnet'] = '32'

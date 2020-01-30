@@ -46,7 +46,7 @@ class PFSenseRouteModule(PFSenseModuleBase):
 
         while len(networks) > 0:
             alias = networks.pop()
-            if self.pfsense.is_ip_network(alias, strict=False):
+            if self.pfsense.is_ipv4_network(alias, strict=False):
                 ret.append(alias)
             else:
                 alias_elt = self.pfsense.find_alias(alias, aliastype='host')

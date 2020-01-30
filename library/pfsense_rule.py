@@ -60,14 +60,17 @@ options:
   protocol:
     description: The protocol
     default: any
-    choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
+    choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf" ]
     type: str
   source:
     description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
     default: null
     type: str
   source_port:
-    description: The source port(s), separated by dash in case of range
+    description:
+      - Source port or port range specification.
+      - This can either be a alias or a port number.
+      - An inclusive range can also be specified, using the format C(first-last)..
     default: null
     type: str
   destination:
@@ -75,17 +78,20 @@ options:
     default: null
     type: str
   destination_port:
-    description: The destination port(s), separated by dash in case of range
+    description:
+      - Destination port or port range specification.
+      - This can either be a alias or a port number.
+      - An inclusive range can also be specified, using the format C(first-last)..
     default: null
     type: str
   log:
     description: Log packets matched by rule
     type: bool
   after:
-    description: Rule to go after, or "top"
+    description: Rule to go after, or C(top)
     type: str
   before:
-    description: Rule to go before, or "bottom"
+    description: Rule to go before, or C(bottom)
     type: str
   statetype:
     description: State type
@@ -105,7 +111,7 @@ options:
     description: Limiter queue for traffic leaving the chosen interface
     type: str
   gateway:
-    description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
+    description: Leave as C(default) to use the system routing table or choose a gateway to utilize policy based routing.
     type: str
     default: default
   tracker:
@@ -113,10 +119,12 @@ options:
     type: int
   icmptype:
     description:
-      One or more of these ICMP subtypes may be specified, separated by comma, or any for all of them. The types must match ip protocol.
-      althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here, ipv6-where, listendone,
-      listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp, neighbradv, neighbrsol, niqry, nirep, paramprob,
-      photuris, redir, routeradv, routersol, routrrenum, skip, squench, timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
+      - One or more of these ICMP subtypes may be specified, separated by comma, or C(any) for all of them.
+      - The types must match ip protocol.
+      - althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here,
+      - ipv6-where, listendone, listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp,
+      - neighbradv, neighbrsol, niqry, nirep, paramprob, photuris, redir, routeradv, routersol, routrrenum, skip, squench,
+      - timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
     default: any
     type: str
 """
@@ -130,7 +138,8 @@ EXAMPLES = """
     ipprotocol: inet
     protocol: udp
     source: dns_int
-    destination: any:53
+    destination: any
+    destination_port: 53
     after: 'Allow proxies out'
     state: present
 - name: "Allow inbound port range"
@@ -141,7 +150,8 @@ EXAMPLES = """
     ipprotocol: inet
     protocol: tcp
     source: any
-    destination: NET:lan:4000-5000
+    destination: NET:lan
+    destination_port: 4000-5000
     after: 'Allow Internal DNS traffic out'
     state: present
 """
