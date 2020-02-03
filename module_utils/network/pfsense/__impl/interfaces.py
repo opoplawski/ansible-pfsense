@@ -67,6 +67,27 @@ def get_interface_port_by_display_name(self, name):
     return None
 
 
+def get_interfaces_networks(self):
+    """ return interface local networks """
+    ret = []
+    for interface in self.interfaces:
+        if interface.find('enable') is None:
+            continue
+
+        ipaddr_elt = interface.find('ipaddr')
+        subnet_elt = interface.find('subnet')
+        if ipaddr_elt is not None and subnet_elt is not None and ipaddr_elt.text is not None and subnet_elt.text is not None:
+            ret.append('{0}/{1}'.format(ipaddr_elt.text, subnet_elt.text))
+
+        ipaddr_elt = interface.find('ipaddrv6')
+        subnet_elt = interface.find('subnetv6')
+        if ipaddr_elt is not None and subnet_elt is not None and ipaddr_elt.text is not None and subnet_elt.text is not None:
+            ret.append('{0}/{1}'.format(ipaddr_elt.text, subnet_elt.text))
+
+        # TODO: add vip networks
+    return ret
+
+
 def is_interface_port(self, interface_port):
     """ determines if arg is a pfsense interface port or not """
     for interface in self.interfaces:

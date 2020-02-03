@@ -27,6 +27,7 @@ class PFSenseModule(object):
         get_interface_port_by_display_name,
         get_interface_by_display_name,
         get_interface_by_port,
+        get_interfaces_networks,
         is_interface_display_name,
         is_interface_port,
         parse_interface,
@@ -36,6 +37,7 @@ class PFSenseModule(object):
         is_ipv6_address,
         is_ipv4_network,
         is_ipv6_network,
+        is_within_local_networks,
         parse_address,
         parse_ip_network,
         parse_port,
@@ -210,24 +212,33 @@ class PFSenseModule(object):
             else:
                 if isinstance(value, dict):
                     self.debug.write('calling copy_dict_to_element()\n')
-                    subchanged = self.copy_dict_to_element(value, this_elt, sub=sub + 1)
-                    if subchanged:
+                    if self.copy_dict_to_element(value, this_elt, sub=sub + 1):
                         changed = True
                 elif isinstance(value, list):
-                    this_list = list(value)
-                    # Remove existing items not in the new list
-                    for list_elt in top_elt.findall(key):
-                        if list_elt.text in this_list:
-                            this_list.remove(list_elt.text)
-                        else:
-                            top_elt.remove(list_elt)
-                            changed = True
-                    # Add any remaining items in the new list
-                    for item in this_list:
-                        new_elt = self.new_element(key)
-                        new_elt.text = item
-                        top_elt.append(new_elt)
+                    all_sub_elts = top_elt.findall(key)
+
+                    # remove extra elts
+                    while len(all_sub_elts) > len(value):
+                        top_elt.remove(all_sub_elts.pop())
                         changed = True
+
+                    # add new elts
+                    while len(all_sub_elts) < len(value):
+                        new_elt = self.new_element(key)
+                        top_elt.append(new_elt)
+                        all_sub_elts.append(new_elt)
+                        changed = True
+
+                    # set all elts
+                    for idx, item in enumerate(value):
+                        if isinstance(item, str):
+                            if all_sub_elts[idx].text is None and item == '':
+                                pass
+                            elif all_sub_elts[idx].text != item:
+                                all_sub_elts[idx].text = item
+                                changed = True
+                        elif self.copy_dict_to_element(item, all_sub_elts[idx], sub=sub + 1):
+                            changed = True
                 elif this_elt.text is None and value == '':
                     pass
                 elif this_elt.text != value:
@@ -248,16 +259,18 @@ class PFSenseModule(object):
     def element_to_dict(src_elt):
         """ Create dict from XML src_elt """
         res = {}
-        for elt in list(src_elt):
-            if list(elt):
-                res[elt.tag] = PFSenseModule.element_to_dict(elt)
+        for elt in src_elt:
+            if len(elt) > 0:
+                value = PFSenseModule.element_to_dict(elt)
             else:
-                if elt.tag in res:
-                    if isinstance(res[elt.tag], str):
-                        res[elt.tag] = [res[elt.tag]]
-                    res[elt.tag].append(elt.text)
-                else:
-                    res[elt.tag] = elt.text if elt.text is not None else ''
+                value = elt.text if elt.text is not None else ''
+
+            if elt.tag in res:
+                if not isinstance(res[elt.tag], list):
+                    res[elt.tag] = [res[elt.tag]]
+                res[elt.tag].append(value)
+            else:
+                res[elt.tag] = value
         return res
 
     def get_caref(self, name):

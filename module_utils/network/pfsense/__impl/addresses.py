@@ -54,6 +54,24 @@ def is_ipv6_network(address, strict=True):
     return False
 
 
+def is_within_local_networks(self, address):
+    """ test if address is contained in our local networks """
+    networks = self.get_interfaces_networks()
+    try:
+        addr = ip_address(u'{0}'.format(address))
+    except ValueError:
+        return False
+
+    for network in networks:
+        try:
+            net = ip_network(u'{0}'.format(network), strict=False)
+            if addr in net:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
 @staticmethod
 def parse_ip_network(address, strict=True, returns_ip=True):
     """ return cidr parts of address """

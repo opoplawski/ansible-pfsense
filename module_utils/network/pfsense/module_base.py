@@ -231,7 +231,7 @@ class PFSenseModuleBase(object):
             return self.name.replace("pfsense_", "")
         return self.name
 
-    def format_cli_field(self, after, field, log_none=False, add_comma=True, fvalue=None, default=None, fname=None, none_value=None):
+    def format_cli_field(self, after, field, log_none=False, add_comma=True, fvalue=None, default=None, fname=None, none_value=None, force=False):
         """ format field for pseudo-CLI command """
         if fvalue is None:
             fvalue = self.fvalue_idem
@@ -252,7 +252,7 @@ class PFSenseModuleBase(object):
                         res = "{0}='{1}'".format(fname, fvalue(after[field].replace("'", "\\'")))
                     else:
                         res = "{0}={1}".format(fname, fvalue(after[field]))
-        elif log_none:
+        elif log_none or force:
             res = "{0}={1}".format(fname, fvalue(none_value))
 
         if add_comma and res:
@@ -280,7 +280,7 @@ class PFSenseModuleBase(object):
 
         if log:
             return self.format_cli_field(
-                after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default, fname=fname, none_value=none_value
+                after, field, log_none=log_none, add_comma=add_comma, fvalue=fvalue, default=default, fname=fname, none_value=none_value, force=True
             )
         return ''
 

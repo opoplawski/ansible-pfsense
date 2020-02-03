@@ -56,6 +56,7 @@ The following modules are currently available:
 * [pfsense_route](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_route) for routes
 * [pfsense_rule](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule) for rules
 * [pfsense_rule_separator](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule_separator) for rule separators
+* [pfsense_setup](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_setup) for general setup
 * [pfsense_user](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_user) for users
 * [pfsense_vlan](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_vlan) for vlans
 

@@ -116,7 +116,8 @@ class TestPFSenseModule(ModuleTestCase):
             if field in var:
                 args[field] = var[field]
 
-        args['state'] = state
+        if state is not None:
+            args['state'] = state
         for key, value in kwargs.items():
             args[key] = value
 
@@ -144,12 +145,12 @@ class TestPFSenseModule(ModuleTestCase):
 
         return result
 
-    def do_module_test(self, obj, command=None, changed=True, failed=False, msg=None, delete=False, **kwargs):
+    def do_module_test(self, obj, command=None, changed=True, failed=False, msg=None, delete=False, state='present', **kwargs):
         """ run test """
         if delete:
-            set_module_args(self.args_from_var(obj, 'absent'))
+            set_module_args(self.args_from_var(obj, state='absent'))
         else:
-            set_module_args(self.args_from_var(obj))
+            set_module_args(self.args_from_var(obj, state=state))
 
         result = self.execute_module(changed=changed, failed=failed, msg=msg)
 
