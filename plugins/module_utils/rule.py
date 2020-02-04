@@ -20,7 +20,7 @@ RULE_ARGUMENT_SPEC = dict(
     floating=dict(required=False, type='bool'),
     direction=dict(required=False, choices=["any", "in", "out"]),
     ipprotocol=dict(default='inet', choices=['inet', 'inet46', 'inet6']),
-    protocol=dict(default='any', choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp"]),
+    protocol=dict(default='any', choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf"]),
     source=dict(required=False, type='str'),
     source_port=dict(required=False, type='str'),
     destination=dict(required=False, type='str'),
@@ -109,11 +109,11 @@ class PFSenseRuleModule(PFSenseModuleBase):
             if params['protocol'] not in ['tcp', 'udp', 'tcp/udp'] and ('port' in obj['source'] or 'port' in obj['destination']):
                 self.module.fail_json(msg="you can't use ports on protocols other than tcp, udp or tcp/udp")
 
-            # for param in ['destination', 'source']:
-            #    if 'address' in obj[param]:
-            #        self.pfsense.check_ip_address(obj[param]['address'], obj['ipprotocol'], 'rule')
-            #    if 'network' in obj[param]:
-            #        self.pfsense.check_ip_address(obj[param]['network'], obj['ipprotocol'], 'rule', allow_networks=True)
+            for param in ['destination', 'source']:
+                if 'address' in obj[param]:
+                    self.pfsense.check_ip_address(obj[param]['address'], obj['ipprotocol'], 'rule')
+                if 'network' in obj[param]:
+                    self.pfsense.check_ip_address(obj[param]['network'], obj['ipprotocol'], 'rule', allow_networks=True)
 
             self._get_ansible_param(obj, 'protocol', exclude='any')
             if params['protocol'] == 'icmp':

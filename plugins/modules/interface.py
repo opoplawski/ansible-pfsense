@@ -20,7 +20,6 @@ short_description: Manage pfSense interfaces
 description:
   - Manage pfSense interfaces.
 notes:
-  - EXPERIMENTAL MODULE, not suited for production.
 options:
   state:
     description: State in which to leave the interface.
@@ -39,7 +38,12 @@ options:
     type: bool
   ipv4_type:
     description: IPv4 Configuration Type.
-    choices: [ "none", "static" ]
+    choices: [ "none", "static", "dhcp" ]
+    default: 'none'
+    type: str
+  ipv6_type:
+    description: IPv4 Configuration Type.
+    choices: [ "none", "static", "slaac" ]
     default: 'none'
     type: str
   mac:
@@ -72,6 +76,19 @@ options:
     description: IPv4 gateway for this interface.
     required: false
     type: str
+  ipv6_address:
+    description: IPv6 Address.
+    required: false
+    type: str
+  ipv6_prefixlen:
+    description: IPv6 subnet prefix length.
+    required: false
+    default: 128
+    type: int
+  ipv6_gateway:
+    description: IPv6 gateway for this interface.
+    required: false
+    type: str
   blockpriv:
     description: Blocks traffic from IP addresses that are reserved for private networks.
     required: false
@@ -80,14 +97,6 @@ options:
     description: Blocks traffic from reserved IP addresses (but not RFC 1918) or not yet assigned by IANA.
     required: false
     type: bool
-  create_ipv4_gateway:
-    description: Create the specified IPv4 gateway if it does not exist
-    required: false
-    type: bool
-  ipv4_gateway_address:
-    description: IPv4 gateway address to set on the interface
-    required: false
-    type: str
 """
 
 EXAMPLES = """

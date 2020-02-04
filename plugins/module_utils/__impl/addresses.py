@@ -6,6 +6,88 @@
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
+from ansible.module_utils.compat.ipaddress import ip_address, ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
+import re
+
+
+@staticmethod
+def is_ipv4_address(address):
+    """ test if address is a valid ipv4 address """
+    try:
+        addr = ip_address(u'{0}'.format(address))
+        return isinstance(addr, IPv4Address)
+    except ValueError:
+        pass
+    return False
+
+
+@staticmethod
+def is_ipv6_address(address):
+    """ test if address is a valid ipv6 address """
+    try:
+        addr = ip_address(u'{0}'.format(address))
+        return isinstance(addr, IPv6Address)
+    except ValueError:
+        pass
+    return False
+
+
+@staticmethod
+def is_ipv4_network(address, strict=True):
+    """ test if address is a valid ipv4 network """
+    try:
+        addr = ip_network(u'{0}'.format(address), strict=strict)
+        return isinstance(addr, IPv4Network)
+    except ValueError:
+        pass
+    return False
+
+
+@staticmethod
+def is_ipv6_network(address, strict=True):
+    """ test if address is a valid ipv6 network """
+    try:
+        addr = ip_network(u'{0}'.format(address), strict=strict)
+        return isinstance(addr, IPv6Network)
+    except ValueError:
+        pass
+    return False
+
+
+def is_within_local_networks(self, address):
+    """ test if address is contained in our local networks """
+    networks = self.get_interfaces_networks()
+    try:
+        addr = ip_address(u'{0}'.format(address))
+    except ValueError:
+        return False
+
+    for network in networks:
+        try:
+            net = ip_network(u'{0}'.format(network), strict=False)
+            if addr in net:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
+@staticmethod
+def parse_ip_network(address, strict=True, returns_ip=True):
+    """ return cidr parts of address """
+    try:
+        addr = ip_network(u'{0}'.format(address), strict=strict)
+        if strict or not returns_ip:
+            return (str(addr.network_address), addr.prefixlen)
+        else:
+            # we parse the address with ipaddr just for type checking
+            # but we use a regex to return the result as it dont kept the address bits
+            group = re.match(r'(.*)/(.*)', address)
+            if group:
+                return (group.group(1), group.group(2))
+    except ValueError:
+        pass
+    return None
 
 
 def parse_address(self, param, allow_self=True):

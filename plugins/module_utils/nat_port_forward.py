@@ -110,7 +110,7 @@ class PFSenseNatPortForwardModule(PFSenseModuleBase):
         address = addr[0]
 
         ports = addr[1] if len(addr) > 1 else None
-        if self.pfsense.find_alias(address, 'host') is not None or self.pfsense.is_ip_address(address):
+        if self.pfsense.find_alias(address, 'host') is not None or self.pfsense.is_ipv4_address(address):
             obj['target'] = address
         else:
             self.module.fail_json(msg='"%s" is not a valid redirect target IP address or host alias.' % (param))

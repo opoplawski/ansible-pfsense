@@ -6,13 +6,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from ansible.module_utils.compat.ipaddress import ip_address, ip_network, IPv4Address, IPv6Address, IPv4Network, IPv6Network
 import json
 import shutil
 import os
 import pwd
 import random
-import re
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
@@ -24,15 +22,26 @@ class PFSenseModule(object):
     # pylint: disable=import-outside-toplevel
     from ansible_collections.pfsensible.core.plugins.module_utils.__impl.interfaces import (
         get_interface_display_name,
+        get_interface_elt,
         get_interface_port,
         get_interface_port_by_display_name,
         get_interface_by_display_name,
         get_interface_by_port,
+        get_interfaces_networks,
         is_interface_display_name,
         is_interface_port,
         parse_interface,
     )
-    from ansible_collections.pfsensible.core.plugins.module_utils.__impl.parse_address_port import parse_address, parse_port
+    from ansible_collections.pfsensible.core.plugins.module_utils.__impl.addresses import (
+        is_ipv4_address,
+        is_ipv6_address,
+        is_ipv4_network,
+        is_ipv6_network,
+        is_within_local_networks,
+        parse_address,
+        parse_ip_network,
+        parse_port,
+    )
     from ansible_collections.pfsensible.core.plugins.module_utils.__impl.checks import check_name, check_ip_address
     # pylint: enable=import-outside-toplevel
 
@@ -203,24 +212,33 @@ class PFSenseModule(object):
             else:
                 if isinstance(value, dict):
                     self.debug.write('calling copy_dict_to_element()\n')
-                    subchanged = self.copy_dict_to_element(value, this_elt, sub=sub + 1)
-                    if subchanged:
+                    if self.copy_dict_to_element(value, this_elt, sub=sub + 1):
                         changed = True
                 elif isinstance(value, list):
-                    this_list = list(value)
-                    # Remove existing items not in the new list
-                    for list_elt in top_elt.findall(key):
-                        if list_elt.text in this_list:
-                            this_list.remove(list_elt.text)
-                        else:
-                            top_elt.remove(list_elt)
-                            changed = True
-                    # Add any remaining items in the new list
-                    for item in this_list:
-                        new_elt = self.new_element(key)
-                        new_elt.text = item
-                        top_elt.append(new_elt)
+                    all_sub_elts = top_elt.findall(key)
+
+                    # remove extra elts
+                    while len(all_sub_elts) > len(value):
+                        top_elt.remove(all_sub_elts.pop())
                         changed = True
+
+                    # add new elts
+                    while len(all_sub_elts) < len(value):
+                        new_elt = self.new_element(key)
+                        top_elt.append(new_elt)
+                        all_sub_elts.append(new_elt)
+                        changed = True
+
+                    # set all elts
+                    for idx, item in enumerate(value):
+                        if isinstance(item, str):
+                            if all_sub_elts[idx].text is None and item == '':
+                                pass
+                            elif all_sub_elts[idx].text != item:
+                                all_sub_elts[idx].text = item
+                                changed = True
+                        elif self.copy_dict_to_element(item, all_sub_elts[idx], sub=sub + 1):
+                            changed = True
                 elif this_elt.text is None and value == '':
                     pass
                 elif this_elt.text != value:
@@ -241,16 +259,18 @@ class PFSenseModule(object):
     def element_to_dict(src_elt):
         """ Create dict from XML src_elt """
         res = {}
-        for elt in list(src_elt):
-            if list(elt):
-                res[elt.tag] = PFSenseModule.element_to_dict(elt)
+        for elt in src_elt:
+            if len(elt) > 0:
+                value = PFSenseModule.element_to_dict(elt)
             else:
-                if elt.tag in res:
-                    if isinstance(res[elt.tag], str):
-                        res[elt.tag] = [res[elt.tag]]
-                    res[elt.tag].append(elt.text)
-                else:
-                    res[elt.tag] = elt.text if elt.text is not None else ''
+                value = elt.text if elt.text is not None else ''
+
+            if elt.tag in res:
+                if not isinstance(res[elt.tag], list):
+                    res[elt.tag] = [res[elt.tag]]
+                res[elt.tag].append(value)
+            else:
+                res[elt.tag] = value
         return res
 
     def get_caref(self, name):
@@ -294,88 +314,11 @@ class PFSenseModule(object):
             return True
 
         # Is it an IP address or network?
-        if self.is_ip_address(address) or self.is_ip_network(address):
+        if self.is_ipv4_address(address) or self.is_ipv4_network(address) or self.is_ipv6_address(address) or self.is_ipv6_network(address):
             return True
 
         # None of the above
         return False
-
-    @staticmethod
-    def is_ip_address(address):
-        """ test if address is a valid ip address """
-        try:
-            ip_address(u'{0}'.format(address))
-            return True
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv4_address(address):
-        """ test if address is a valid ipv4 address """
-        try:
-            addr = ip_address(u'{0}'.format(address))
-            return isinstance(addr, IPv4Address)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv6_address(address):
-        """ test if address is a valid ipv6 address """
-        try:
-            addr = ip_address(u'{0}'.format(address))
-            return isinstance(addr, IPv6Address)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ip_network(address, strict=True):
-        """ test if address is a valid ip network """
-        try:
-            ip_network(u'{0}'.format(address), strict=strict)
-            return True
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv4_network(address, strict=True):
-        """ test if address is a valid ipv4 network """
-        try:
-            addr = ip_network(u'{0}'.format(address), strict=strict)
-            return isinstance(addr, IPv4Network)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def is_ipv6_network(address, strict=True):
-        """ test if address is a valid ipv6 network """
-        try:
-            addr = ip_network(u'{0}'.format(address), strict=strict)
-            return isinstance(addr, IPv6Network)
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def parse_ip_network(address, strict=True, returns_ip=True):
-        """ return cidr parts of address """
-        try:
-            addr = ip_network(u'{0}'.format(address), strict=strict)
-            if strict or not returns_ip:
-                return (str(addr.network_address), addr.prefixlen)
-            else:
-                # we parse the address with ipaddr just for type checking
-                # but we use a regex to return the result as it dont kept the address bits
-                group = re.match(r'(.*)/(.*)', address)
-                if group:
-                    return (group.group(1), group.group(2))
-        except ValueError:
-            pass
-        return None
 
     def is_port_or_alias(self, port):
         """ return True if port is a valid port number or an alias """

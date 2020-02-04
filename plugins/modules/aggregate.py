@@ -79,7 +79,12 @@ options:
         type: bool
       ipv4_type:
         description: IPv4 Configuration Type.
-        choices: [ "none", "static" ]
+        choices: [ "none", "static", "dhcp" ]
+        default: 'none'
+        type: str
+      ipv6_type:
+        description: IPv4 Configuration Type.
+        choices: [ "none", "static", "slaac" ]
         default: 'none'
         type: str
       mac:
@@ -112,6 +117,19 @@ options:
         description: IPv4 gateway for this interface.
         required: false
         type: str
+      ipv6_address:
+        description: IPv6 Address.
+        required: false
+        type: str
+      ipv6_prefixlen:
+        description: IPv6 subnet prefix length.
+        required: false
+        default: 128
+        type: int
+      ipv6_gateway:
+        description: IPv6 gateway for this interface.
+        required: false
+        type: str
       blockpriv:
         description: Blocks traffic from IP addresses that are reserved for private networks.
         required: false
@@ -120,14 +138,6 @@ options:
         description: Blocks traffic from reserved IP addresses (but not RFC 1918) or not yet assigned by IANA.
         required: false
         type: bool
-      create_ipv4_gateway:
-        description: Create the specified IPv4 gateway if it does not exist
-        required: false
-        type: bool
-      ipv4_gateway_address:
-        description: IPv4 gateway address to set on the interface
-        required: false
-        type: str
   aggregated_rules:
     description: Dict of rules to apply on the target
     required: False
@@ -171,14 +181,17 @@ options:
       protocol:
         description: The protocol
         default: any
-        choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp" ]
+        choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf" ]
         type: str
       source:
         description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
         default: null
         type: str
       source_port:
-        description: The source port(s), separated by dash in case of range
+        description:
+          - Source port or port range specification.
+          - This can either be a alias or a port number.
+          - An inclusive range can also be specified, using the format C(first-last)..
         default: null
         type: str
       destination:
@@ -186,17 +199,20 @@ options:
         default: null
         type: str
       destination_port:
-        description: The destination port(s), separated by dash in case of range
+        description:
+          - Destination port or port range specification.
+          - This can either be a alias or a port number.
+          - An inclusive range can also be specified, using the format C(first-last)..
         default: null
         type: str
       log:
         description: Log packets matched by rule
         type: bool
       after:
-        description: Rule to go after, or "top"
+        description: Rule to go after, or C(top)
         type: str
       before:
-        description: Rule to go before, or "bottom"
+        description: Rule to go before, or C(bottom)
         type: str
       statetype:
         description: State type
@@ -216,7 +232,7 @@ options:
         description: Limiter queue for traffic leaving the chosen interface
         type: str
       gateway:
-        description: Leave as 'default' to use the system routing table or choose a gateway to utilize policy based routing.
+        description: Leave as C(default) to use the system routing table or choose a gateway to utilize policy based routing.
         type: str
         default: default
       tracker:
@@ -224,10 +240,12 @@ options:
         type: int
       icmptype:
         description:
-          One or more of these ICMP subtypes may be specified, separated by comma, or any for all of them. The types must match ip protocol.
-          althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here, ipv6-where, listendone,
-          listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp, neighbradv, neighbrsol, niqry, nirep, paramprob,
-          photuris, redir, routeradv, routersol, routrrenum, skip, squench, timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
+          - One or more of these ICMP subtypes may be specified, separated by comma, or C(any) for all of them.
+          - The types must match ip protocol.
+          - althost, dataconv, echorep, echoreq, fqdnrep, fqdnreq, groupqry, grouprep, groupterm, inforep, inforeq, ipv6-here,
+          - ipv6-where, listendone, listenrep, listqry, maskrep, maskreq, mobredir, mobregrep, mobregreq, mtrace, mtraceresp,
+          - neighbradv, neighbrsol, niqry, nirep, paramprob, photuris, redir, routeradv, routersol, routrrenum, skip, squench,
+          - timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
         default: any
         type: str
   aggregated_rule_separators:
@@ -287,6 +305,11 @@ options:
         choices: [ "present", "absent" ]
         default: present
         type: str
+  order_rules:
+    description: rules will be generated following the playbook order
+    required: False
+    default: False
+    type: bool
   purge_aliases:
     description: delete all the aliases that are not defined into aggregated_aliases
     required: False
@@ -519,6 +542,30 @@ class PFSenseModuleAggregate(object):
             for params in todel:
                 self.pfsense_rules.run(params)
 
+        # generating order if required
+        if self.module.params.get('order_rules'):
+            last_rules = dict()
+            for params in want:
+                if params.get('before') is not None or params.get('after') is not None:
+                    self.module.fail_json(msg="You can't use after or before parameters on rules when using order_rules (see {0})".format(params['name']))
+
+                if params.get('state') == 'absent':
+                    continue
+
+                if params.get('floating'):
+                    key = 'floating'
+                else:
+                    key = params['interface']
+
+                # first rule on interface
+                if key not in last_rules:
+                    params['after'] = 'top'
+                    last_rules[key] = params['name']
+                    continue
+
+                params['after'] = last_rules[key]
+                last_rules[key] = params['name']
+
         # processing aggregated parameters
         for params in want:
             self.pfsense_rules.run(params)
@@ -661,6 +708,7 @@ def main():
             type='list', elements='dict',
             options=RULE_SEPARATOR_ARGUMENT_SPEC, required_one_of=RULE_SEPARATOR_REQUIRED_ONE_OF, mutually_exclusive=RULE_SEPARATOR_MUTUALLY_EXCLUSIVE),
         aggregated_vlans=dict(type='list', elements='dict', options=VLAN_ARGUMENT_SPEC),
+        order_rules=dict(default=False, type='bool'),
         purge_aliases=dict(default=False, type='bool'),
         purge_interfaces=dict(default=False, type='bool'),
         purge_rules=dict(default=False, type='bool'),

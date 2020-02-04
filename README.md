@@ -52,6 +52,7 @@ The following modules are currently available:
 * [pfsensible.core.route](https://github.com/pfsensible/core/wiki/pfsensible.core.route) for routes
 * [pfsensible.core.rule](https://github.com/pfsensible/core/wiki/pfsensible.core.rule) for rules
 * [pfsensible.core.rule_separator](https://github.com/pfsensible/core/wiki/pfsensible.core.rule_separator) for rule separators
+* [pfsensible.core.setup](https://github.com/pfsensible/core/wiki/pfsensible.core.setup) for general setup
 * [pfsensible.core.user](https://github.com/pfsensible/core/wiki/pfsensible.core.user) for users
 * [pfsensible.core.vlan](https://github.com/pfsensible/core/wiki/pfsensible.core.vlan) for vlans
 

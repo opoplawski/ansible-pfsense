@@ -33,7 +33,7 @@ options:
     type: str
   host:
     description: The hostname or IP address of the authentication server
-    required: true
+    required: false
     type: str
   port:
     description: Port to connect to
@@ -65,7 +65,7 @@ options:
     type: str
   authcn:
     description: Authentication containers added to basedn
-    required: true
+    required: false
     type: str
   extended_enabled:
     description: Enable extended query
@@ -137,7 +137,7 @@ class PFSenseAuthserverLDAP(object):
         self.pfsense = PFSenseModule(module)
         self.system = self.pfsense.get_element('system')
         self.authservers = self.system.findall('authserver')
-        self.diff = { 'after': {}, 'before': {} }
+        self.diff = {'after': {}, 'before': {}}
 
     def _find_authserver_ldap(self, name):
         found = None
@@ -165,11 +165,11 @@ class PFSenseAuthserverLDAP(object):
             authserver['refid'] = self.pfsense.uniqid()
             self.pfsense.copy_dict_to_element(authserver, authserver_elt)
             self.system.insert(i + 1, authserver_elt)
-            change_descr='ansible pfsensible.core.authserver_ldap added %s' % (authserver['name'])
+            change_descr = 'ansible pfsensible.core.authserver_ldap added %s' % (authserver['name'])
         else:
             self.diff['before'] = self.pfsense.element_to_dict(authserver_elt)
             changed = self.pfsense.copy_dict_to_element(authserver, authserver_elt)
-            change_descr='ansible pfsensible.core.authserver_ldap updated "%s"' % (authserver['name'])
+            change_descr = 'ansible pfsensible.core.authserver_ldap updated "%s"' % (authserver['name'])
 
         self.diff['after'] = self.pfsense.element_to_dict(authserver_elt)
         if changed and not self.module.check_mode:

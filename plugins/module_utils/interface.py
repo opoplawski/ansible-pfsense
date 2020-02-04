@@ -15,7 +15,8 @@ INTERFACE_ARGUMENT_SPEC = dict(
     descr=dict(required=True, type='str'),
     interface=dict(required=False, type='str'),
     enable=dict(required=False, type='bool'),
-    ipv4_type=dict(default='none', choices=['none', 'static']),
+    ipv4_type=dict(default='none', choices=['none', 'static', 'dhcp']),
+    ipv6_type=dict(default='none', choices=['none', 'static', 'slaac']),
     mac=dict(required=False, type='str'),
     mtu=dict(required=False, type='int'),
     mss=dict(required=False, type='int'),
@@ -23,16 +24,17 @@ INTERFACE_ARGUMENT_SPEC = dict(
     ipv4_address=dict(required=False, type='str'),
     ipv4_prefixlen=dict(default=24, required=False, type='int'),
     ipv4_gateway=dict(required=False, type='str'),
-    create_ipv4_gateway=dict(required=False, type='bool'),
-    ipv4_gateway_address=dict(required=False, type='str'),
+    ipv6_address=dict(required=False, type='str'),
+    ipv6_prefixlen=dict(default=128, required=False, type='int'),
+    ipv6_gateway=dict(required=False, type='str'),
     blockpriv=dict(required=False, type='bool'),
     blockbogons=dict(required=False, type='bool'),
 )
 
 INTERFACE_REQUIRED_IF = [
-    ["state", "present", ["interface", "ipv4_type"]],
+    ["state", "present", ["interface", "ipv4_type", "ipv6_type"]],
     ["ipv4_type", "static", ["ipv4_address", "ipv4_prefixlen"]],
-    ["create_ipv4_gateway", True, ["ipv4_gateway_address"]],
+    ["ipv6_type", "static", ["ipv6_address", "ipv6_prefixlen"]],
 ]
 
 
@@ -54,21 +56,21 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     ##############################
     # params processing
     #
-    def _check_overlaps(self):
+    def _check_overlaps(self, ipfield, netfield):
         """ check new address does not overlaps with one existing """
 
-        if not self.obj.get('ipaddr'):
+        if not self.obj.get(ipfield):
             return
 
-        our_addr = ip_network(u'{0}/{1}'.format(self.obj['ipaddr'], self.obj['subnet']), strict=False)
+        our_addr = ip_network(u'{0}/{1}'.format(self.obj[ipfield], self.obj[netfield]), strict=False)
 
         for iface in self.root_elt:
             if iface == self.target_elt:
                 continue
 
-            ipaddr_elt = iface.find('ipaddr')
-            subnet_elt = iface.find('subnet')
-            if ipaddr_elt is None or subnet_elt is None or ipaddr_elt.text == 'dhcp':
+            ipaddr_elt = iface.find(ipfield)
+            subnet_elt = iface.find(netfield)
+            if ipaddr_elt is None or subnet_elt is None or ipaddr_elt.text in ['dhcp', None] or ipaddr_elt.text in ['dhcpv6', None]:
                 continue
 
             other_addr = ip_network(u'{0}/{1}'.format(ipaddr_elt.text, subnet_elt.text), strict=False)
@@ -78,9 +80,9 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                     ifname = descr_elt.text
                 else:
                     ifname = iface.tag
-                msg = 'IPv4 address {0}/{1} is being used by or overlaps with: {2} ({3}/{4})'.format(
-                    self.obj['ipaddr'],
-                    self.obj['subnet'],
+                msg = 'IP address {0}/{1} is being used by or overlaps with: {2} ({3}/{4})'.format(
+                    self.obj[ipfield],
+                    self.obj[netfield],
                     ifname,
                     ipaddr_elt.text,
                     subnet_elt.text
@@ -110,11 +112,25 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 self._get_ansible_param(obj, 'ipv4_prefixlen', fname='subnet')
                 self._get_ansible_param(obj, 'ipv4_gateway', fname='gateway')
 
+            if params['ipv6_type'] == 'static':
+                self._get_ansible_param(obj, 'ipv6_address', fname='ipaddrv6')
+                self._get_ansible_param(obj, 'ipv6_prefixlen', fname='subnetv6')
+                self._get_ansible_param(obj, 'ipv6_gateway', fname='gatewayv6')
+
             # get target interface
             self.target_elt = self._find_matching_interface()
-            self._check_overlaps()
+            self._check_overlaps('ipaddrv6', 'subnetv6')
+            self._check_overlaps('ipaddr', 'subnet')
+
+            # check gateways
+            if self.obj.get('gateway') and not self.pfsense.find_gateway_elt(self.obj['gateway'], self.target_elt.tag, 'inet'):
+                self.module.fail_json(msg='Gateway {0} does not exist on {1}'.format(self.obj['gateway'], self.obj['descr']))
+
+            if self.obj.get('gatewayv6') and not self.pfsense.find_gateway_elt(self.obj['gatewayv6'], self.target_elt.tag, 'inet6'):
+                self.module.fail_json(msg='Gateway {0} does not exist on {1}'.format(self.obj['gatewayv6'], self.obj['descr']))
+
         else:
-            self.target_elt = self._find_interface_elt_by_name()
+            self.target_elt = self._get_interface_elt_by_display_name(self.obj['descr'])
 
         return obj
 
@@ -136,6 +152,9 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             if params.get('ipv4_prefixlen') is not None and params['ipv4_prefixlen'] < 1 or params['ipv4_prefixlen'] > 32:
                 self.module.fail_json(msg='ipv4_prefixlen must be between 1 and 32.')
 
+            if params.get('ipv6_prefixlen') is not None and params['ipv6_prefixlen'] < 1 or params['ipv6_prefixlen'] > 128:
+                self.module.fail_json(msg='ipv6_prefixlen must be between 1 and 128.')
+
             if params.get('mtu') is not None and params['mtu'] < 1:
                 self.module.fail_json(msg='mtu must be above 0')
 
@@ -152,12 +171,12 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 self.module.fail_json(msg='For this interface, media mode may only be one the following: {0}'.format(media_modes))
 
             if params['ipv4_type'] == 'static':
-                if params.get('ipv4_address') and not self.pfsense.is_ip_address(params['ipv4_address']):
-                    self.module.fail_json(msg='{0} is not a valid ip address'.format(params['ipv4_address']))
+                if params.get('ipv4_address') and not self.pfsense.is_ipv4_address(params['ipv4_address']):
+                    self.module.fail_json(msg='{0} is not a valid IPv4 address'.format(params['ipv4_address']))
 
-            if params.get('create_ipv4_gateway'):
-                if params.get('ipv4_gateway_address') and not self.pfsense.is_ip_address(params['ipv4_gateway_address']):
-                    self.module.fail_json(msg='{0} is not a valid ip address'.format(params['ipv4_gateway_address']))
+            if params['ipv6_type'] == 'static':
+                if params.get('ipv6_address') and not self.pfsense.is_ipv6_address(params['ipv6_address']):
+                    self.module.fail_json(msg='{0} is not a valid IPv6 address'.format(params['ipv6_address']))
 
     ##############################
     # XML processing
@@ -165,7 +184,6 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     def _copy_and_add_target(self):
         """ create the XML target_elt """
         self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
-        self._create_gateway()
         self.setup_interface_cmds += "interface_configure('{0}', true);\n".format(self.target_elt.tag)
 
     def _copy_and_update_target(self):
@@ -173,9 +191,6 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         before = self.pfsense.element_to_dict(self.target_elt)
         changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
         if self._remove_deleted_params():
-            changed = True
-
-        if self._create_gateway():
             changed = True
 
         if changed:
@@ -187,34 +202,10 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
         return (before, changed)
 
-    def _create_gateway(self):
-        """ create gateway if required """
-
-        # todo: maybe it would be better to create a module to manage gateways and to call it there
-        if self.obj.get('gateway') and not self.pfsense.find_gateway_elt(self.obj['gateway'], self.target_elt.tag, 'inet'):
-            if not self.params.get('create_ipv4_gateway'):
-                self.module.fail_json(msg='Gateway {0} does not exist on {1}'.format(self.obj['gateway'], self.obj['descr']))
-
-            gateway_elt = self.pfsense.new_element('gateway_item')
-            gateway = {}
-            gateway['interface'] = self.target_elt.tag
-            gateway['gateway'] = self.params['ipv4_gateway_address']
-            gateway['name'] = self.obj['gateway']
-            gateway['weight'] = ''
-            gateway['ipprotocol'] = 'inet'
-            gateway['descr'] = ''
-            self.pfsense.copy_dict_to_element(gateway, gateway_elt)
-            self.pfsense.gateways.append(gateway_elt)
-
-            cmd = 'create gateway \'{0}\', interface=\'{1}\', ip=\'{2}\''.format(self.obj['gateway'], self.target_elt.tag, self.params['ipv4_gateway_address'])
-            self.result['commands'].append(cmd)
-            return True
-        return False
-
     def _create_target(self):
         """ create the XML target_elt """
         # wan can't be deleted, so the first interface we can create is lan
-        if self._find_interface_elt_by_tag('lan') is None:
+        if self.pfsense.get_interface_elt('lan') is None:
             interface_elt = self.pfsense.new_element('lan')
             self.root_elt.insert(1, interface_elt)
             return interface_elt
@@ -223,37 +214,37 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         i = 1
         while True:
             interface = 'opt{0}'.format(i)
-            if self._find_interface_elt_by_tag(interface) is None:
+            if self.pfsense.get_interface_elt(interface) is None:
                 interface_elt = self.pfsense.new_element(interface)
                 # i + 1 = i + (lan and wan) - 1
                 self.root_elt.insert(i + 1, interface_elt)
                 return interface_elt
             i = i + 1
 
-    def _find_interface_elt(self):
-        """ return pfsense interface physical name """
+    def _get_interface_elt_by_port_and_display_name(self, interface_port, name):
+        """ return pfsense interface_elt """
         for iface in self.root_elt:
             descr_elt = iface.find('descr')
             if descr_elt is None:
                 continue
-            if iface.find('if').text.strip() == self.obj['if'] and descr_elt.text.strip().lower() == self.obj['descr'].lower():
+            if iface.find('if').text.strip() == interface_port and descr_elt.text.strip().lower() == name.lower():
                 return iface
         return None
 
-    def _find_interface_elt_by_name(self):
+    def _get_interface_elt_by_display_name(self, name):
         """ return pfsense interface by name """
         for iface in self.root_elt:
             descr_elt = iface.find('descr')
             if descr_elt is None:
                 continue
-            if descr_elt.text.strip().lower() == self.obj['descr'].lower():
+            if descr_elt.text.strip().lower() == name.lower():
                 return iface
         return None
 
-    def _get_interface_name_by_physical_name(self):
+    def _get_interface_display_name_by_port(self, interface_port):
         """ return pfsense interface physical name """
         for iface in self.root_elt:
-            if iface.find('if').text.strip() == self.obj['if']:
+            if iface.find('if').text.strip() == interface_port:
                 descr_elt = iface.find('descr')
                 if descr_elt is not None:
                     return descr_elt.text.strip()
@@ -261,39 +252,32 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
         return None
 
-    def _find_interface_elt_by_port(self):
+    def _get_interface_elt_by_port(self, interface_port):
         """ find pfsense interface by port name """
         for iface in self.root_elt:
-            if iface.find('if').text.strip() == self.obj['if']:
-                return iface
-        return None
-
-    def _find_interface_elt_by_tag(self, interface):
-        """ find pfsense interface by port name """
-        for iface in self.root_elt:
-            if iface.tag == interface:
+            if iface.find('if').text.strip() == interface_port:
                 return iface
         return None
 
     def _find_matching_interface(self):
         """ return target interface """
 
-        # we first try to find an interface having same name and physical
-        interface_elt = self._find_interface_elt()
+        # we first try to find an interface having same port and display name
+        interface_elt = self._get_interface_elt_by_port_and_display_name(self.obj['if'], self.obj['descr'])
         if interface_elt is not None:
             return interface_elt
 
-        # we then try to find an existing interface with the name
-        interface_elt = self._find_interface_elt_by_name()
+        # we then try to find an existing interface with the same display name
+        interface_elt = self._get_interface_elt_by_display_name(self.obj['descr'])
         if interface_elt is not None:
-            # we check the targeted physical interface can be used
-            used_by = self._get_interface_name_by_physical_name()
+            # we check the target port can be used
+            used_by = self._get_interface_display_name_by_port(self.obj['if'])
             if used_by is not None:
                 self.module.fail_json(msg='Port {0} is already in use on interface {1}'.format(self.obj['if'], used_by))
             return interface_elt
 
         # last, we  try to find an existing interface with the port (interface will be renamed)
-        return self._find_interface_elt_by_port()
+        return self._get_interface_elt_by_port(self.obj['if'])
 
     def _find_target(self):
         """ find the XML target_elt """
@@ -302,7 +286,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        params = ['mtu', 'mss', 'gateway', 'enable', 'mac', 'media', 'ipaddr', 'subnet', 'blockpriv', 'blockbogons']
+        params = ['mtu', 'mss', 'gateway', 'enable', 'mac', 'media', 'ipaddr', 'subnet', 'ipaddrv6', 'subnetv6', 'gatewayv6', 'blockpriv', 'blockbogons']
         return params
 
     def _pre_remove_target_elt(self):
@@ -488,12 +472,16 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             values += self.format_cli_field(self.obj, 'if', fname='port')
             values += self.format_cli_field(self.obj, 'enable', fvalue=self.fvalue_bool)
             values += self.format_cli_field(self.params, 'ipv4_type', default='none')
-            values += self.format_cli_field(self.params, 'mac')
-            values += self.format_cli_field(self.obj, 'mtu')
-            values += self.format_cli_field(self.obj, 'mss')
             values += self.format_cli_field(self.obj, 'ipaddr', fname='ipv4_address')
             values += self.format_cli_field(self.obj, 'subnet', fname='ipv4_prefixlen')
             values += self.format_cli_field(self.obj, 'gateway', fname='ipv4_gateway')
+            values += self.format_cli_field(self.params, 'ipv6_type', default='none')
+            values += self.format_cli_field(self.obj, 'ipaddrv6', fname='ipv6_address')
+            values += self.format_cli_field(self.obj, 'subnetv6', fname='ipv6_prefixlen')
+            values += self.format_cli_field(self.obj, 'gatewayv6', fname='ipv6_gateway')
+            values += self.format_cli_field(self.params, 'mac')
+            values += self.format_cli_field(self.obj, 'mtu')
+            values += self.format_cli_field(self.obj, 'mss')
             values += self.format_cli_field(self.obj, 'blockpriv', fvalue=self.fvalue_bool)
             values += self.format_cli_field(self.obj, 'blockbogons', fvalue=self.fvalue_bool)
             values += self.format_cli_field(self.params, 'speed_duplex', fname='speed_duplex', default='autoselect')
@@ -503,13 +491,17 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             values += self.format_updated_cli_field(self.obj, before, 'if', add_comma=(values), fname='port')
             values += self.format_updated_cli_field(self.obj, before, 'enable', add_comma=(values), fvalue=self.fvalue_bool)
             values += self.format_updated_cli_field(self.obj, before, 'ipv4_type', add_comma=(values), log_none='True')
+            values += self.format_updated_cli_field(self.obj, before, 'ipaddr', add_comma=(values), fname='ipv4_address')
+            values += self.format_updated_cli_field(self.obj, before, 'subnet', add_comma=(values), fname='ipv4_prefixlen')
+            values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values), fname='ipv4_gateway')
+            values += self.format_updated_cli_field(self.obj, before, 'ipv6_type', add_comma=(values), log_none='True')
+            values += self.format_updated_cli_field(self.obj, before, 'ipaddrv6', add_comma=(values), fname='ipv6_address')
+            values += self.format_updated_cli_field(self.obj, before, 'subnetv6', add_comma=(values), fname='ipv6_prefixlen')
+            values += self.format_updated_cli_field(self.obj, before, 'gatewayv6', add_comma=(values), fname='ipv6_gateway')
             values += self.format_updated_cli_field(self.obj, before, 'spoofmac', add_comma=(values), fname='mac')
             values += self.format_updated_cli_field(self.obj, before, 'mtu', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'mss', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'media', add_comma=(values), fname='speed_duplex')
-            values += self.format_updated_cli_field(self.obj, before, 'ipaddr', add_comma=(values), fname='ipv4_address')
-            values += self.format_updated_cli_field(self.obj, before, 'subnet', add_comma=(values), fname='ipv4_prefixlen')
-            values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values), fname='ipv4_gateway')
             values += self.format_updated_cli_field(self.obj, before, 'blockpriv', add_comma=(values), fvalue=self.fvalue_bool)
             values += self.format_updated_cli_field(self.obj, before, 'blockbogons', add_comma=(values), fvalue=self.fvalue_bool)
         return values

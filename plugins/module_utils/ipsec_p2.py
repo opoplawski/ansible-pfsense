@@ -167,7 +167,7 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             obj['mode'] = params['mode']
             if obj['mode'] != 'transport':
 
-                if obj['mode'] == 'vti' and not self.pfsense.is_ip_address(params['remote']):
+                if obj['mode'] == 'vti' and not self.pfsense.is_ipv4_address(params['remote']):
                     msg = 'VTI requires a valid remote IP address for its endpoint address.'
                     self.module.fail_json(msg=msg)
 

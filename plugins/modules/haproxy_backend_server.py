@@ -114,7 +114,7 @@ EXAMPLES = """
     state: present
 
 - name: Remove backend server
-  pfsensible.core.haproxy_backend:
+  pfsensible.core.haproxy_backend_server:
     backend: exchange
     name: exchange.acme.org
     state: absent
