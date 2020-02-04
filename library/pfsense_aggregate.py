@@ -305,6 +305,11 @@ options:
         choices: [ "present", "absent" ]
         default: present
         type: str
+  order_rules:
+    description: rules will be generated following the playbook order
+    required: False
+    default: False
+    type: bool
   purge_aliases:
     description: delete all the aliases that are not defined into aggregated_aliases
     required: False
@@ -537,6 +542,30 @@ class PFSenseModuleAggregate(object):
             for params in todel:
                 self.pfsense_rules.run(params)
 
+        # generating order if required
+        if self.module.params.get('order_rules'):
+            last_rules = dict()
+            for params in want:
+                if params.get('before') is not None or params.get('after') is not None:
+                    self.module.fail_json(msg="You can't use after or before parameters on rules when using order_rules (see {0})".format(params['name']))
+
+                if params.get('state') == 'absent':
+                    continue
+
+                if params.get('floating'):
+                    key = 'floating'
+                else:
+                    key = params['interface']
+
+                # first rule on interface
+                if key not in last_rules:
+                    params['after'] = 'top'
+                    last_rules[key] = params['name']
+                    continue
+
+                params['after'] = last_rules[key]
+                last_rules[key] = params['name']
+
         # processing aggregated parameters
         for params in want:
             self.pfsense_rules.run(params)
@@ -679,6 +708,7 @@ def main():
             type='list', elements='dict',
             options=RULE_SEPARATOR_ARGUMENT_SPEC, required_one_of=RULE_SEPARATOR_REQUIRED_ONE_OF, mutually_exclusive=RULE_SEPARATOR_MUTUALLY_EXCLUSIVE),
         aggregated_vlans=dict(type='list', elements='dict', options=VLAN_ARGUMENT_SPEC),
+        order_rules=dict(default=False, type='bool'),
         purge_aliases=dict(default=False, type='bool'),
         purge_interfaces=dict(default=False, type='bool'),
         purge_rules=dict(default=False, type='bool'),
