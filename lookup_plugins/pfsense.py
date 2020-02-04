@@ -56,8 +56,8 @@ RETURN = """
 To determine if a rule and corresponding aliases has to be declared on a pfsense
 and on which interfaces, the plugin check if rule source or destination is
 matching any local or routed network on the pfsense. To avoid having every rule
-declared on a wan interface, if a rule can be declared on multiple interfaces,
-it is not of the ones routing 0.0.0.0/0 if there is another which is not routing it.
+declared on a wan interface, if a rule can be declared on multiple interfaces
+it is not on the ones routing 0.0.0.0/0 if there is another which is not routing it.
 If a network is declared as routed (accessible thru) on an interface and is also defined
 as the local network on an interface of the target pfsense, the local network is preffered.
 The same apply to adjacent networks, which indicates neighbor networks that are routed thru a pfSense.
@@ -603,6 +603,8 @@ class PFSenseHostAlias(object):
 
         # if we are on local and remote, split if there is multiple targets
         if target_local_interfaces and target_ar_interfaces:
+            if len(target_local_interfaces) == 1 and target_local_interfaces == target_ar_interfaces:
+                return True
             return len(self.ips) + len(self.networks) == 1
 
         return True
@@ -611,8 +613,9 @@ class PFSenseHostAlias(object):
         """ Return True if the alias ip match one interface on the pfsense """
         for alias_ip in self.ips:
             for iface in pfsense.interfaces.values():
-                if alias_ip == iface.local_ip:
-                    return True
+                for local_ip in iface.local_ips:
+                    if alias_ip == local_ip:
+                        return True
         return False
 
 
@@ -696,8 +699,8 @@ class PFSenseInterface(object):
     """ Class holding structured pfsense interface definition """
     def __init__(self):
         self.name = None
-        self.local_ip = None
-        self.local_network = None
+        self.local_ips = set()
+        self.local_networks = set()
         self.routed_networks = set()
         self.adjacent_networks = set()
         self.bridge = False
@@ -733,20 +736,22 @@ class PFSenseInterface(object):
 
     def local_network_contains(self, address):
         """ return true if address is in the local network of this interface """
-        if self.local_network:
-            if isinstance(address, ipaddress.IPv4Address):
-                private_address = is_private_ip(address)
-                private_net = is_private_network(self.local_network)
-                if private_address and private_net or not private_address and not private_net:
-                    return address in self.local_network
-                return False
-            elif isinstance(address, ipaddress.IPv4Network):
-                private_address = is_private_network(address)
-                private_net = is_private_network(self.local_network)
-                if private_address and private_net or not private_address and not private_net:
-                    return address.subnet_of(self.local_network)
-            else:
-                raise AssertionError('wrong type in local_network_contains:' + type(address))
+        if self.local_networks:
+            for local_network in self.local_networks:
+                if isinstance(address, ipaddress.IPv4Address):
+                    private_address = is_private_ip(address)
+                    private_net = is_private_network(local_network)
+                    if private_address and private_net or not private_address and not private_net:
+                        if address in local_network:
+                            return True
+                elif isinstance(address, ipaddress.IPv4Network):
+                    private_address = is_private_network(address)
+                    private_net = is_private_network(local_network)
+                    if private_address and private_net or not private_address and not private_net:
+                        if address.subnet_of(local_network):
+                            return True
+                else:
+                    raise AssertionError('wrong type in local_network_contains:' + type(address))
         return False
 
 
@@ -805,7 +810,7 @@ class PFSense(object):
 
     def interfaces_local_networks_contains(self, address):
         """ return interfaces names where address is in the interface local network  """
-        return self._interfaces_network_contains(address, 'local_network')
+        return self._interfaces_network_contains(address, 'local_networks')
 
     def interfaces_routed_networks_contains(self, address):
         """ return interfaces names where address is in the interface routed networks  """
@@ -1278,9 +1283,12 @@ class PFSenseDataParser(object):
         """ Checking all interfaces networks between them """
         for src_name, src in interfaces.items():
             for dst_name, dst in interfaces.items():
-                if src_name != dst_name and src.local_network is not None and dst.local_network is not None and src.local_network.overlaps(dst.local_network):
-                    self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
-                    return False
+                if src_name != dst_name and src.local_networks and dst.local_networks:
+                    for src_network in src.local_networks:
+                        for dst_network in dst.local_networks:
+                            if src_network.overlaps(dst_network):
+                                self._data.set_error("Local networks of " + src_name + " and " + dst_name + " overlap in " + name)
+                                return False
 
         return True
 
@@ -1289,29 +1297,32 @@ class PFSenseDataParser(object):
         ret = {}
         for iname, interface in pfsense['interfaces'].items():
             # extracting & checking local network
-            local_ip = None
-            local_network = None
+            local_ips = set()
+            local_networks = set()
             if 'ip' in interface:
-                try:
-                    local_network = ipaddress.ip_network(to_unicode(interface['ip']), False)
-                except ValueError:
-                    self._data.set_error("Invalid network " + interface['ip'] + " in " + name)
-                    ret = {}
-                    break
+                for ip in interface['ip'].split(' '):
+                    try:
+                        local_network = ipaddress.ip_network(to_unicode(ip), False)
+                    except ValueError:
+                        self._data.set_error("Invalid network " + ip + " in " + name)
+                        ret = {}
+                        break
 
-                if local_network.prefixlen == 32:
-                    self._data.set_error("Invalid network prefix length for network " + interface['ip'] + " in " + name)
-                    ret = {}
-                    break
+                    if local_network.prefixlen == 32:
+                        self._data.set_error("Invalid network prefix length for network " + ip + " in " + name)
+                        ret = {}
+                        break
 
-                # extracting & checking ip
-                group = re.match(r'([^\/]*)\/(\d+)', interface['ip'])
-                try:
-                    local_ip = ipaddress.ip_address(to_unicode(group.group(1)))
-                except ValueError:
-                    self._data.set_error("Invalid ip " + interface['ip'] + " in " + name)
-                    ret = {}
-                    break
+                    # extracting & checking ip
+                    group = re.match(r'([^\/]*)\/(\d+)', ip)
+                    try:
+                        local_ip = ipaddress.ip_address(to_unicode(group.group(1)))
+                    except ValueError:
+                        self._data.set_error("Invalid ip " + ip + " in " + name)
+                        ret = {}
+                        break
+                    local_ips.add(local_ip)
+                    local_networks.add(local_network)
 
             # extracting & checking routed networks
             routed_networks = set()
@@ -1337,8 +1348,8 @@ class PFSenseDataParser(object):
 
             obj = PFSenseInterface()
             obj.name = iname
-            obj.local_ip = local_ip
-            obj.local_network = local_network
+            obj.local_ips = local_ips
+            obj.local_networks = local_networks
             obj.bridge = (interface.get('bridge'))
             obj.routed_networks = routed_networks
             obj.adjacent_networks = adjacent_networks
