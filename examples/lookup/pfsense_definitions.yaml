@@ -1,0 +1,82 @@
+---
+
+#########################################################################################################################################
+#                                                         P F S E N S E S                                                               #
+#########################################################################################################################################
+
+pfsenses:
+  pf_fbor: {
+    interfaces: {
+      LAN:                { ip: 10.20.30.101/24, routed_networks: internet },
+      IPsec:              { ip: 10.9.8.1/30, routed_networks: all_office_subnets },
+      }
+    }
+  pf_office: {
+    interfaces: {
+      WAN:                { routed_networks: internet },
+      LAN:                { ip: 10.100.200.101/24 },
+      SERVERS:            { ip: 192.168.1.101/24 },
+      IPsec:              { ip: 10.9.8.2/30, routed_networks: lan_fbor },
+      }
+    }
+
+
+
+#########################################################################################################################################
+#                                                             R U L E S                                                                 #
+#########################################################################################################################################
+
+rules:
+  options: { log: yes }
+
+  CONFIG:
+    config_from_lan:        { src: lan_fbor,        dst: 10.20.30.101,        protocol: tcp,      dst_port: admin_ports }
+
+  ICMP:
+    block_redirects:        { src: any,             dst: any,                 protocol: icmp,     icmptype: redir, action: block, log: yes }
+    allow_icmp:             { src: any,             dst: any,                 protocol: icmp,     icmptype: any, log: no }
+
+  OSPF:
+    ospf_vtis:              { src: ipsec_vtis,      dst: ipsec_vtis,          protocol: ospf,     log: no  }
+
+  FROM_OFFICE:
+    config_from_office:     { src: office_station,  dst: 10.20.30.101,        protocol: tcp,      dst_port: admin_ports }
+    ssh_from_office:        { src: office_station,  dst: ssh_hosts,           protocol: tcp,      dst_port: ssh_port }
+    proxy_from_office:      { src: office_station,  dst: server_fbor,         protocol: tcp,      dst_port: squid_port }
+    smb_from_office:        { src: office_station,  dst: server_fbor,         protocol: tcp,      dst_port: smb_ports }
+    vnc_from_office:        { src: office_station,  dst: station_fbor,        protocol: tcp,      dst_port: vnc_ports }
+
+  TO_OFFICE:
+    ssh_from_server:        { src: server_fbor,     dst: all_office_subnets,  protocol: tcp,      dst_port: ssh_port }
+    dns_from_server:        { src: server_fbor,     dst: office_ads,          protocol: tcp/udp,  dst_port: dns_port }
+    laptop_to_office:       { src: laptop_fbor,     dst: all_office_subnets,  protocol: any }
+
+
+
+#########################################################################################################################################
+#                                                           A L I A S E S                                                               #
+#########################################################################################################################################
+
+hosts_aliases:
+  lan_fbor:             { ip: 10.20.30.0/24 }
+  router_fbor:          { ip: 10.20.30.1 }
+  station_fbor:         { ip: 10.20.30.2 }
+  server_fbor:          { ip: 10.20.30.3 }
+  laptop_fbor:          { ip: 10.20.30.4 }
+  ssh_hosts:            { ip: server_fbor router_fbor }
+
+  office_station:       { ip: 10.100.200.10 }
+  office_ads:           { ip: 192.168.1.1 192.168.1.2 192.168.1.3 }
+
+  all_office_subnets:   { ip: 192.168.0.0/16 10.0.0.0/8 172.16.0.0/16 }
+  internet:             { ip: 0.0.0.0/0 }
+  ipsec_vtis:           { ip: 10.9.8.1 10.9.8.2 }
+
+ports_aliases:
+  admin_ports:          { port: 22 80 443 }
+  dns_port:             { port: 53 }
+  ipsec_ports:          { port: 500 4500 }
+  squid_port:           { port: 3128 }
+  ssh_port:             { port: 22 }
+  smb_ports:            { port: 135 137 139 445 }
+  vnc_ports:            { port: 5900-5901 }

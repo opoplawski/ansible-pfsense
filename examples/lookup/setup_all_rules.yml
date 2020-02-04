@@ -1,0 +1,18 @@
+---
+- hosts: pfsense
+  gather_facts: true
+  connection: paramiko
+
+  vars:
+    params: "{{ lookup('pfsense', 'examples/lookup/pfsense_definitions.yaml', 'all_definitions') }}"
+
+  tasks:
+    - name: "setup aliases, rules & seperators"
+      pfsense_aggregate:
+        purge_rule_separators: true
+        purge_aliases: true
+        purge_rules: true
+
+        aggregated_aliases: "{{ params['aggregated_aliases'] }}"
+        aggregated_rules: "{{ params['aggregated_rules'] }}"
+        aggregated_rule_separators: "{{ params['aggregated_rule_separators'] }}"
