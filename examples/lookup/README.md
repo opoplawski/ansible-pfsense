@@ -6,7 +6,7 @@ It is designed for people who have one to many pfSense firewalls to manage.
 
 ## General description
 
-We want to configure multiple firewalls using only one set of rules, hosts and aliases.
+We want to configure multiple firewalls using only one set of pfSense, rules, and aliases.
 
 Especially, we don't want to have to define several rules for each flow and firewall, when we have that kind of setup:
 ```
@@ -74,7 +74,7 @@ pfsenses:
 
 In this setup, as the pfSense is just an IPsec gateway there is no WAN interface. The LAN interface has the address 10.20.30.101 and this is the interface used to connect to internet.
 
-We do not need to specify an IP address for the IPsec interface, as we need no rules on the VTI subnet. We set the routed networks threw this interface to the office subnets
+We need to specify an IP address for the IPsec interface, as we need rules for OSPF. We set the routed networks threw this interface to the office subnets
 
 The pfSense name must match the name used in playbook.
 
@@ -84,7 +84,7 @@ On the office pfSense, we are defining all required networks to access internet,
 
 ## Aliases definition
 
-Now, we will define all the aliases we want:
+Now, we will define all the aliases we need:
 ```
 hosts_aliases:
   lan_fbor:             { ip: 10.20.30.0/24 }
@@ -140,19 +140,19 @@ rules:
     laptop_to_office:       { src: laptop_fbor,     dst: all_office_subnets,  protocol: any }
 ```
 
-All the rules are logged, unless specified othewise.
+All the rules are logged, unless specified otherwise.
 
 ## Result:
 
 ### local
 
-![local_LAN](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_LAN.PNG)
-![local_IPSEC](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_IPSEC.PNG)
+[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_LAN.PNG]]
+[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_IPSEC.PNG]]
 
 ### office
 
-![office_LAN](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_LAN.PNG)
-![office_IPSEC](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_IPSEC.PNG)
+[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_LAN.PNG]]
+[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_IPSEC.PNG]]
 
 ## Files
 
