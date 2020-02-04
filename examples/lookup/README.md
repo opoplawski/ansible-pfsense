@@ -146,13 +146,13 @@ All the rules are logged, unless specified othewise.
 
 ### local
 
-[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_LAN.PNG]]
-[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_IPSEC.PNG]]
+![local_LAN](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_LAN.PNG)
+![local_IPSEC](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/local_IPSEC.PNG)
 
 ### office
 
-[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_LAN.PNG]]
-[[https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_IPSEC.PNG]]
+![office_LAN](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_LAN.PNG)
+![office_IPSEC](https://github.com/opoplawski/ansible-pfsense/blob/master/examples/lookup/images/office_IPSEC.PNG)
 
 ## Files
 
