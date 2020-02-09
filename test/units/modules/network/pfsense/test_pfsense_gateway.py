@@ -26,17 +26,19 @@ class TestPFSenseGatewayModule(TestPFSenseModule):
     def get_args_fields():
         """ return params fields """
         fields = ['descr', 'interface', 'disabled', 'name', 'ipprotocol', 'gateway', 'monitor']
-        fields += ['monitor_disable', 'action_disable', 'force_down', 'weight']
+        fields += ['monitor_disable', 'action_disable', 'force_down', 'weight', 'nonlocalgateway']
         return fields
 
     def check_target_elt(self, params, target_elt):
         """ test the xml definition """
 
-        self.check_param_equal_or_not_find(params, target_elt, 'disabled')
-        self.check_param_equal_or_not_find(params, target_elt, 'monitor_disable')
-        self.check_param_equal_or_not_find(params, target_elt, 'action_disable')
-        self.check_param_equal_or_not_find(params, target_elt, 'force_down')
         self.check_param_equal_or_not_find(params, target_elt, 'monitor')
+
+        self.check_param_equal_or_not_find(params, target_elt, 'disabled', empty=True)
+        self.check_param_equal_or_not_find(params, target_elt, 'monitor_disable', empty=True)
+        self.check_param_equal_or_not_find(params, target_elt, 'action_disable', empty=True)
+        self.check_param_equal_or_not_find(params, target_elt, 'force_down', empty=True)
+        self.check_param_equal_or_not_find(params, target_elt, 'nonlocalgateway', empty=True)
 
         self.check_value_equal(target_elt, 'interface', self.unalias_interface(params['interface']))
         self.check_param_equal(params, target_elt, 'descr')
@@ -94,6 +96,12 @@ class TestPFSenseGatewayModule(TestPFSenseModule):
         obj = dict(name='test_gw', interface='lan_232', gateway='192.168.1.1')
         msg = 'Interface lan_232 not found'
         self.do_module_test(obj, msg=msg, failed=True)
+
+    def test_gateway_create_nonlocal(self):
+        """ test """
+        obj = dict(name='test_gw', interface='lan', gateway='1.2.3.4', nonlocalgateway=True)
+        command = "create gateway 'test_gw', interface='lan', gateway='1.2.3.4', nonlocalgateway=True"
+        self.do_module_test(obj, command=command)
 
     def test_gateway_create_invalid_ip(self):
         """ test """
