@@ -117,3 +117,15 @@ class TestPFSenseRouteModule(TestPFSenseModule):
         obj = dict(descr='GW_WAN alias')
         command = "delete route 'GW_WAN alias'"
         self.do_module_test(obj, command=command, delete=True)
+
+    def test_route_create_dhcp(self):
+        """ test """
+        obj = dict(descr='test_route', network='1.2.3.4/24', gateway='VPN_DHCP')
+        command = "create route 'test_route', network='1.2.3.4/24', gateway='VPN_DHCP'"
+        self.do_module_test(obj, command=command)
+
+    def test_route_create_dhcp6(self):
+        """ test """
+        obj = dict(descr='test_route', network='2001::/56', gateway='VPN_DHCP6')
+        command = "create route 'test_route', network='2001::/56', gateway='VPN_DHCP6'"
+        self.do_module_test(obj, command=command)

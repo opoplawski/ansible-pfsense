@@ -213,6 +213,7 @@ OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_
 
 display = Display()
 
+
 def to_unicode(string):
     """ return a unicode representation of string if required """
     if sys.version_info[0] >= 3:
@@ -315,6 +316,7 @@ def resolve_hostname(address, dns_servers=None):
             msg += ' ({0})'.format(error)
 
     raise AssertionError(msg)
+
 
 def is_valid_ip(address):
     """ validate ip address format """

@@ -54,6 +54,11 @@ def is_ipv6_network(address, strict=True):
     return False
 
 
+def is_ip_network(self, address, strict=True):
+    """ test if address is a valid ip network """
+    return self.is_ipv4_network(address, strict) or self.is_ipv6_network(address, strict)
+
+
 def is_within_local_networks(self, address):
     """ test if address is contained in our local networks """
     networks = self.get_interfaces_networks()
