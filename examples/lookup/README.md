@@ -181,6 +181,16 @@ directory and run:
 ansible-playbook -C -v examples/lookup/setup_all_rules.yml
 ```
 
+You can run the plugin alone to see what is generated for the pfsense_aggregate module:
+```
+python ./lookup_plugins/pfsense.py examples/lookup/pfsense_definitions.yaml pf_paris
+```
+
+You can also add a rule name to just see what is generated for that rule:
+```
+python ./lookup_plugins/pfsense.py examples/lookup/pfsense_definitions.yaml pf_paris ssh_from_fargo
+```
+
 ## TODO
 
 The lookup plugin is still a work-in-progress. The code is quite ugly on some parts and it has a lot of limitations.
