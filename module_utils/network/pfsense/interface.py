@@ -59,7 +59,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
     def _check_overlaps(self, ipfield, netfield):
         """ check new address does not overlaps with one existing """
 
-        if not self.obj.get(ipfield):
+        if not self.obj.get(ipfield) or self.obj.get(netfield) is None:
             return
 
         our_addr = ip_network(u'{0}/{1}'.format(self.obj[ipfield], self.obj[netfield]), strict=False)
@@ -111,6 +111,8 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 self._get_ansible_param(obj, 'ipv4_address', fname='ipaddr')
                 self._get_ansible_param(obj, 'ipv4_prefixlen', fname='subnet')
                 self._get_ansible_param(obj, 'ipv4_gateway', fname='gateway')
+            elif params['ipv4_type'] == 'dhcp':
+                obj['ipaddr'] = 'dhcp'
 
             if params['ipv6_type'] == 'static':
                 self._get_ansible_param(obj, 'ipv6_address', fname='ipaddrv6')
