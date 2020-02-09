@@ -21,6 +21,7 @@ GATEWAY_ARGUMENT_SPEC = dict(
     action_disable=dict(default=False, type='bool'),
     force_down=dict(default=False, type='bool'),
     weight=dict(default=1, required=False, type='int'),
+    nonlocalgateway=dict(default=False, type='bool'),
 )
 
 GATEWAY_REQUIRED_IF = [
@@ -107,6 +108,9 @@ class PFSenseGatewayModule(PFSenseModuleBase):
             self.module.fail_json(msg='Cannot add {0} Gateway Address because no {0} address could be found on the interface.'.format(inet_type))
 
         try:
+            if self.params['nonlocalgateway']:
+                return
+
             addr = ip_address(u'{0}'.format(self.params['gateway']))
             subnet = ip_network(u'{0}/{1}'.format(f1_elt.text, f2_elt.text), strict=False)
             if addr in subnet or _check_vips():
@@ -131,10 +135,11 @@ class PFSenseGatewayModule(PFSenseModuleBase):
             self._get_ansible_param(obj, 'monitor')
             self._get_ansible_param(obj, 'weight')
 
-            self._get_ansible_param_bool(obj, 'disabled')
-            self._get_ansible_param_bool(obj, 'monitor_disable')
-            self._get_ansible_param_bool(obj, 'action_disable')
-            self._get_ansible_param_bool(obj, 'force_down')
+            self._get_ansible_param_bool(obj, 'disabled', value=None)
+            self._get_ansible_param_bool(obj, 'monitor_disable', value=None)
+            self._get_ansible_param_bool(obj, 'action_disable', value=None)
+            self._get_ansible_param_bool(obj, 'force_down', value=None)
+            self._get_ansible_param_bool(obj, 'nonlocalgateway', value=None)
 
             if not self.dynamic:
                 self._check_subnet()
@@ -198,7 +203,7 @@ class PFSenseGatewayModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        return ['disabled', 'monitor', 'monitor_disable', 'action_disable', 'force_down']
+        return ['disabled', 'monitor', 'monitor_disable', 'action_disable', 'force_down', 'nonlocalgateway']
 
     ##############################
     # run
@@ -241,6 +246,7 @@ if ($retval == 0) clear_subsystem_dirty('staticroutes');
             values += self.format_cli_field(self.params, 'action_disable', fvalue=self.fvalue_bool, default=False)
             values += self.format_cli_field(self.params, 'force_down', fvalue=self.fvalue_bool, default=False)
             values += self.format_cli_field(self.obj, 'weight', default='1')
+            values += self.format_cli_field(self.params, 'nonlocalgateway', fvalue=self.fvalue_bool, default=False)
         else:
             fbefore = dict()
             fbefore['interface'] = self.pfsense.get_interface_display_name(before['interface'])
@@ -255,5 +261,6 @@ if ($retval == 0) clear_subsystem_dirty('staticroutes');
             values += self.format_updated_cli_field(self.obj, before, 'action_disable', fvalue=self.fvalue_bool, default=False, add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'force_down', fvalue=self.fvalue_bool, default=False, add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'weight', default='1', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'nonlocalgateway', fvalue=self.fvalue_bool)
 
         return values

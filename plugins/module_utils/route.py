@@ -96,7 +96,7 @@ class PFSenseRouteModule(PFSenseModuleBase):
         params = self.params
 
         if params['state'] == 'present':
-            gw_elt = self.pfsense.find_gateway_elt(params['gateway'])
+            gw_elt = self.pfsense.find_gateway_elt(params['gateway'], dhcp=True)
             if gw_elt is None:
                 self.module.fail_json(msg='The gateway {0} does not exist'.format(params['gateway']))
 
@@ -105,7 +105,7 @@ class PFSenseRouteModule(PFSenseModuleBase):
                 msg = 'The gateway "{0}" is a different Address Family than network "{1}".'.format(gw_elt.find('gateway').text, params['network'])
                 self.module.fail_json(msg=msg)
 
-            if (not self.pfsense.is_ipv4_network(params['network'], False) and self.pfsense.find_alias(params['network'], aliastype='host') is None and
+            if (not self.pfsense.is_ip_network(params['network'], False) and self.pfsense.find_alias(params['network'], aliastype='host') is None and
                     self.pfsense.find_alias(params['network'], aliastype='network') is None):
                 self.module.fail_json(msg='A valid IPv4 or IPv6 destination network or alias must be specified.')
 

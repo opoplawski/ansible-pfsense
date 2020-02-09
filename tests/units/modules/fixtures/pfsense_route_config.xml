@@ -130,8 +130,8 @@
 			<descr>vpn</descr>
 			<enable></enable>
 			<spoofmac></spoofmac>
-			<ipaddr>10.0.0.1</ipaddr>
-			<subnet>24</subnet>
+			<ipaddr>dhcp</ipaddr>
+			<ipaddrv6>dhcp6</ipaddrv6>
 		</opt1>
 		<opt2>
 			<if>vmx3</if>

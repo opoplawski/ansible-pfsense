@@ -1354,6 +1354,15 @@
 			<interval></interval>
 			<descr>Interface lan Gateway</descr>
 		</gateway_item>
+		<gateway_item>
+			<interface>lan</interface>
+			<gateway>2001::1</gateway>
+			<name>GW_LAN6</name>
+			<weight>1</weight>
+			<ipprotocol>inet6</ipprotocol>
+			<interval></interval>
+			<descr>Interface lan Gateway</descr>
+		</gateway_item>
 		<defaultgw4>GW_WAN</defaultgw4>
 	</gateways>
 	<installedpackages>

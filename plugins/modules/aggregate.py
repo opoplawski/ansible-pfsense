@@ -643,7 +643,7 @@ class PFSenseModuleAggregate(object):
                         if interface_elt.tag == 'floatingrules':
                             params['floating'] = True
                         else:
-                            params['interface'] = interface_elt.tag
+                            params['interface'] = self.pfsense.get_interface_display_name(interface_elt.tag)
                         todel.append(params)
 
             for params in todel:

@@ -37,6 +37,7 @@ class PFSenseModule(object):
         is_ipv6_address,
         is_ipv4_network,
         is_ipv6_network,
+        is_ip_network,
         is_within_local_networks,
         parse_address,
         parse_ip_network,
@@ -404,7 +405,7 @@ class PFSenseModule(object):
 
         return None
 
-    def find_gateway_elt(self, name, interface=None, protocol=None):
+    def find_gateway_elt(self, name, interface=None, protocol=None, dhcp=False):
         """ return gateway elt if found """
         for gw_elt in self.gateways:
             if gw_elt.tag != 'gateway_item':
@@ -418,6 +419,32 @@ class PFSenseModule(object):
 
             if gw_elt.find('name').text == name:
                 return gw_elt
+
+        if dhcp:
+            for interface_elt in self.interfaces:
+                descr_elt = interface_elt.find('descr')
+                if descr_elt is None:
+                    continue
+
+                ipaddr_elt = interface_elt.find('ipaddr')
+                if ipaddr_elt is not None and ipaddr_elt.text == 'dhcp':
+                    gw_name = descr_elt.text.strip().upper() + "_DHCP"
+                    if name == gw_name and (protocol is None or protocol == 'inet'):
+                        gw_elt = ET.Element('gateway_item')
+                        protocol_elt = ET.Element('ipprotocol')
+                        protocol_elt.text = 'inet'
+                        gw_elt.append(protocol_elt)
+                        return gw_elt
+
+                ipaddr_elt = interface_elt.find('ipaddrv6')
+                if ipaddr_elt is not None and ipaddr_elt.text == 'dhcp6':
+                    gw_name = descr_elt.text.strip().upper() + "_DHCP6"
+                    if name == gw_name and (protocol is None or protocol == 'inet6'):
+                        gw_elt = ET.Element('gateway_item')
+                        protocol_elt = ET.Element('ipprotocol')
+                        protocol_elt.text = 'inet6'
+                        gw_elt.append(protocol_elt)
+                        return gw_elt
 
         return None
 
