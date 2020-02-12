@@ -640,17 +640,18 @@ class PFSenseHostAlias(object):
         # then we return False so the parent function split the alias
         target_ar_interfaces = None
         target_local_interfaces = None
+
         for alias_ip in self.ips:
             interfaces = pfsense.interfaces_adjacent_or_routed_networks_contains(alias_ip)
             pfsense.hack_internet_routing(interfaces)
-            if not target_ar_interfaces:
+            if target_ar_interfaces is None:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
                 return False
 
             interfaces = pfsense.interfaces_local_networks_contains(alias_ip)
             pfsense.hack_internet_routing(interfaces)
-            if not target_local_interfaces:
+            if target_local_interfaces is None:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
                 return False
@@ -658,14 +659,14 @@ class PFSenseHostAlias(object):
         for alias_net in self.networks:
             interfaces = pfsense.interfaces_adjacent_or_routed_networks_contains(alias_net)
             pfsense.hack_internet_routing(interfaces)
-            if not target_ar_interfaces:
+            if target_ar_interfaces is None:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
                 return False
 
             interfaces = pfsense.interfaces_local_networks_contains(alias_net)
             pfsense.hack_internet_routing(interfaces)
-            if not target_local_interfaces:
+            if target_local_interfaces is None:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
                 return False
@@ -1825,6 +1826,9 @@ class PFSenseRuleFactory(object):
         if len(rule_obj.src) != 1 or len(rule_obj.dst) != 1:
             raise AssertionError()
 
+        if self._data.debug is not None and self._data.debug == rule_obj.name:
+            display.warning('{0}: src={1} dst={2}'.format(rule_obj.name, rule_obj.src[0].name, rule_obj.dst[0].name))
+
         # if the rule uses 'any'
         interfaces = self.rule_interfaces_any(rule_obj)
         if interfaces is not None:
@@ -1905,6 +1909,11 @@ class PFSenseRuleFactory(object):
             # if they are both not local and on the same interfaces or with an unreachable destination
             # we return nothing
             if not dst_is_local:
+
+                # if the source is routed and the destination is adjacent, we return the source interfaces
+                if not src_is_adjacent and rule_obj.dst[0].is_adjacent(self._data.target):
+                    return filter_interfaces(routing_interfaces)
+
                 # if the source is an adjacent networks, it can get out to reach routed networks
                 dst_routing_interfaces = rule_obj.dst[0].routed_by_interfaces(self._data.target, src_is_adjacent)
                 if self._data.debug is not None and self._data.debug == rule_obj.name:
@@ -2157,23 +2166,35 @@ class PFSenseRuleSeparatorFactory(object):
 class LookupModule(LookupBase):
     """ Lookup module generating pfsense definitions """
 
+    def get_hostname(self):
+        """ Just for easier mock """
+        myvars = getattr(self._templar, '_available_variables', {})
+        return myvars['inventory_hostname']
+
     def load_data(self, from_file):
         """ Load and return pfsense data """
-        myvars = getattr(self._templar, '_available_variables', {})
-        current_host = myvars['inventory_hostname']
-
         fvars = ordered_load(open(from_file), yaml.SafeLoader)
+        if fvars is None:
+            raise AnsibleError("No usable data found in {0}".format(from_file))
+
+        for section in ['hosts_aliases', 'ports_aliases', 'pfsenses', 'rules']:
+            if section not in fvars:
+                raise AnsibleError("Missing {0} section in {1}".format(section, from_file))
+
         data = PFSenseData(
             hosts_aliases=fvars['hosts_aliases'],
             ports_aliases=fvars['ports_aliases'],
             pfsenses=fvars['pfsenses'],
             rules=fvars['rules'],
-            target_name=current_host
+            target_name=self.get_hostname()
         )
         return data
 
     def run(self, terms, variables, **kwargs):
         """ Main function """
+        if len(terms) != 2:
+            raise AnsibleError("pfsense lookup requires a filename and another parameter in [aliases, rules, rule_separators, all_definitions]")
+
         data = self.load_data(terms[0])
 
         parser = PFSenseDataParser(data)
