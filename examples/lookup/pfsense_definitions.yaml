@@ -7,16 +7,16 @@
 pfsenses:
   pf_fargo: {
     interfaces: {
-      WAN:                { routed_networks: internet },
+      WAN:                { remote_networks: internet },
       LAN:                { ip: 10.100.200.101/24 },
       SERVERS:            { ip: 192.168.1.101/24 },
-      IPsec:              { ip: 10.9.8.2/30, routed_networks: paris_lan },
+      IPsec:              { ip: 10.9.8.2/30, remote_networks: paris_lan },
       }
     }
   pf_paris: {
     interfaces: {
-      LAN:                { ip: 10.20.30.101/24, routed_networks: internet },
-      IPsec:              { ip: 10.9.8.1/30, routed_networks: all_fargo_subnets },
+      LAN:                { ip: 10.20.30.101/24, remote_networks: internet },
+      IPsec:              { ip: 10.9.8.1/30, remote_networks: all_fargo_subnets },
       }
     }
 
@@ -50,7 +50,6 @@ rules:
     ssh_from_server:        { src: paris_server,    dst: all_fargo_subnets,   protocol: tcp,      dst_port: ssh_port }
     dns_from_server:        { src: paris_server,    dst: fargo_ads,           protocol: tcp/udp,  dst_port: dns_port }
     laptop_to_fargo:        { src: paris_laptop,    dst: all_fargo_subnets,   protocol: any }
-
 
 
 #########################################################################################################################################

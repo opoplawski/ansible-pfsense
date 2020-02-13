@@ -4,4 +4,4 @@ misc/local2ansible
 if [ ! -f .coveragerc ]; then
     cp -f misc/.coveragerc .
 fi
-python3 -m pytest -v -r a test/units/modules/network/pfsense/ --cov --cov-report html $*
+python3 -m pytest -v -r a test/units/modules/network/pfsense/ test/units/plugins/lookup/test_pfsense.py --cov --cov-report html $*

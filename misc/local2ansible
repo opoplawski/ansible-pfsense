@@ -17,6 +17,10 @@ else
     mkdir -p ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures
     cp test/units/modules/network/pfsense/*.py ${ANSIBLE_HOME}/test/units/modules/network/pfsense/
     cp test/units/modules/network/pfsense/fixtures/*.xml ${ANSIBLE_HOME}/test/units/modules/network/pfsense/fixtures/
+
+    cp test/units/plugins/lookup/*.py ${ANSIBLE_HOME}/test/units/plugins/lookup/
+    # cp test/units/plugins/lookup/fixtures/*.yaml ${ANSIBLE_HOME}/test/units/plugins/lookup/fixtures/
+
 fi
 
 

@@ -68,6 +68,12 @@ options:
     description: Weight for this gateway when used in a Gateway Group. Must be between 1 and 30.
     default: 1
     type: int
+  nonlocalgateway:
+    description:
+      - This will allow use of a gateway outside of this interface's subnet.
+      - This is usually indicative of a configuration error, but is required for some scenarios.
+    default: false
+    type: bool
   state:
     description: State in which to leave the gateway
     choices: [ "present", "absent" ]

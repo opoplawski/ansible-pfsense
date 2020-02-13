@@ -57,16 +57,16 @@ First, we will define our pfsenses:
 pfsenses:
   pf_fargo: {
     interfaces: {
-      WAN:                { routed_networks: internet },
+      WAN:                { remote_networks: internet },
       LAN:                { ip: 10.100.200.101/24 },
       SERVERS:            { ip: 192.168.1.101/24 },
-      IPsec:              { ip: 10.9.8.2/30, routed_networks: paris_lan },
+      IPsec:              { ip: 10.9.8.2/30, remote_networks: paris_lan },
       }
     }
   pf_paris: {
     interfaces: {
-      LAN:                { ip: 10.20.30.101/24, routed_networks: internet },
-      IPsec:              { ip: 10.9.8.1/30, routed_networks: all_fargo_subnets },
+      LAN:                { ip: 10.20.30.101/24, remote_networks: internet },
+      IPsec:              { ip: 10.9.8.1/30, remote_networks: all_fargo_subnets },
       }
     }
 ```
@@ -75,7 +75,7 @@ pfsenses:
 
 On the Fargo pfSense, we are defining all networks used to access internet, the station, the servers and for the remote ipsec.
 
-We need to specify an IP address for the IPsec interface, as we need rules for OSPF, otherwise we could have set without an ip address. We set the routed networks threw this interface to the Paris subnet
+We need to specify an IP address for the IPsec interface, as we need rules for OSPF. We set the routed networks threw this interface to the Paris subnet
 
 The pfSense name must match the name used in playbook.
 
