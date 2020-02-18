@@ -15,7 +15,7 @@ ansible-galaxy collection install pfsensible.core
 Optionally, you can specify the path of the collection installation with the `-p` option.
 
 ```
-ansible-galaxy collection install opoplawski.pfsense -p ./collections
+ansible-galaxy collection install pfsensible.core -p ./collections
 ```
 
 Additionally, you can set the `collections_paths` option in your `ansible.cfg` file to automatically designate install locations.
