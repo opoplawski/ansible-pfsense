@@ -534,7 +534,9 @@ class PFSenseModuleAggregate(object):
                     params = {}
                     params['state'] = 'absent'
                     params['name'] = rule_elt.find('descr').text
-                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text)
+                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text, return_none=True)
+                    if params['interface'] is None:
+                        continue
                     if rule_elt.find('floating') is not None:
                         params['floating'] = True
                     todel.append(params)
@@ -643,7 +645,9 @@ class PFSenseModuleAggregate(object):
                         if interface_elt.tag == 'floatingrules':
                             params['floating'] = True
                         else:
-                            params['interface'] = self.pfsense.get_interface_display_name(interface_elt.tag)
+                            params['interface'] = self.pfsense.get_interface_display_name(interface_elt.tag, return_none=True)
+                            if params['interface'] is None:
+                                continue
                         todel.append(params)
 
             for params in todel:

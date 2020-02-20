@@ -25,7 +25,7 @@ def get_interface_by_port(self, name):
     return None
 
 
-def get_interface_display_name(self, interface_id):
+def get_interface_display_name(self, interface_id, return_none=False):
     """ return interface display name if found, otherwhise return the interface_id """
     if interface_id == 'enc0':
         return 'IPsec'
@@ -39,6 +39,8 @@ def get_interface_display_name(self, interface_id):
                 return descr_elt.text.strip()
             break
 
+    if return_none:
+        return None
     return interface_id
 
 
