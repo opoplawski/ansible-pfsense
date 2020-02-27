@@ -247,45 +247,83 @@ def static_vars(**kwargs):
     return decorate
 
 
+@static_vars(res_cache=dict())
+def to_ip_address(address):
+    """ convert address to IPv4Address or IPv6Address """
+    res = to_ip_address.res_cache.get(address)
+    if res is None:
+        res = ipaddress.ip_address(to_unicode(address))
+        to_ip_address.res_cache[address] = res
+    return res
+
+
+@static_vars(res_cache=dict())
+def to_ip_network(address, strict=True):
+    """ convert address to IPv4Network or IPv6Network """
+    key = address + str(strict)
+    res = to_ip_network.res_cache.get(key)
+    if res is None:
+        res = ipaddress.ip_network(to_unicode(address), strict=strict)
+        to_ip_network.res_cache[key] = res
+    return res
+
+
 @static_vars(
     classA=ipaddress.IPv4Network((u"10.0.0.0", u"255.0.0.0")),
     classB=ipaddress.IPv4Network((u"172.16.0.0", u"255.240.0.0")),
-    classC=ipaddress.IPv4Network((u"192.168.0.0", u"255.255.0.0")))
+    classC=ipaddress.IPv4Network((u"192.168.0.0", u"255.255.0.0")),
+    res_cache=dict())
 def is_private_ip(address):
     """ check if ip address is class A, B or C """
-    if not isinstance(address, ipaddress.IPv4Address):
-        ip_address = ipaddress.ip_address(to_unicode(address))
-    else:
-        ip_address = address
-    return ip_address in is_private_ip.classA or ip_address in is_private_ip.classB or ip_address in is_private_ip.classC
+    res = is_private_ip.res_cache.get(address)
+    if res is None:
+        if not isinstance(address, ipaddress.IPv4Address):
+            ip_address = to_ip_address(to_unicode(address))
+        else:
+            ip_address = address
+        res = ip_address in is_private_ip.classA or ip_address in is_private_ip.classB or ip_address in is_private_ip.classC
+        is_private_ip.res_cache[address] = res
+    return res
 
 
 @static_vars(
     classA=ipaddress.IPv4Network((u"10.0.0.0", u"255.0.0.0")),
     classB=ipaddress.IPv4Network((u"172.16.0.0", u"255.240.0.0")),
-    classC=ipaddress.IPv4Network((u"192.168.0.0", u"255.255.0.0")))
+    classC=ipaddress.IPv4Network((u"192.168.0.0", u"255.255.0.0")),
+    res_cache=dict())
 def is_private_network(address):
     """ check if network is class A, B or C """
-    if not isinstance(address, ipaddress.IPv4Network):
-        net = ipaddress.ip_network(to_unicode(address))
-    else:
-        net = address
-    return net.subnet_of(is_private_network.classA) or net.subnet_of(is_private_network.classB) or net.subnet_of(is_private_network.classC)
+    res = is_private_network.res_cache.get(address)
+    if res is None:
+        if not isinstance(address, ipaddress.IPv4Network):
+            net = to_ip_network(to_unicode(address))
+        else:
+            net = address
+        res = net.subnet_of(is_private_network.classA) or net.subnet_of(is_private_network.classB) or net.subnet_of(is_private_network.classC)
+        is_private_network.res_cache[address] = res
+    return res
 
 
-@static_vars(ip_broadcast=ipaddress.IPv4Address((u"255.255.255.255")))
+@static_vars(ip_broadcast=ipaddress.IPv4Address((u"255.255.255.255")), res_cache=dict())
 def is_ip_broadcast(address):
     """ check if ip address is ip broadcast address """
-    if not isinstance(address, ipaddress.IPv4Address):
-        ip_address = ipaddress.ip_address(to_unicode(address))
-    else:
-        ip_address = address
-    return ip_address == is_ip_broadcast.ip_broadcast
+    res = is_ip_broadcast.res_cache.get(address)
+    if res is None:
+        if not isinstance(address, ipaddress.IPv4Address):
+            ip_address = to_ip_address(to_unicode(address))
+        else:
+            ip_address = address
+        res = ip_address == is_ip_broadcast.ip_broadcast
+        is_ip_broadcast.res_cache[address] = res
+    return res
 
 
+@static_vars(re_cache=None)
 def is_fqdn(address):
     """ check if address is a fqdn address """
-    return re.match(r'(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)', address) is not None
+    if is_fqdn.re_cache is None:
+        is_fqdn.re_cache = re.compile(r'(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)')
+    return is_fqdn.re_cache.match(address) is not None
 
 
 def resolve_hostname(address, dns_servers=None):
@@ -321,7 +359,7 @@ def resolve_hostname(address, dns_servers=None):
 def is_valid_ip(address):
     """ validate ip address format """
     try:
-        ipaddress.ip_address(to_unicode(address))
+        to_ip_address(to_unicode(address))
         return True
     except ValueError:
         return False
@@ -351,7 +389,7 @@ def is_valid_port_range(port_range):
 def is_valid_network(address):
     """ validate network address format """
     try:
-        ipaddress.ip_network(to_unicode(address))
+        to_ip_network(to_unicode(address))
         return True
     except ValueError:
         return False
@@ -446,7 +484,7 @@ class PFSenseHostAlias(object):
 
             # it's an ip address
             try:
-                host_ip = ipaddress.ip_address(to_unicode(address))
+                host_ip = to_ip_address(to_unicode(address))
                 self.ips.append(host_ip)
                 continue
             except ValueError:
@@ -454,7 +492,7 @@ class PFSenseHostAlias(object):
 
             # it's an ip network
             try:
-                net = ipaddress.ip_network(to_unicode(address))
+                net = to_ip_network(to_unicode(address))
                 self.networks.append(net)
                 continue
             except ValueError:
@@ -464,7 +502,7 @@ class PFSenseHostAlias(object):
             if address not in data.all_aliases:
                 if is_fqdn(address):
                     resolved_ip = resolve_hostname(address, self.dns)
-                    host_ip = ipaddress.ip_address(to_unicode(resolved_ip))
+                    host_ip = to_ip_address(to_unicode(resolved_ip))
                     self.ips.append(host_ip)
                     continue
 
@@ -605,35 +643,51 @@ class PFSenseHostAlias(object):
 
     def is_whole_in_pfsense(self, pfsense):
         """ check if all ips/networks have as least one interface in pfense """
+        if self.name in pfsense.is_whole_in_pfsense_cache:
+            return pfsense.is_whole_in_pfsense_cache[self.name]
+
         for alias_ip in self.ips:
             if is_ip_broadcast(alias_ip):
+                pfsense.is_whole_in_pfsense_cache[self.name] = False
                 return False
 
             if not pfsense.any_network_contains(alias_ip):
+                pfsense.is_whole_in_pfsense_cache[self.name] = False
                 return False
 
         for alias_net in self.networks:
             if not pfsense.any_network_contains(alias_net):
+                pfsense.is_whole_in_pfsense_cache[self.name] = False
                 return False
 
+        pfsense.is_whole_in_pfsense_cache[self.name] = True
         return True
 
     def is_whole_not_in_pfsense(self, pfsense):
         """ check if all ips/networks have as least one interface in pfense """
+        if self.name in pfsense.is_whole_not_in_pfsense_cache:
+            return pfsense.is_whole_not_in_pfsense_cache[self.name]
+
         for alias_ip in self.ips:
             if is_ip_broadcast(alias_ip):
+                pfsense.is_whole_not_in_pfsense_cache[self.name] = False
                 return False
             if pfsense.any_network_contains(alias_ip):
+                pfsense.is_whole_not_in_pfsense_cache[self.name] = False
                 return False
 
         for alias_net in self.networks:
             if pfsense.any_network_contains(alias_net):
+                pfsense.is_whole_not_in_pfsense_cache[self.name] = False
                 return False
 
+        pfsense.is_whole_not_in_pfsense_cache[self.name] = True
         return True
 
     def is_whole_in_same_routing_ifaces(self, pfsense):
         """ check if all ips/networks have the same interfaces in pfense """
+        if self.name in pfsense.is_whole_in_same_routing_ifaces_cache:
+            return pfsense.is_whole_in_same_routing_ifaces_cache[self.name]
 
         # we loop threw all ips/networks in the alias
         # if there is any difference in the interfaces where the address need to be defined
@@ -647,6 +701,7 @@ class PFSenseHostAlias(object):
             if target_ar_interfaces is None:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
+                pfsense.is_whole_in_same_routing_ifaces_cache[self.name] = False
                 return False
 
             interfaces = pfsense.interfaces_local_networks_contains(alias_ip)
@@ -654,6 +709,7 @@ class PFSenseHostAlias(object):
             if target_local_interfaces is None:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
+                pfsense.is_whole_in_same_routing_ifaces_cache[self.name] = False
                 return False
 
         for alias_net in self.networks:
@@ -662,6 +718,7 @@ class PFSenseHostAlias(object):
             if target_ar_interfaces is None:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
+                pfsense.is_whole_in_same_routing_ifaces_cache[self.name] = False
                 return False
 
             interfaces = pfsense.interfaces_local_networks_contains(alias_net)
@@ -669,8 +726,10 @@ class PFSenseHostAlias(object):
             if target_local_interfaces is None:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
+                pfsense.is_whole_in_same_routing_ifaces_cache[self.name] = False
                 return False
 
+        pfsense.is_whole_in_same_routing_ifaces_cache[self.name] = True
         return True
 
     def match_local_interface_ip(self, pfsense):
@@ -768,6 +827,8 @@ class PFSenseInterface(object):
         self.remote_networks = set()
         self.adjacent_networks = set()
         self.bridge = False
+        self._remote_networks_contains_cache = dict()
+        self._adjacent_networks_contains_cache = dict()
 
     @staticmethod
     def _networks_contains(address, networks):
@@ -792,11 +853,19 @@ class PFSenseInterface(object):
 
     def remote_networks_contains(self, address):
         """ return true if address is defined in remote_networks of this interface """
-        return self._networks_contains(address, self.remote_networks)
+        res = self._remote_networks_contains_cache.get(address)
+        if res is None:
+            res = self._networks_contains(address, self.remote_networks)
+            self._remote_networks_contains_cache[address] = res
+        return res
 
     def adjacent_networks_contains(self, address):
         """ return true if address is defined in adjacent_networks of this interface """
-        return self._networks_contains(address, self.adjacent_networks)
+        res = self._adjacent_networks_contains_cache.get(address)
+        if res is None:
+            res = self._networks_contains(address, self.adjacent_networks)
+            self._adjacent_networks_contains_cache[address] = res
+        return res
 
     def local_network_contains(self, address):
         """ return true if address is in the local network of this interface """
@@ -824,6 +893,12 @@ class PFSense(object):
     def __init__(self, name, interfaces):
         self.name = name
         self.interfaces = interfaces
+        self.is_whole_in_pfsense_cache = dict()
+        self.is_whole_not_in_pfsense_cache = dict()
+        self.is_whole_in_same_routing_ifaces_cache = dict()
+        self._interfaces_local_networks_contains_cache = dict()
+        self._interfaces_remote_networks_contains_cache = dict()
+        self._interfaces_adjacent_networks_contains_cache = dict()
 
     def any_adjacent_networks_contains(self, address):
         """ return true if address is defined in adjacent_networks of any interface """
@@ -874,15 +949,27 @@ class PFSense(object):
 
     def interfaces_local_networks_contains(self, address):
         """ return interfaces names where address is in the interface local network  """
-        return self._interfaces_network_contains(address, 'local_networks')
+        res = self._interfaces_local_networks_contains_cache.get(address)
+        if res is None:
+            res = self._interfaces_network_contains(address, 'local_networks')
+            self._interfaces_local_networks_contains_cache[address] = res
+        return res
 
     def interfaces_remote_networks_contains(self, address):
         """ return interfaces names where address is in the interface remote networks  """
-        return self._interfaces_network_contains(address, 'remote_networks')
+        res = self._interfaces_remote_networks_contains_cache.get(address)
+        if res is None:
+            res = self._interfaces_network_contains(address, 'remote_networks')
+            self._interfaces_remote_networks_contains_cache[address] = res
+        return res
 
     def interfaces_adjacent_networks_contains(self, address):
         """ return interfaces names where address is in the interface adjacent networks  """
-        return self._interfaces_network_contains(address, 'adjacent_networks')
+        res = self._interfaces_adjacent_networks_contains_cache.get(address)
+        if res is None:
+            res = self._interfaces_network_contains(address, 'adjacent_networks')
+            self._interfaces_adjacent_networks_contains_cache[address] = res
+        return res
 
     def interfaces_adjacent_or_remote_networks_contains(self, address):
         """ return interfaces names where address are in the interface local or remote networks """
@@ -1384,7 +1471,7 @@ class PFSenseDataParser(object):
             if 'ip' in interface:
                 for ip in interface['ip'].split(' '):
                     try:
-                        local_network = ipaddress.ip_network(to_unicode(ip), False)
+                        local_network = to_ip_network(to_unicode(ip), False)
                     except ValueError:
                         self._data.set_error("Invalid network " + ip + " in " + name)
                         ret = {}
@@ -1398,7 +1485,7 @@ class PFSenseDataParser(object):
                     # extracting & checking ip
                     group = re.match(r'([^\/]*)\/(\d+)', ip)
                     try:
-                        local_ip = ipaddress.ip_address(to_unicode(group.group(1)))
+                        local_ip = to_ip_address(to_unicode(group.group(1)))
                     except ValueError:
                         self._data.set_error("Invalid ip " + ip + " in " + name)
                         ret = {}
@@ -1412,7 +1499,7 @@ class PFSenseDataParser(object):
                 networks = self._data.unalias_ip(interface['remote_networks'])
                 for network in networks:
                     try:
-                        remote_networks.add(ipaddress.ip_network(to_unicode(network)))
+                        remote_networks.add(to_ip_network(to_unicode(network)))
                     except ValueError:
                         self._data.set_error("Invalid network " + network + " in remote_networks of " + name)
                         return {}
@@ -1423,7 +1510,7 @@ class PFSenseDataParser(object):
                 networks = self._data.unalias_ip(interface['adjacent_networks'])
                 for network in networks:
                     try:
-                        adjacent_networks.add(ipaddress.ip_network(to_unicode(network)))
+                        adjacent_networks.add(to_ip_network(to_unicode(network)))
                     except ValueError:
                         self._data.set_error("Invalid network " + network + " in adjacent_networks of " + name)
                         return {}
@@ -1678,6 +1765,9 @@ class PFSenseAliasFactory(object):
             definition['state'] = 'present'
             if 'descr' in alias:
                 definition['descr'] = alias['descr']
+            else:
+                definition['descr'] = ''
+            definition['detail'] = ''
             ret.append(definition)
 
         for name, alias in ports_aliases.items():
@@ -1688,6 +1778,9 @@ class PFSenseAliasFactory(object):
             definition['state'] = 'present'
             if 'descr' in alias:
                 definition['descr'] = alias['descr']
+            else:
+                definition['descr'] = ''
+            definition['detail'] = ''
             ret.append(definition)
 
         return ret
