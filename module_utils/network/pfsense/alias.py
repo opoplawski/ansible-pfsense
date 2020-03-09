@@ -77,7 +77,7 @@ class PFSenseAliasModule(PFSenseModuleBase):
             if self.pfsense.get_interface_by_display_name(params['name']) is not None:
                 self.module.fail_json(msg='An interface description with this name already exists: \'{0}\''.format(params['name']))
 
-            missings = ['type', 'address']
+            missings = ['type']
             for param, value in params.items():
                 if param in missings and value is not None and value != '':
                     missings.remove(param)
