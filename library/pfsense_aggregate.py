@@ -521,6 +521,7 @@ class PFSenseModuleAggregate(object):
 
     def run_rules(self):
         """ process input params to add/update/delete all rules """
+
         want = self.module.params['aggregated_rules']
 
         if want is None:
@@ -534,11 +535,24 @@ class PFSenseModuleAggregate(object):
                     params = {}
                     params['state'] = 'absent'
                     params['name'] = rule_elt.find('descr').text
-                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text, return_none=True)
-                    if params['interface'] is None:
-                        continue
+
                     if rule_elt.find('floating') is not None:
                         params['floating'] = True
+                        interfaces = rule_elt.find('interface').text.split(',')
+                        params['interface'] = list()
+                        for interface in interfaces:
+                            target = self.pfsense.get_interface_display_name(interface, return_none=True)
+                            if target is not None:
+                                params['interface'].append(target)
+                            else:
+                                params['interface'].append(interface)
+                        params['interface'] = ','.join(params['interface'])
+                    else:
+                        params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text, return_none=True)
+
+                    if params['interface'] is None:
+                        continue
+
                     todel.append(params)
 
             for params in todel:
