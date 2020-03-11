@@ -122,7 +122,7 @@ class TestPFSenseLookup(ModuleTestCase):
     @staticmethod
     def add_missing_fields(expected_rule):
         """ add missing generated field with default values """
-        for param in ['ackqueue', 'gateway', 'icmptype', 'in_queue', 'out_queue', 'queue', 'log']:
+        for param in ['ackqueue', 'gateway', 'icmptype', 'in_queue', 'out_queue', 'queue', 'log', 'sched']:
             if param not in expected_rule:
                 expected_rule[param] = None
 

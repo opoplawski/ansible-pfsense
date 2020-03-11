@@ -35,7 +35,8 @@ RULE_ARGUMENT_SPEC = dict(
     out_queue=dict(required=False, type='str'),
     gateway=dict(default='default', type='str'),
     tracker=dict(required=False, type='int'),
-    icmptype=dict(default='any', required=False, type='str')
+    icmptype=dict(default='any', required=False, type='str'),
+    sched=dict(required=False, type='str'),
 )
 
 RULE_REQUIRED_IF = [
@@ -126,6 +127,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
             self._get_ansible_param(obj, 'associated-rule-id')
             self._get_ansible_param(obj, 'tracker')
             self._get_ansible_param(obj, 'gateway', exclude='default')
+            self._get_ansible_param(obj, 'sched')
 
             self._get_ansible_param_bool(obj, 'disabled', value='')
             self._get_ansible_param_bool(obj, 'log', value='')
@@ -198,6 +200,10 @@ class PFSenseRuleModule(PFSenseModuleBase):
         # tracker
         if params.get('tracker') is not None and params['tracker'] <= 0:
             self.module.fail_json(msg='tracker {0} must be a positive integer'.format(params['tracker']))
+
+        # sched
+        if params.get('sched') is not None and self.pfsense.find_schedule_elt(params['sched']) is None:
+            self.module.fail_json(msg='Schedule {0} does not exist'.format(params['sched']))
 
         # ICMP
         if params.get('protocol') == 'icmp' and params.get('icmptype') is not None:
@@ -427,7 +433,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype']
+        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype', 'sched']
 
     def _get_rule_position(self, descr=None, fail=True):
         """ get rule position in interface/floating """
@@ -535,6 +541,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_cli_field(self.params, 'out_queue')
             values += self.format_cli_field(self.params, 'gateway', default='default')
             values += self.format_cli_field(self.params, 'tracker')
+            values += self.format_cli_field(self.params, 'sched')
         else:
             fbefore = self._obj_to_log_fields(before)
             fafter = self._obj_to_log_fields(self.obj)
@@ -564,6 +571,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_updated_cli_field(self.obj, before, 'pdnpipe', fname='out_queue', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'tracker', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'sched', add_comma=(values))
         return values
 
     @staticmethod

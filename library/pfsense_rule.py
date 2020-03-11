@@ -127,6 +127,10 @@ options:
       - timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
     default: any
     type: str
+  sched:
+    description: Schedule day/time when the rule must be active
+    required: False
+    type: str
 """
 
 EXAMPLES = """

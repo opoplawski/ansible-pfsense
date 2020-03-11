@@ -74,7 +74,7 @@ names in the form 'GROUP1 - GROUP2 - ...'
 
 You can define a default value for all rules and subrules of a separator using
 the name 'options'. The parameters supported this way are gateway, log, queue, ackqueue,
-in_queue and out_queue. You can override those default values setting other values
+in_queue, out_queue and sched. You can override those default values setting other values
 on a deeper options set or inside the rule definition.
 
 You can use an extra parameter in rules and options, filter, to restrict the rule
@@ -208,8 +208,8 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
-OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter']
-OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype']
+OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter', 'sched']
+OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'sched']
 
 display = Display()
 
@@ -1604,8 +1604,14 @@ class PFSenseRuleDecomposer(object):
         host is expanded to sub-aliases if required """
         ret = []
         if host.is_whole_not_in_pfsense(self._data.target):
+            if self._data.debug is not None and self._data.debug == host.name:
+                display.warning('{0}: is_whole_not_in_pfsense {1}'.format(host.name, self._data.target.name))
+
             ret.append(host)
         elif host.is_whole_in_pfsense(self._data.target):
+            if self._data.debug is not None and self._data.debug == host.name:
+                display.warning('{0}: is_whole_in_pfsense {1}'.format(host.name, self._data.target.name))
+
             ret.append(host)
         elif host.is_ip_broadcast():
             ret.append(host)
@@ -1614,6 +1620,8 @@ class PFSenseRuleDecomposer(object):
             if 'ip' in alias:
                 for alias_ip in alias['ip'].split(' '):
                     ret_n = self.host_separate(self._data.hosts_aliases_obj[alias_ip])
+                    if self._data.debug is not None and self._data.debug == host.name:
+                        display.warning('{0}: host_separate: {1}'.format(host.name, ret_n))
                     ret.extend(ret_n)
 
         return ret
@@ -1624,12 +1632,16 @@ class PFSenseRuleDecomposer(object):
         host is expanded to sub-aliases if required """
         ret = []
         if host.is_whole_in_same_routing_ifaces(self._data.target):
+            if self._data.debug is not None and self._data.debug == host.name:
+                display.warning('{0}: is_whole_in_same_routing_ifaces {1}'.format(host.name, self._data.target.name))
             ret.append(host)
         else:
             alias = self._data.all_aliases[host.name]
             if 'ip' in alias:
                 for alias_ip in alias['ip'].split(' '):
                     ret_n = self.host_separate_by_iface(self._data.hosts_aliases_obj[alias_ip])
+                    if self._data.debug is not None and self._data.debug == host.name:
+                        display.warning('{0}: host_separate_by_iface: {1}'.format(host.name, ret_n))
                     ret.extend(ret_n)
 
         return ret

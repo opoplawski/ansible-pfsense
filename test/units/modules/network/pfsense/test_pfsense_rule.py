@@ -29,7 +29,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         """ return params fields """
         fields = ['name', 'source', 'source_port', 'destination', 'destination_port', 'descr', 'interface', 'action', 'tracker', 'icmptype']
         fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway']
-        fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue']
+        fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'sched']
         return fields
 
     @staticmethod
@@ -130,6 +130,9 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         # limiters
         self.check_param_equal_or_not_find(obj, target_elt, 'in_queue', 'dnpipe')
         self.check_param_equal_or_not_find(obj, target_elt, 'out_queue', 'pdnpipe')
+
+        # schedule
+        self.check_param_equal_or_not_find(obj, target_elt, 'sched')
 
         # checking ipprotocol option
         if 'ipprotocol' in obj:

@@ -321,3 +321,15 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         obj = dict(name='test_rule_3', source='any', destination='any', destination_port='port_ssh', interface='wan', protocol='tcp')
         command = "update rule 'test_rule_3' on 'wan' set destination_port='port_ssh'"
         self.do_module_test(obj, command=command)
+
+    def test_rule_update_schedule(self):
+        """ test updating scheduling of a rule """
+        obj = dict(name='test_rule', source='any', destination='any', interface='wan', action='pass', protocol='tcp', sched='workdays')
+        command = "update rule 'test_rule' on 'wan' set sched='workdays'"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_update_remove_schedule(self):
+        """ test updating scheduling of a rule """
+        obj = dict(name='test_rule_sched', source='any', destination='any', interface='lan_100', action='pass', protocol='tcp')
+        command = "update rule 'test_rule_sched' on 'lan_100' set sched=none"
+        self.do_module_test(obj, command=command)

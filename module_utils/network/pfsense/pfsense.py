@@ -61,6 +61,7 @@ class PFSenseModule(object):
         self.ipsec = self.get_element('ipsec')
         self.openvpn = self.get_element('openvpn')
         self.virtualip = None
+        self.schedules = self.get_element('schedules')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -336,6 +337,7 @@ class PFSenseModule(object):
         """ return True if addr is a virtual ip """
         if self.virtualip is None:
             self.virtualip = self.get_element('virtualip')
+
         if self.virtualip is None:
             return False
 
@@ -494,6 +496,15 @@ class PFSenseModule(object):
     def find_crl_elt(self, descr, search_field='descr'):
         """ return certificate revocation list elt if found """
         return self.find_certobj_elt(descr, 'crl', search_field)
+
+    def find_schedule_elt(self, name):
+        """ return schedule elt if found """
+        if self.schedules is not None:
+            for schedule_elt in self.schedules:
+                if schedule_elt.find('name').text == name:
+                    return schedule_elt
+
+        return None
 
     @staticmethod
     def uniqid(prefix='', more_entropy=False):

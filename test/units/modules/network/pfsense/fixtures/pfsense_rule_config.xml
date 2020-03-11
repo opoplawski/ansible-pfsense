@@ -293,6 +293,31 @@
 				<time>1545574416</time>
 			</updated>
 			<protocol>tcp</protocol>
+			<descr>test_rule_sched</descr>
+			<created>
+				<username></username>
+				<time>1545574416</time>
+			</created>
+			<destination>
+				<any></any>
+			</destination>
+			<statetype>keep state</statetype>
+			<source>
+				<any></any>
+			</source>
+			<tracker>1545574419</tracker>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<type>pass</type>
+			<sched>workdays</sched>
+			<id></id>
+		</rule>
+		<rule>
+			<updated>
+				<username></username>
+				<time>1545574416</time>
+			</updated>
+			<protocol>tcp</protocol>
 			<log></log>
 			<descr>test_rule_2</descr>
 			<created>
@@ -2269,4 +2294,16 @@
 			<vlanif>vmx1.1100</vlanif>
 		</vlan>
 	</vlans>
+	<schedules>
+                <schedule>
+                        <name>workdays</name>
+                        <descr></descr>
+                        <timerange>
+                                <position>1,2,3,4,5</position>
+                                <hour>7:30-18:30</hour>
+                                <rangedescr>workdays</rangedescr>
+                        </timerange>
+                        <schedlabel>5e5e0fd3ddb8d</schedlabel>
+                </schedule>
+        </schedules>
 </pfsense>

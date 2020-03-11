@@ -581,3 +581,15 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', tracker='-1234')
         msg = 'tracker -1234 must be a positive integer'
         self.do_module_test(obj, failed=True, msg=msg)
+
+    def test_rule_create_schedule(self):
+        """ test creation of a new rule with schedule """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', sched='workdays')
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', sched='workdays'"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_create_schedule_invalid(self):
+        """ test creation of a new rule with invalid schedule """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', sched='acme')
+        msg = 'Schedule acme does not exist'
+        self.do_module_test(obj, failed=True, msg=msg)

@@ -248,6 +248,10 @@ options:
           - timerep, timereq, timex, toobig, trace, unreach, wrurep, wrureq
         default: any
         type: str
+      sched:
+        description: Schedule day/time when the rule must be active
+        required: False
+        type: str
   aggregated_rule_separators:
     description: Dict of rule separators to apply on the target
     required: False

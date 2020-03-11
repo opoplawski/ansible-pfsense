@@ -153,3 +153,8 @@ class TestPFSenseRuleNoopModule(TestPFSenseRuleModule):
         """ test updating tracker of a rule """
         obj = dict(name='test_lan_100_5', source='any', destination='any', interface='lan_100', in_queue='one_limiter', protocol='tcp', tracker=1545574416)
         self.do_module_test(obj, changed=False)
+
+    def test_rule_noop_schedule(self):
+        """ test updating scheduling of a rule """
+        obj = dict(name='test_rule_sched', source='any', destination='any', interface='lan_100', action='pass', protocol='tcp', sched='workdays')
+        self.do_module_test(obj, changed=False)
