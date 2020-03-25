@@ -30,7 +30,7 @@ options:
   action:
     description: The action of the rule
     default: pass
-    choices: [ "pass", "block", "reject" ]
+    choices: [ "pass", "block", "match", "reject" ]
     type: str
   state:
     description: State in which to leave the rule

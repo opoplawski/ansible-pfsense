@@ -13,7 +13,7 @@ from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 RULE_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
-    action=dict(default='pass', choices=['pass', 'block', 'reject']),
+    action=dict(default='pass', choices=['pass', 'block', 'match', 'reject']),
     state=dict(default='present', choices=['present', 'absent']),
     disabled=dict(default=False, required=False, type='bool'),
     interface=dict(required=True, type='str'),
