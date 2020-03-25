@@ -13,7 +13,7 @@ from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 RULE_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
-    action=dict(default='pass', choices=['pass', "block", 'reject']),
+    action=dict(default='pass', choices=['pass', 'block', 'reject']),
     state=dict(default='present', choices=['present', 'absent']),
     disabled=dict(default=False, required=False, type='bool'),
     interface=dict(required=True, type='str'),
@@ -121,7 +121,8 @@ class PFSenseRuleModule(PFSenseModuleBase):
                 self._get_ansible_param(obj, 'icmptype')
             self._get_ansible_param(obj, 'direction')
             self._get_ansible_param(obj, 'queue', fname='defaultqueue')
-            self._get_ansible_param(obj, 'ackqueue')
+            if params.get('ackqueue'):
+                self._get_ansible_param(obj, 'ackqueue')
             self._get_ansible_param(obj, 'in_queue', fname='dnpipe')
             self._get_ansible_param(obj, 'out_queue', fname='pdnpipe')
             self._get_ansible_param(obj, 'associated-rule-id')
@@ -149,14 +150,14 @@ class PFSenseRuleModule(PFSenseModuleBase):
         """ do some extra checks on input parameters """
         params = self.params
 
-        if params.get('ackqueue') is not None and params['queue'] is None:
+        if params.get('ackqueue') and params['queue'] is None:
             self.module.fail_json(msg='A default queue must be selected when an acknowledge queue is also selected')
 
-        if params.get('ackqueue') is not None and params['ackqueue'] == params['queue']:
+        if params.get('ackqueue') and params['ackqueue'] == params['queue']:
             self.module.fail_json(msg='Acknowledge queue and default queue cannot be the same')
 
         # as in pfSense 2.4, the GUI accepts any queue defined on any interface without checking, we do the same
-        if params.get('ackqueue') is not None and self.pfsense.find_queue(params['ackqueue'], enabled=True) is None:
+        if params.get('ackqueue') and self.pfsense.find_queue(params['ackqueue'], enabled=True) is None:
             self.module.fail_json(msg='Failed to find enabled ackqueue=%s' % params['ackqueue'])
 
         if params.get('queue') is not None and self.pfsense.find_queue(params['queue'], enabled=True) is None:
