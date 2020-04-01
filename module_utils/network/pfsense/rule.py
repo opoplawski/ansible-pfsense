@@ -20,7 +20,7 @@ RULE_ARGUMENT_SPEC = dict(
     floating=dict(required=False, type='bool'),
     direction=dict(required=False, choices=["any", "in", "out"]),
     ipprotocol=dict(default='inet', choices=['inet', 'inet46', 'inet6']),
-    protocol=dict(default='any', choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf"]),
+    protocol=dict(default='any', choices=["any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf", "esp", "ah", "gre", "pim", "sctp", "pfsync", "carp"]),
     source=dict(required=False, type='str'),
     source_port=dict(required=False, type='str'),
     destination=dict(required=False, type='str'),
@@ -108,7 +108,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
                 self.pfsense.parse_port(params['destination_port'], obj['destination'])
 
             if params['protocol'] not in ['tcp', 'udp', 'tcp/udp'] and ('port' in obj['source'] or 'port' in obj['destination']):
-                self.module.fail_json(msg="you can't use ports on protocols other than tcp, udp or tcp/udp")
+                self.module.fail_json(msg="{0}: you can't use ports on protocols other than tcp, udp or tcp/udp".format(self._get_obj_name()))
 
             for param in ['destination', 'source']:
                 if 'address' in obj[param]:

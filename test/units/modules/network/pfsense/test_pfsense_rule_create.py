@@ -243,7 +243,7 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
     def test_rule_create_invalid_ports(self):
         """ test creation of a new rule with an invalid use of ports """
         obj = dict(name='one_rule', source='192.193.194.195', destination='any:22', interface='lan', protocol='icmp')
-        msg = "you can't use ports on protocols other than tcp, udp or tcp/udp"
+        msg = "'one_rule' on 'lan': you can't use ports on protocols other than tcp, udp or tcp/udp"
         self.do_module_test(obj, failed=True, msg=msg)
 
     def test_rule_create_source_ip_invalid(self):

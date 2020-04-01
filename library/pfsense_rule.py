@@ -60,7 +60,7 @@ options:
   protocol:
     description: The protocol
     default: any
-    choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf" ]
+    choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "igmp", "ospf", "esp", "ah", "gre", "pim", "sctp", "pfsync", "carp" ]
     type: str
   source:
     description: The source address, in [!]{IP,HOST,ALIAS,any,(self),IP:INTERFACE,NET:INTERFACE} format.
