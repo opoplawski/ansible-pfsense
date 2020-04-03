@@ -575,8 +575,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_updated_cli_field(self.obj, before, 'sched', add_comma=(values))
         return values
 
-    @staticmethod
-    def _obj_address_to_log_field(rule, addr):
+    def _obj_address_to_log_field(self, rule, addr):
         """ return formated address from dict """
         field = ''
         field_port = ''
@@ -587,6 +586,16 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
                 field += 'any'
             if 'address' in rule[addr]:
                 field += rule[addr]['address']
+            elif 'network' in rule[addr]:
+                interface = None
+                if rule[addr]['network'].endswith('ip'):
+                    interface = self.pfsense.get_interface_display_name(rule[addr]['network'][:-2], return_none=True)
+
+                if interface is None:
+                    field += 'NET:' + self.pfsense.get_interface_display_name(rule[addr]['network'])
+                else:
+                    field += 'IP:' + interface
+
             if 'port' in rule[addr]:
                 field_port += rule[addr]['port']
         else:
