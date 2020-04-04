@@ -595,23 +595,17 @@ class PFSenseHostAlias(object):
 
     def routed_by_interfaces(self, pfsense, use_remote_networks=True):
         """ return all interfaces for which all ips/networks match a adjacent/remote network in pfense """
-        interfaces = set()
-        for interface in pfsense.interfaces.values():
-            all_found = True
-            # we must found a routing network for each ip
-            for alias_ip in self.ips:
-                if not interface.adjacent_networks_contains(alias_ip) and (not use_remote_networks or not interface.remote_networks_contains(alias_ip)):
-                    all_found = False
-                    break
+        all_interfaces = set()
+        for alias_ip in self.ips:
+            interfaces = pfsense.interfaces_adjacent_or_remote_networks_contains(alias_ip, use_remote_networks)
+            interfaces = pfsense.hack_internet_routing(interfaces, alias_ip, use_remote_networks)
+            all_interfaces.update(interfaces)
 
-            # we must found a routing network for each network
-            for alias_net in self.networks:
-                if not interface.adjacent_networks_contains(alias_net) and (not use_remote_networks or not interface.remote_networks_contains(alias_net)):
-                    all_found = False
-                    break
+        for alias_net in self.networks:
+            interfaces = pfsense.interfaces_adjacent_or_remote_networks_contains(alias_net, use_remote_networks)
+            interfaces = pfsense.hack_internet_routing(interfaces, alias_net, use_remote_networks)
+            all_interfaces.update(interfaces)
 
-            if all_found:
-                interfaces.add(interface.name)
         return interfaces
 
     def is_adjacent_or_remote(self, pfsense):
@@ -700,7 +694,7 @@ class PFSenseHostAlias(object):
 
         for alias_ip in self.ips:
             interfaces = pfsense.interfaces_adjacent_or_remote_networks_contains(alias_ip)
-            pfsense.hack_internet_routing(interfaces)
+            interfaces = pfsense.hack_internet_routing(interfaces, alias_ip)
             if target_ar_interfaces is None:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
@@ -708,7 +702,7 @@ class PFSenseHostAlias(object):
                 return False
 
             interfaces = pfsense.interfaces_local_networks_contains(alias_ip)
-            pfsense.hack_internet_routing(interfaces)
+            interfaces = pfsense.hack_internet_routing(interfaces, alias_ip)
             if target_local_interfaces is None:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
@@ -717,7 +711,7 @@ class PFSenseHostAlias(object):
 
         for alias_net in self.networks:
             interfaces = pfsense.interfaces_adjacent_or_remote_networks_contains(alias_net)
-            pfsense.hack_internet_routing(interfaces)
+            interfaces = pfsense.hack_internet_routing(interfaces, alias_net)
             if target_ar_interfaces is None:
                 target_ar_interfaces = interfaces
             elif target_ar_interfaces ^ interfaces:
@@ -725,7 +719,7 @@ class PFSenseHostAlias(object):
                 return False
 
             interfaces = pfsense.interfaces_local_networks_contains(alias_net)
-            pfsense.hack_internet_routing(interfaces)
+            interfaces = pfsense.hack_internet_routing(interfaces, alias_net)
             if target_local_interfaces is None:
                 target_local_interfaces = interfaces
             elif target_local_interfaces ^ interfaces:
@@ -902,6 +896,7 @@ class PFSense(object):
         self._interfaces_local_networks_contains_cache = dict()
         self._interfaces_remote_networks_contains_cache = dict()
         self._interfaces_adjacent_networks_contains_cache = dict()
+        self._hack_internet_routing_cache = dict()
 
     def any_adjacent_networks_contains(self, address):
         """ return true if address is defined in adjacent_networks of any interface """
@@ -956,7 +951,7 @@ class PFSense(object):
         if res is None:
             res = self._interfaces_network_contains(address, 'local_networks')
             self._interfaces_local_networks_contains_cache[address] = res
-        return res
+        return copy(res)
 
     def interfaces_remote_networks_contains(self, address):
         """ return interfaces names where address is in the interface remote networks  """
@@ -964,7 +959,7 @@ class PFSense(object):
         if res is None:
             res = self._interfaces_network_contains(address, 'remote_networks')
             self._interfaces_remote_networks_contains_cache[address] = res
-        return res
+        return copy(res)
 
     def interfaces_adjacent_networks_contains(self, address):
         """ return interfaces names where address is in the interface adjacent networks  """
@@ -972,36 +967,53 @@ class PFSense(object):
         if res is None:
             res = self._interfaces_network_contains(address, 'adjacent_networks')
             self._interfaces_adjacent_networks_contains_cache[address] = res
-        return res
+        return copy(res)
 
-    def interfaces_adjacent_or_remote_networks_contains(self, address):
+    def interfaces_adjacent_or_remote_networks_contains(self, address, use_remote_networks=True):
         """ return interfaces names where address are in the interface local or remote networks """
-        res = self.interfaces_remote_networks_contains(address)
-        res.update(self.interfaces_adjacent_networks_contains(address))
+        res = self.interfaces_adjacent_networks_contains(address)
+        if use_remote_networks:
+            res.update(self.interfaces_remote_networks_contains(address))
         return res
 
-    @static_vars(
-        internet=ipaddress.IPv4Network((u"0.0.0.0", u"0.0.0.0"))
-    )
-    def hack_internet_routing(self, interfaces):
+    @static_vars(internet=ipaddress.IPv4Network((u"0.0.0.0", u"0.0.0.0")))
+    def hack_internet_routing(self, interfaces, address, use_remote_networks=True):
         """ internet (defined as route to 0.0.0.0/0) is an issue to automaticly detect interfaces on which routing is done because every host or network match.
-            if multiple interfaces can be used and some of them are connected to internet while there is at least another one which is not,
+            if multiple interfaces can be used and there is at least one specific route which match the address,
             we consider the internet ones as mistakes and remove them """
+        key = str(interfaces) + str(address) + str(use_remote_networks)
+        res = self._hack_internet_routing_cache.get(key)
+        if res is None:
+            has_non_internet = False
+            internet_interfaces = set()
+            is_net = isinstance(address, ipaddress.IPv4Network)
+            for interface in interfaces:
+                route_found = False
+                internet_found = False
+                if use_remote_networks:
+                    for network in self.interfaces[interface].remote_networks:
+                        if network == self.hack_internet_routing.internet:
+                            internet_found = True
+                        elif is_net and address.overlaps(network) or not is_net and address in network:
+                            route_found = True
 
-        has_non_internet = False
-        internet_interfaces = set()
-        for interface in interfaces:
-            found = False
-            for network in self.interfaces[interface].remote_networks:
-                if network == self.hack_internet_routing.internet:
-                    found = True
+                for network in self.interfaces[interface].adjacent_networks:
+                    if network == self.hack_internet_routing.internet:
+                        internet_found = True
+                    elif is_net and address.overlaps(network) or not is_net and address in network:
+                        route_found = True
+
+                if route_found:
+                    has_non_internet = True
+                elif internet_found:
                     internet_interfaces.add(interface)
-                    break
-            if not found:
-                has_non_internet = True
 
-        if has_non_internet:
-            interfaces -= internet_interfaces
+            if has_non_internet:
+                interfaces -= internet_interfaces
+            self._hack_internet_routing_cache[key] = interfaces
+            res = interfaces
+
+        return copy(res)
 
 
 class PFSenseData(object):
