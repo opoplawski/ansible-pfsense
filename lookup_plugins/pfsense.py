@@ -2238,10 +2238,7 @@ class PFSenseRuleFactory(object):
 
         interfaces = {}
         last_name = {}
-        if self._data.gendiff:
-            rules = list()
-        else:
-            rules = OrderedDict()
+        rules = list()
 
         for name, rule in self._data.rules_obj.items():
             subrules = []
@@ -2318,13 +2315,8 @@ class PFSenseRuleFactory(object):
             if self._data.gendiff:
                 rules.extend(subrules)
             else:
-                if len(subrules) > 1:
-                    rule_number = 1
-                    for subrule in subrules:
-                        rules[name + "_" + str(rule_number)] = subrule
-                        rule_number += 1
-                elif len(subrules) == 1:
-                    rules[name] = subrules[0]
+                for subrule in subrules:
+                    rules.append((name, subrule))
 
         return (interfaces, rules, last_name)
 
@@ -2346,7 +2338,7 @@ class PFSenseRuleFactory(object):
             for rule in rules:
                 self.generate_rule(rule.name, rule, interfaces, last_name)
         else:
-            for name, rule in rules.items():
+            for (name, rule) in rules:
                 self.generate_rule(name, rule, interfaces, last_name)
 
         ret = []
