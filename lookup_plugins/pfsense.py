@@ -304,7 +304,10 @@ def is_private_network(address):
     return res
 
 
-@static_vars(ip_broadcast=ipaddress.IPv4Address((u"255.255.255.255")), res_cache=dict())
+@static_vars(
+    ip_broadcast=ipaddress.IPv4Address((u"255.255.255.255")),
+    net_multicast=ipaddress.IPv4Network((u"224.0.0.0", u"255.255.255.0")),
+    res_cache=dict())
 def is_ip_broadcast(address):
     """ check if ip address is ip broadcast address """
     res = is_ip_broadcast.res_cache.get(address)
@@ -313,7 +316,7 @@ def is_ip_broadcast(address):
             ip_address = to_ip_address(to_unicode(address))
         else:
             ip_address = address
-        res = ip_address == is_ip_broadcast.ip_broadcast
+        res = ip_address == is_ip_broadcast.ip_broadcast or ip_address in is_ip_broadcast.net_multicast
         is_ip_broadcast.res_cache[address] = res
     return res
 
@@ -340,8 +343,8 @@ def resolve_hostname(address, dns_servers=None):
         error = None
         try:
             res = resolver.Resolver()
-            res.timeout = 5
-            res.lifetime = 5
+            res.timeout = 15
+            res.lifetime = 15
             res.nameservers = dns_servers
             answers = res.query(address)
             if answers:
@@ -1004,7 +1007,7 @@ class PFSense(object):
 class PFSenseData(object):
     """ Class holding all data """
 
-    def __init__(self, hosts_aliases, ports_aliases, pfsenses, rules, target_name, gendiff=False, debug=None):
+    def __init__(self, hosts_aliases, ports_aliases, pfsenses, rules, target_name, gendiff=False, debug=None, aggregate=True):
         self._hosts_aliases = hosts_aliases
         self._ports_aliases = ports_aliases
         self._pfsenses = pfsenses
@@ -1019,6 +1022,7 @@ class PFSenseData(object):
         self.log_errors = False
         self.gendiff = gendiff
         self.debug = debug
+        self.aggregate = aggregate
         self._all_aliases = copy(self._hosts_aliases)
         self._all_aliases.update(self._ports_aliases)
 
@@ -1114,6 +1118,69 @@ class PFSenseData(object):
                 ret.append(elts)
 
         return ret
+
+    def get_hosts_alias(self, hosts, ips, networks, _basename):
+        """ return an alias with all the hosts
+            create it if required """
+
+        searched = ips.union(networks)
+        for alias in self._hosts_aliases_obj.values():
+            alias_ips = set(alias.ips).union(set(alias.networks))
+            if not alias_ips ^ searched:
+                return alias
+
+        obj = PFSenseHostAlias()
+        obj.definition = list(hosts)
+        obj.definition.sort()
+        obj.ips = list(ips)
+        obj.networks = list(networks)
+        obj.fake = False
+
+        # alias can only be 32 chars long so we truncate a bit if required
+        basename = _basename[0:26]
+        idx = 1
+        while True:
+            obj.name = 'h_{0}_{1}'.format(basename, idx)
+            if obj.name not in self._all_aliases:
+                break
+            idx = idx + 1
+
+        self._hosts_aliases_obj[obj.name] = obj
+
+        alias = dict()
+        alias['ip'] = ' '.join(obj.definition)
+        alias['type'] = 'network'
+        self._all_aliases[obj.name] = alias
+
+        return obj
+
+    def get_ports_alias(self, ports, _basename):
+        """ return an alias with all the ports
+            create it if required """
+
+        for name, alias in self._ports_aliases.items():
+            alias_ports = set(alias['port'].split(' '))
+            if not alias_ports ^ ports:
+                return name
+
+        # alias can only be 32 chars long so we truncate a bit if required
+        basename = _basename[0:26]
+        idx = 1
+        while True:
+            name = 'p_{0}_{1}'.format(basename, idx)
+            if name not in self._all_aliases:
+                break
+            idx = idx + 1
+
+        alias = dict()
+        alias['descr'] = name
+        sorted_ports = list(ports)
+        sorted_ports.sort()
+        alias['port'] = ' '.join(sorted_ports)
+        self._all_aliases[name] = alias
+        self._ports_aliases[name] = alias
+
+        return name
 
 
 class PFSenseDataParser(object):
@@ -1425,6 +1492,9 @@ class PFSenseDataParser(object):
                     self._data.set_error(field + " is not a valid field name in rule " + name)
                     ret = False
 
+            if name in self._data.rules_obj:
+                display.warning("Rule already defined: {0}".format(name))
+
             self._data.rules_obj[name] = self.create_obj_rule_from_def(name, rule, parent_separator)
 
         return ret
@@ -1614,6 +1684,8 @@ class PFSenseRuleDecomposer(object):
 
             ret.append(host)
         elif host.is_ip_broadcast():
+            if self._data.debug is not None and self._data.debug == host.name:
+                display.warning('{0}: is_ip_broadcast'.format(host.name))
             ret.append(host)
         else:
             alias = self._data.all_aliases[host.name]
@@ -1715,6 +1787,9 @@ class PFSenseAliasFactory(object):
 
     def add_host_alias_rec(self, alias, aliases):
         """ set aliases hosts names to define (recursive) """
+        if ':' in alias.name:
+            return
+
         name = alias.name
         aliases[name] = self._data.all_aliases[name]
         for target in alias.definition:
@@ -2046,8 +2121,7 @@ class PFSenseRuleFactory(object):
             raise AssertionError(msg)
         return filter_interfaces(interfaces)
 
-    @staticmethod
-    def generate_rule(name, rule_obj, interfaces, last_name):
+    def generate_rule(self, name, rule_obj, interfaces, last_name):
         """ Generate rules definitions for rule """
         base = []
         base.append({})
@@ -2058,12 +2132,29 @@ class PFSenseRuleFactory(object):
         rule = {}
         rule['src'] = rule_obj.src[0].name
         rule['dst'] = rule_obj.dst[0].name
-        if rule_obj.src_port:
-            rule['src_port'] = ' '.join(rule_obj.src_port)
-        if rule_obj.dst_port:
-            rule['dst_port'] = ' '.join(rule_obj.dst_port)
         if rule_obj.protocol:
             rule['protocol'] = ' '.join(rule_obj.protocol)
+
+        if self._data.aggregate:
+            if rule_obj.src_port:
+                if len(rule_obj.src_port) == 1:
+                    rule['src_port'] = ' '.join(rule_obj.src_port)
+                else:
+                    rule['src_port'] = self._data.get_ports_alias(set(rule_obj.src_port), name)
+                    rule_obj.src_port = [rule['src_port']]
+
+            if rule_obj.dst_port:
+                if len(rule_obj.dst_port) == 1:
+                    rule['dst_port'] = ' '.join(rule_obj.dst_port)
+                else:
+                    rule['dst_port'] = self._data.get_ports_alias(set(rule_obj.dst_port), name)
+                    rule_obj.dst_port = [rule['dst_port']]
+
+        else:
+            if rule_obj.src_port:
+                rule['src_port'] = ' '.join(rule_obj.src_port)
+            if rule_obj.dst_port:
+                rule['dst_port'] = ' '.join(rule_obj.dst_port)
 
         base = rule_product_dict(base, rule, 'src', 'source')
         base = rule_product_dict(base, rule, 'dst', 'destination')
@@ -2116,13 +2207,17 @@ class PFSenseRuleFactory(object):
                     if interface not in rule_obj.generated_names:
                         rule_obj.generated_names[interface] = rule_name
 
-    def generate_rules(self, rule_filter=None):
-        """ Return rules definitions for pfsense_aggregate
-            if rule_filter, process only rules matching rule_filter
-        """
+    def guess_rules_interfaces(self, rule_filter):
+        """ Return interfaces, rules and rules names """
+        def _has_same_rule(new_rules, subrule):
+            for rule in new_rules:
+                if rule.src[0].name == subrule.src[0].name and rule.dst[0].name == subrule.dst[0].name:
+                    return True
+            return False
 
-        self._decomposer.decompose_rules()
-        ret = []
+        def _add_list(group, objs):
+            for obj in objs:
+                group.add(obj)
 
         interfaces = {}
         last_name = {}
@@ -2130,19 +2225,79 @@ class PFSenseRuleFactory(object):
             rules = list()
         else:
             rules = OrderedDict()
+
         for name, rule in self._data.rules_obj.items():
             subrules = []
+            sub_interfaces = dict()
+            # for each subrule, we guess on which interface the subrule needs to be generated
             for subrule in rule.sub_rules:
                 subrule.interfaces = self.rule_interfaces(subrule)
                 if rule_filter is not None and name != rule_filter:
                     continue
                 if not subrule.interfaces:
                     continue
-                subrules.append(subrule)
-                for interface in subrule.interfaces:
-                    if interface not in interfaces:
-                        interfaces[interface] = []
-                        last_name[interface] = ""
+
+                # when aggregating, we group the rules by interface for later
+                # otherwise, we add the subrule
+                if self._data.aggregate:
+                    for interface in subrule.interfaces:
+                        if interface not in sub_interfaces:
+                            sub_interfaces[interface] = []
+                        sub_interfaces[interface].append(subrule)
+                else:
+                    subrules.append(subrule)
+                    for interface in subrule.interfaces:
+                        if interface not in interfaces:
+                            interfaces[interface] = []
+                            last_name[interface] = ""
+
+            # let's aggregate
+            if self._data.aggregate and sub_interfaces:
+                new_rules = list()
+                for interface in sub_interfaces:
+                    src_group_name = set()
+                    dst_group_name = set()
+                    src_group_ip = set()
+                    dst_group_ip = set()
+                    src_group_net = set()
+                    dst_group_net = set()
+                    for subrule in sub_interfaces[interface]:
+                        src_group_name.add(subrule.src[0].name)
+                        dst_group_name.add(subrule.dst[0].name)
+                        _add_list(src_group_ip, subrule.src[0].ips)
+                        _add_list(src_group_net, subrule.src[0].networks)
+                        _add_list(dst_group_ip, subrule.dst[0].ips)
+                        _add_list(dst_group_net, subrule.dst[0].networks)
+
+                    # we create fake alias when required
+                    # we also use interfaces IP and NET when possible
+                    if len(src_group_name) != 1:
+                        subrule.src[0] = self._data.get_hosts_alias(src_group_name, src_group_ip, src_group_net, rule.name)
+                    elif len(subrule.src[0].networks) == 1 and len(subrule.src[0].ips) == 0 and subrule.src[0].networks[0] in self._data.target.interfaces[interface].local_networks:
+                        subrule.src = deepcopy(subrule.src)
+                        subrule.src[0].name = "NET:{0}".format(interface)
+                    elif len(subrule.src[0].networks) == 0 and len(subrule.src[0].ips) == 1 and subrule.src[0].ips[0] in self._data.target.interfaces[interface].local_ips:
+                        subrule.src = deepcopy(subrule.src)
+                        subrule.src[0].name = "IP:{0}".format(interface)
+
+                    if len(dst_group_name) != 1:
+                        subrule.dst[0] = self._data.get_hosts_alias(dst_group_name, dst_group_ip, dst_group_net, rule.name)
+                    elif len(subrule.dst[0].networks) == 1 and len(subrule.dst[0].ips) == 0 and subrule.dst[0].networks[0] in self._data.target.interfaces[interface].local_networks:
+                        subrule.dst = deepcopy(subrule.dst)
+                        subrule.dst[0].name = "NET:{0}".format(interface)
+                    elif len(subrule.dst[0].networks) == 0 and len(subrule.dst[0].ips) == 1 and subrule.dst[0].ips[0] in self._data.target.interfaces[interface].local_ips:
+                        subrule.dst = deepcopy(subrule.dst)
+                        subrule.dst[0].name = "IP:{0}".format(interface)
+
+                    if not _has_same_rule(new_rules, subrule):
+                        new_rules.append(subrule)
+                        for iface in subrule.interfaces:
+                            if iface not in interfaces:
+                                interfaces[iface] = []
+                                last_name[iface] = ""
+
+                subrules.extend(new_rules)
+
             if self._data.gendiff:
                 rules.extend(subrules)
             else:
@@ -2154,6 +2309,22 @@ class PFSenseRuleFactory(object):
                 elif len(subrules) == 1:
                     rules[name] = subrules[0]
 
+        return (interfaces, rules, last_name)
+
+    def generate_rules(self, rule_filter=None):
+        """ Return rules definitions for pfsense_aggregate
+            if rule_filter, process only rules matching rule_filter
+        """
+
+        ret = []
+
+        # first, we break rules in small parts (one src, one dst)
+        self._decomposer.decompose_rules()
+
+        # then, we guess the interfaces on which to generate the rules
+        (interfaces, rules, last_name) = self.guess_rules_interfaces(rule_filter)
+
+        # last, we generate each required rule
         if self._data.gendiff:
             for rule in rules:
                 self.generate_rule(rule.name, rule, interfaces, last_name)
@@ -2378,6 +2549,7 @@ def main():
     parser.add_argument("file", help="input file")
     parser.add_argument("pfsense", help="target_fw")
     parser.add_argument('filter', help="rule_name", nargs='?')
+    parser.add_argument("-a", "--dont-aggregate", action="store_false", help="dont generate aliases to aggregate rules")
     parser.add_argument("-g", "--gendiff", action="store_true", help="output more suitable for diffs (debbuging)")
     parser.add_argument("-d", "--debug-rule", action="store", help="debug rule")
     args = parser.parse_args()
@@ -2397,6 +2569,7 @@ def main():
         target_name=args.pfsense,
         gendiff=args.gendiff,
         debug=args.debug_rule,
+        aggregate=args.dont_aggregate,
     )
 
     parser = PFSenseDataParser(data)
