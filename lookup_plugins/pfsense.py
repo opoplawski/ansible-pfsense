@@ -1449,7 +1449,7 @@ class PFSenseDataParser(object):
             if not self._data.is_child_def(rule):
                 separator = PFSenseRuleSeparator()
                 separator.parent = parent_separator
-                if parent_separator.name is None:
+                if parent_separator.name is None or not parent_separator.name:
                     separator.name = name
                 else:
                     separator.name = parent_separator.name + ' - ' + name
@@ -1459,6 +1459,11 @@ class PFSenseDataParser(object):
                 continue
             if name == 'options':
                 parent_separator.options = rule
+                if parent_separator.options and parent_separator.options.get('invisible'):
+                    if parent_separator.name is None or not parent_separator.name:
+                        parent_separator.name = ''
+                    else:
+                        parent_separator.name = parent_separator.parent.name
                 continue
 
             # src field is mandatory
