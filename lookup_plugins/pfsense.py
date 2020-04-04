@@ -2224,13 +2224,13 @@ class PFSenseRuleFactory(object):
                     if interface not in rule_obj.generated_names:
                         rule_obj.generated_names[interface] = rule_name
 
-    def guess_rules_interfaces(self, rule_filter):
+    def guess_rules(self, rule_filter):
         """ Return interfaces, rules and rules names """
-        def _has_same_rule(new_rules, subrule):
+        def _get_same_rule(new_rules, subrule):
             for rule in new_rules:
                 if rule.src[0].name == subrule.src[0].name and rule.dst[0].name == subrule.dst[0].name:
-                    return True
-            return False
+                    return rule
+            return None
 
         def _add_list(group, objs):
             for obj in objs:
@@ -2243,7 +2243,8 @@ class PFSenseRuleFactory(object):
         for name, rule in self._data.rules_obj.items():
             subrules = []
             sub_interfaces = dict()
-            # for each subrule, we guess on which interface the subrule needs to be generated
+
+            # for each subrule, we guess on which interfaces the subrule needs to be generated, if any
             for subrule in rule.sub_rules:
                 subrule.interfaces = self.rule_interfaces(subrule)
                 if rule_filter is not None and name != rule_filter:
@@ -2303,12 +2304,17 @@ class PFSenseRuleFactory(object):
                         subrule.dst = deepcopy(subrule.dst)
                         subrule.dst[0].name = "IP:{0}".format(interface)
 
-                    if not _has_same_rule(new_rules, subrule):
-                        new_rules.append(subrule)
-                        for iface in subrule.interfaces:
-                            if iface not in interfaces:
-                                interfaces[iface] = []
-                                last_name[iface] = ""
+                    # when aggregating, we merge rules with same src/dst
+                    existing_rule = _get_same_rule(new_rules, subrule)
+                    if existing_rule is None:
+                        existing_rule = copy(subrule)
+                        existing_rule.interfaces = set()
+                        new_rules.append(existing_rule)
+                    existing_rule.interfaces.add(interface)
+
+                    if interface not in interfaces:
+                        interfaces[interface] = []
+                        last_name[interface] = ""
 
                 subrules.extend(new_rules)
 
@@ -2317,6 +2323,9 @@ class PFSenseRuleFactory(object):
             else:
                 for subrule in subrules:
                     rules.append((name, subrule))
+
+            # we only keep the subrules having interfaces
+            rule.sub_rules = subrules
 
         return (interfaces, rules, last_name)
 
@@ -2330,8 +2339,8 @@ class PFSenseRuleFactory(object):
         # first, we break rules in small parts (one src, one dst)
         self._decomposer.decompose_rules()
 
-        # then, we guess the interfaces on which to generate the rules
-        (interfaces, rules, last_name) = self.guess_rules_interfaces(rule_filter)
+        # then, we guess the rules which are required on the target
+        (interfaces, rules, last_name) = self.guess_rules(rule_filter)
 
         # last, we generate each required rule
         if self._data.gendiff:
