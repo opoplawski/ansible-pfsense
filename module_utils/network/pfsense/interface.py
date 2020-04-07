@@ -411,7 +411,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             "    if (is_array($config['openvpn']['openvpn-server']))"
             "        foreach ($config['openvpn']['openvpn-server'] as $s) $portlist[\"ovpns{$s['vpnid']}\"] = $s;"
             "    if (is_array($config['openvpn']['openvpn-client']))"
-            "        foreach ($config['openvpn']['openvpn-client'] as $c)  $portlist[\"ovpns{$c['vpnid']}\"] = $c;"
+            "        foreach ($config['openvpn']['openvpn-client'] as $c)  $portlist[\"ovpnc{$c['vpnid']}\"] = $c;"
             "}"
             ""
             "$ipsec_descrs = interface_ipsec_vti_list_all();"
