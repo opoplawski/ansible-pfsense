@@ -540,7 +540,6 @@ class PFSenseModuleAggregate(object):
 
             if floating != 'false' and floating != 'no':
                 return 'floating' not in interface_filter
-            return 'floating' in interface_filter
 
         return params['interface'].lower() not in interface_filter
 
