@@ -340,7 +340,7 @@ options:
     default: False
     type: bool
   interface_filter:
-    description: only apply rules and rules separators on this interface
+    description: only apply rules and rules separators on those interfaces (separated by space)
     required: False
     type: str
 """
@@ -528,7 +528,7 @@ class PFSenseModuleAggregate(object):
         return False
 
     @staticmethod
-    def is_filtered(interface_filter, floating_filter, params):
+    def is_filtered(interface_filter, params):
         if interface_filter is None:
             return False
 
@@ -539,18 +539,16 @@ class PFSenseModuleAggregate(object):
                 floating = 'true' if params['floating'] else 'false'
 
             if floating != 'false' and floating != 'no':
-                return not floating_filter
+                return 'floating' not in interface_filter
+            return 'floating' in interface_filter
 
-        return floating_filter or params['interface'].lower() != interface_filter
+        return params['interface'].lower() not in interface_filter
 
     def run_rules(self):
         """ process input params to add/update/delete all rules """
 
         want = self.module.params['aggregated_rules']
-        interface_filter = self.module.params['interface_filter'].lower() if self.module.params.get('interface_filter') is not None else None
-        floating_filter = False
-        if interface_filter is not None and interface_filter.lower() == 'floating':
-            floating_filter = True
+        interface_filter = self.module.params['interface_filter'].lower().split(' ') if self.module.params.get('interface_filter') is not None else None
 
         if want is None:
             return
@@ -584,7 +582,7 @@ class PFSenseModuleAggregate(object):
                     todel.append(params)
 
             for params in todel:
-                if self.is_filtered(interface_filter, floating_filter, params):
+                if self.is_filtered(interface_filter, params):
                     continue
                 self.pfsense_rules.run(params)
 
@@ -614,7 +612,7 @@ class PFSenseModuleAggregate(object):
 
         # processing aggregated parameters
         for params in want:
-            if self.is_filtered(interface_filter, floating_filter, params):
+            if self.is_filtered(interface_filter, params):
                 continue
             self.pfsense_rules.run(params)
 
@@ -671,17 +669,14 @@ class PFSenseModuleAggregate(object):
     def run_rule_separators(self):
         """ process input params to add/update/delete all separators """
         want = self.module.params['aggregated_rule_separators']
-        interface_filter = self.module.params['interface_filter'].lower() if self.module.params.get('interface_filter') is not None else None
-        floating_filter = False
-        if interface_filter is not None and interface_filter.lower() == 'floating':
-            floating_filter = True
+        interface_filter = self.module.params['interface_filter'].lower().split(' ') if self.module.params.get('interface_filter') is not None else None
 
         if want is None:
             return
 
         # processing aggregated parameter
         for params in want:
-            if self.is_filtered(interface_filter, floating_filter, params):
+            if self.is_filtered(interface_filter, params):
                 continue
             self.pfsense_rule_separators.run(params)
 
@@ -703,7 +698,7 @@ class PFSenseModuleAggregate(object):
                         todel.append(params)
 
             for params in todel:
-                if self.is_filtered(interface_filter, floating_filter, params):
+                if self.is_filtered(interface_filter, params):
                     continue
                 self.pfsense_rule_separators.run(params)
 
