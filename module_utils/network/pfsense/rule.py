@@ -599,7 +599,12 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             if 'port' in rule[addr]:
                 field_port += rule[addr]['port']
         else:
-            field = rule[addr]
+            if rule[addr].startswith('NET:'):
+                field = 'NET:' + self.pfsense.get_interface_display_name(rule[addr][4:])
+            elif rule[addr].startswith('IP:'):
+                field = 'IP:' + self.pfsense.get_interface_display_name(rule[addr][3:])
+            else:
+                field = rule[addr]
             field_port = rule[addr + '_port']
         return field, field_port
 
