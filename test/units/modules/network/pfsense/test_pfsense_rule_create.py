@@ -66,6 +66,12 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         command = "create rule 'one_rule' on 'floating(lan)', source='any', destination='any', direction='any'"
         self.do_module_test(obj, command=command)
 
+    def test_rule_create_floating_quick(self):
+        """ test creation of a new floating rule with quick match """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', floating='yes', direction='any', quick='yes')
+        command = "create rule 'one_rule' on 'floating(lan)', source='any', destination='any', direction='any', quick=True"
+        self.do_module_test(obj, command=command)
+
     def test_rule_create_nofloating(self):
         """ test creation of a new non-floating rule """
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', floating='no')

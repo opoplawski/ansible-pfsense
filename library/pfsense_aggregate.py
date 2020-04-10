@@ -252,6 +252,10 @@ options:
         description: Schedule day/time when the rule must be active
         required: False
         type: str
+      quick:
+        description: Set this option to apply this action to traffic that matches this rule immediately
+        type: bool
+        default: False
   aggregated_rule_separators:
     description: Dict of rule separators to apply on the target
     required: False

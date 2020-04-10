@@ -28,7 +28,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
     def get_args_fields():
         """ return params fields """
         fields = ['name', 'source', 'source_port', 'destination', 'destination_port', 'descr', 'interface', 'action', 'tracker', 'icmptype']
-        fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway']
+        fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway', 'quick']
         fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'sched']
         return fields
 
@@ -115,8 +115,14 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         # checking floating option
         if 'floating' in obj and obj['floating'] == 'yes':
             self.assert_xml_elt_equal(target_elt, 'floating', 'yes')
+            if 'quick' in obj and obj['quick'] == 'yes':
+                self.assert_xml_elt_equal(target_elt, 'quick', 'yes')
+            else:
+                self.assert_not_find_xml_elt(target_elt, 'quick')
+
         elif 'floating' not in obj or obj['floating'] == 'no':
             self.assert_not_find_xml_elt(target_elt, 'floating')
+            self.assert_not_find_xml_elt(target_elt, 'quick')
 
         # checking direction option
         self.check_param_equal_or_not_find(obj, target_elt, 'direction')

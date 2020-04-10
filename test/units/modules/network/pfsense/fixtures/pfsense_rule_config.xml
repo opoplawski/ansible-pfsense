@@ -541,6 +541,33 @@
 				 <floating>yes</floating>
 		</rule>
 		<rule>
+				 <updated>
+						 <username>fbor</username>
+						 <time>1545907554</time>
+				 </updated>
+				 <protocol>tcp</protocol>
+				 <descr>test_rule_floating_quick</descr>
+				 <created>
+						 <username></username>
+						 <time>1545574416</time>
+				 </created>
+				 <destination>
+						 <any></any>
+						 </destination>
+				 <statetype>keep state</statetype>
+				 <source>
+						 <any></any>
+				 </source>
+				 <tracker>1545574416</tracker>
+				 <interface>wan</interface>
+				 <ipprotocol>inet</ipprotocol>
+				 <type>pass</type>
+				 <id></id>
+		 	 	 <direction>any</direction>
+				 <floating>yes</floating>
+				 <quick>yes</quick>
+		</rule>
+		<rule>
 			<updated>
 				<username></username>
 				<time>1545574416</time>

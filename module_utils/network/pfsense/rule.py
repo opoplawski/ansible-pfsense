@@ -37,6 +37,7 @@ RULE_ARGUMENT_SPEC = dict(
     tracker=dict(required=False, type='int'),
     icmptype=dict(default='any', required=False, type='str'),
     sched=dict(required=False, type='str'),
+    quick=dict(default=False, type='bool'),
 )
 
 RULE_REQUIRED_IF = [
@@ -132,6 +133,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
             self._get_ansible_param_bool(obj, 'disabled', value='')
             self._get_ansible_param_bool(obj, 'log', value='')
+            self._get_ansible_param_bool(obj, 'quick')
 
         self._floating = 'floating' in self.obj and self.obj['floating'] == 'yes'
         self._after = params.get('after')
@@ -205,6 +207,10 @@ class PFSenseRuleModule(PFSenseModuleBase):
         # sched
         if params.get('sched') is not None and self.pfsense.find_schedule_elt(params['sched']) is None:
             self.module.fail_json(msg='Schedule {0} does not exist'.format(params['sched']))
+
+        # quick
+        if params.get('quick') and not params.get('floating'):
+            self.module.fail_json(msg='quick can only be used on floating rules')
 
         # ICMP
         if params.get('protocol') == 'icmp' and params.get('icmptype') is not None:
@@ -434,7 +440,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype', 'sched']
+        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype', 'sched', 'quick']
 
     def _get_rule_position(self, descr=None, fail=True):
         """ get rule position in interface/floating """
@@ -543,6 +549,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_cli_field(self.params, 'gateway', default='default')
             values += self.format_cli_field(self.params, 'tracker')
             values += self.format_cli_field(self.params, 'sched')
+            values += self.format_cli_field(self.params, 'quick', fvalue=self.fvalue_bool, default=False)
         else:
             fbefore = self._obj_to_log_fields(before)
             fafter = self._obj_to_log_fields(self.obj)
@@ -573,6 +580,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_updated_cli_field(self.obj, before, 'gateway', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'tracker', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'sched', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'quick', fvalue=self.fvalue_bool, add_comma=(values))
         return values
 
     def _obj_address_to_log_field(self, rule, addr):

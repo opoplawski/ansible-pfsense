@@ -60,6 +60,18 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         command = "update rule 'test_rule_floating' on 'floating(wan)' set direction='out'"
         self.do_module_test(obj, command=command)
 
+    def test_rule_update_floating_quick(self):
+        """ test updating quick match of a floating rule """
+        obj = dict(name='test_rule_floating', source='any', destination='any', interface='wan', floating='yes', direction='any', protocol='tcp', quick='yes')
+        command = "update rule 'test_rule_floating' on 'floating(wan)' set quick=True"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_update_floating_remove_quick(self):
+        """ test updating quick match of a floating rule """
+        obj = dict(name='test_rule_floating_quick', source='any', destination='any', interface='wan', floating='yes', direction='any', protocol='tcp')
+        command = "update rule 'test_rule_floating_quick' on 'floating(wan)' set quick=False"
+        self.do_module_test(obj, command=command)
+
     def test_rule_update_floating_yes(self):
         """ test updating floating of a rule to yes
             Since you can't change the floating mode of a rule, it should create a new rule
