@@ -208,8 +208,8 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
-OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter', 'sched']
-OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'sched']
+OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter', 'sched', 'quick', 'direction']
+OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'sched', 'quick', 'direction']
 
 display = Display()
 
@@ -750,6 +750,7 @@ class PFSenseRule(object):
         self.protocol = []
         self.action = "pass"
         self.options = dict()
+        self.floating = False
 
         self.sub_rules = []
         self.interfaces = None
@@ -1419,6 +1420,20 @@ class PFSenseDataParser(object):
             if field in rule:
                 obj.options[field] = rule[field]
 
+        if 'floating' in rule:
+            param_floating = False
+            if isinstance(rule['floating'], bool):
+                param_floating = rule['floating']
+            elif isinstance(rule['floating'], str):
+                if rule['floating'].lower() in ['yes', 'true']:
+                    param_floating = True
+                elif rule['floating'].lower() not in ['no', 'false']:
+                    self._data.set_error('Floating must be yes/no or true/false (got "{0}")'.format(rule['floating']))
+            obj.floating = param_floating
+
+        if 'quick' in rule and not obj.floating:
+            self._data.set_error('Quick must only be used with floating rules')
+
         for src in rule['src'].split(' '):
             if src not in self._data.hosts_aliases_obj:
                 self._data.hosts_aliases_obj[src] = self.create_obj_host_alias(src)
@@ -1501,7 +1516,7 @@ class PFSenseDataParser(object):
                     ret = False
 
             # we check that all fields are valid
-            valid_fields = ['src', 'dst', 'src_port', 'dst_port', 'protocol', 'action']
+            valid_fields = ['src', 'dst', 'src_port', 'dst_port', 'protocol', 'action', 'floating']
             valid_fields.extend(OPTION_FIELDS)
             for field in rule:
                 if field not in valid_fields:
@@ -2139,6 +2154,40 @@ class PFSenseRuleFactory(object):
 
     def generate_rule(self, name, rule_obj, interfaces, last_name):
         """ Generate rules definitions for rule """
+        def _gen_rule_dict(rule_def, name, interface=None):
+            if interface is None:
+                interface = 'floating'
+                floating = True
+            else:
+                floating = False
+            definition = {}
+            definition['name'] = name
+            definition['action'] = rule_obj.action
+            for field in OUTPUT_OPTION_FIELDS:
+                value = rule_obj.get_option(field)
+                if value is not None:
+                    definition[field] = value
+
+            if floating:
+                definition['floating'] = 'yes'
+                if 'direction' not in definition:
+                    definition['direction'] = 'any'
+                    definition['interface'] = ','.join(rule_interfaces)
+            else:
+                definition['interface'] = interface
+
+            definition['state'] = 'present'
+            if interface in last_name and last_name[interface]:
+                definition['after'] = last_name[interface]
+            else:
+                definition['after'] = 'top'
+            definition.update(rule_def)
+            interfaces[interface].append(definition)
+            last_name[interface] = name
+
+            if interface not in rule_obj.generated_names:
+                rule_obj.generated_names[interface] = name
+
         base = []
         base.append({})
 
@@ -2178,50 +2227,27 @@ class PFSenseRuleFactory(object):
         base = rule_product_dict(base, rule, 'src_port', 'source_port')
         base = rule_product_dict(base, rule, 'dst_port', 'destination_port')
 
-        for interface in rule_obj.interfaces:
+        if rule_obj.floating:
+            rule_interfaces = list(rule_obj.interfaces)
+            rule_interfaces.sort()
             if len(base) == 1:
-                definition = {}
-                definition['name'] = name
-                definition['action'] = rule_obj.action
-                for field in OUTPUT_OPTION_FIELDS:
-                    definition[field] = rule_obj.get_option(field)
-                definition['interface'] = interface
-                definition['state'] = 'present'
-                if interface in last_name and last_name[interface]:
-                    definition['after'] = last_name[interface]
-                else:
-                    definition['after'] = 'top'
-                definition.update(base[0])
-                interfaces[interface].append(definition)
-                last_name[interface] = name
-
-                # todo: create the separators before and set the first rule there
-                # and find a way to generate separators when a filter is used
-                if interface not in rule_obj.generated_names:
-                    rule_obj.generated_names[interface] = name
+                _gen_rule_dict(base[0], name)
             else:
                 rule_idx = 1
                 for rule_def in base:
-                    definition = {}
                     rule_name = name + "_" + str(rule_idx)
-                    definition['name'] = rule_name
-                    definition['action'] = rule_obj.action
-                    for field in OUTPUT_OPTION_FIELDS:
-                        definition[field] = rule_obj.get_option(field)
-                    definition['interface'] = interface
-                    definition['state'] = 'present'
-                    if interface in last_name and last_name[interface]:
-                        definition['after'] = last_name[interface]
-                    else:
-                        definition['after'] = 'top'
-                    definition.update(rule_def)
-                    interfaces[interface].append(definition)
-                    last_name[interface] = rule_name
+                    _gen_rule_dict(rule_def, rule_name)
                     rule_idx = rule_idx + 1
-                    # todo: create the separators before and set the first rule there
-                    # and find a way to generate separators when a filter is used
-                    if interface not in rule_obj.generated_names:
-                        rule_obj.generated_names[interface] = rule_name
+        else:
+            for interface in rule_obj.interfaces:
+                if len(base) == 1:
+                    _gen_rule_dict(base[0], name, interface)
+                else:
+                    rule_idx = 1
+                    for rule_def in base:
+                        rule_name = name + "_" + str(rule_idx)
+                        _gen_rule_dict(rule_def, rule_name, interface)
+                        rule_idx = rule_idx + 1
 
     def aggregate_subrules(self, rule, interfaces, last_name, subrules, sub_interfaces):
         """ aggregate generated subrules """
@@ -2291,6 +2317,10 @@ class PFSenseRuleFactory(object):
             if interface not in interfaces:
                 interfaces[interface] = []
                 last_name[interface] = ""
+
+        if rule.floating and 'floating' not in interfaces:
+            interfaces['floating'] = []
+            last_name['floating'] = ""
 
         subrules.extend(new_rules)
 
@@ -2375,37 +2405,40 @@ class PFSenseRuleFactory(object):
         print("          # Rules")
         print("          # ")
         interfaces = list(self._data.target.interfaces.keys())
+        interfaces.append('floating')
         definitions = list()
         for interface in interfaces:
             for rule in rules:
-                if interface != rule['interface']:
-                    continue
-                definition = '          - { name: "%s", source: "%s", ' % (rule['name'], rule['source'])
-                if 'source_port' in rule:
-                    definition += 'source_port: "{0}", '.format(rule['source_port'])
+                if interface == rule['interface'] or interface == 'floating' and rule.get('floating'):
+                    definition = '          - { name: "%s", source: "%s", ' % (rule['name'], rule['source'])
+                    if 'source_port' in rule:
+                        definition += 'source_port: "{0}", '.format(rule['source_port'])
 
-                definition += 'destination: "{0}", '.format(rule['destination'])
-                if 'destination_port' in rule:
-                    definition += 'destination_port: "{0}", '.format(rule['destination_port'])
+                    definition += 'destination: "{0}", '.format(rule['destination'])
+                    if 'destination_port' in rule:
+                        definition += 'destination_port: "{0}", '.format(rule['destination_port'])
 
-                definition += 'interface: "{0}", action: "{1}"'.format(rule['interface'], rule['action'])
+                    definition += 'interface: "{0}", action: "{1}"'.format(rule['interface'], rule['action'])
 
-                if rule.get('protocol'):
-                    definition += ", protocol: \"" + rule['protocol'] + "\""
-                if rule.get('descr'):
-                    definition += ", descr: \"" + rule['descr'] + "\""
-                for field in OUTPUT_OPTION_FIELDS:
-                    value = rule.get(field)
-                    if value is not None:
-                        definition += ', {0}: {1}'.format(field, value)
+                    if rule.get('protocol'):
+                        definition += ", protocol: \"" + rule['protocol'] + "\""
+                    if rule.get('descr'):
+                        definition += ", descr: \"" + rule['descr'] + "\""
+                    for field in OUTPUT_OPTION_FIELDS:
+                        value = rule.get(field)
+                        if value is not None:
+                            definition += ', {0}: {1}'.format(field, value)
 
-                if rule.get('after') and not self._data.gendiff:
-                    definition += ", after: \"" + rule['after'] + "\""
-                definition += ", state: \"present\" }"
-                if self._data.gendiff:
-                    definitions.append(definition)
-                else:
-                    print(definition)
+                    if rule.get('floating'):
+                        definition += ", floating: True"
+
+                    if rule.get('after') and not self._data.gendiff:
+                        definition += ", after: \"" + rule['after'] + "\""
+                    definition += ", state: \"present\" }"
+                    if self._data.gendiff:
+                        definitions.append(definition)
+                    else:
+                        print(definition)
         definitions.sort()
         print('\n'.join(definitions))
 
@@ -2438,7 +2471,10 @@ class PFSenseRuleSeparatorFactory(object):
                 for interface in subrule.interfaces:
                     separator = PFSenseRuleSeparator()
                     separator.name = subrule.separator.name
-                    separator.interface = interface
+                    if rule.floating:
+                        separator.interface = 'floating'
+                    else:
+                        separator.interface = interface
                     if separator not in separators:
                         separators[separator] = separator
 
@@ -2446,7 +2482,10 @@ class PFSenseRuleSeparatorFactory(object):
         for separator in separators.values():
             definition = {}
             definition['name'] = separator.name
-            definition['interface'] = separator.interface
+            if separator.interface == 'floating':
+                definition['floating'] = True
+            else:
+                definition['interface'] = separator.interface
             definition['before'] = self._find_first_separator_rule(separator)
             if definition['before'] is None:
                 # for now we don't manage empty separators
@@ -2462,14 +2501,18 @@ class PFSenseRuleSeparatorFactory(object):
         print("          # Rule separators")
         print("          # ")
         interfaces = list(self._data.target.interfaces.keys())
+        interfaces.append('floating')
         definitions = list()
         for interface in interfaces:
             for separator in separators:
-                if interface != separator['interface']:
-                    continue
-                definition = "          - { name: \"" + separator['name'] + "\", interface: \"" + separator['interface']
-                definition += "\", before: \"" + separator['before'] + "\", state: \"present\" }"
-                definitions.append(definition)
+                if 'interface' in separator and interface == separator['interface'] or interface == 'floating' and 'floating' in separator:
+                    definition = "          - { name: \"" + separator['name'] + "\", "
+                    if interface == 'floating':
+                        definition += "floating: True, "
+                    else:
+                        definition += "interface: \"" + separator['interface'] + "\", "
+                    definition += "before: \"" + separator['before'] + "\", state: \"present\" }"
+                    definitions.append(definition)
         definitions.sort()
         print('\n'.join(definitions))
 
