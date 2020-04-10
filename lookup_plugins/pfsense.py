@@ -2261,33 +2261,17 @@ class PFSenseRuleFactory(object):
             for obj in objs:
                 group.add(obj)
 
-        new_rules = list()
-        for interface in sub_interfaces:
-            src_group_name = set()
-            dst_group_name = set()
-            src_group_ip = set()
-            dst_group_ip = set()
-            src_group_net = set()
-            dst_group_net = set()
-            subrule = None
-            for subrule in sub_interfaces[interface]:
-                src_group_name.add(subrule.src[0].name)
-                dst_group_name.add(subrule.dst[0].name)
-                _add_list(src_group_ip, subrule.src[0].ips)
-                _add_list(src_group_net, subrule.src[0].networks)
-                _add_list(dst_group_ip, subrule.dst[0].ips)
-                _add_list(dst_group_net, subrule.dst[0].networks)
-
+        def _aggregate_job(interface=None):
             # we create fake alias when required
             # we also use interfaces IP and NET when possible
             if len(src_group_name) != 1:
                 subrule.src[0] = self._data.get_hosts_alias(src_group_name, src_group_ip, src_group_net, rule.name)
-            elif (len(subrule.src[0].networks) == 1 and
+            elif (not rule.floating and len(subrule.src[0].networks) == 1 and
                   len(subrule.src[0].ips) == 0 and
                   subrule.src[0].networks[0] in self._data.target.interfaces[interface].local_networks):
                 subrule.src = deepcopy(subrule.src)
                 subrule.src[0].name = "NET:{0}".format(interface)
-            elif (len(subrule.src[0].networks) == 0 and
+            elif (not rule.floating and len(subrule.src[0].networks) == 0 and
                   len(subrule.src[0].ips) == 1 and
                   subrule.src[0].ips[0] in self._data.target.interfaces[interface].local_ips):
                 subrule.src = deepcopy(subrule.src)
@@ -2295,12 +2279,12 @@ class PFSenseRuleFactory(object):
 
             if len(dst_group_name) != 1:
                 subrule.dst[0] = self._data.get_hosts_alias(dst_group_name, dst_group_ip, dst_group_net, rule.name)
-            elif (len(subrule.dst[0].networks) == 1 and
+            elif (not rule.floating and len(subrule.dst[0].networks) == 1 and
                   len(subrule.dst[0].ips) == 0 and
                   subrule.dst[0].networks[0] in self._data.target.interfaces[interface].local_networks):
                 subrule.dst = deepcopy(subrule.dst)
                 subrule.dst[0].name = "NET:{0}".format(interface)
-            elif (len(subrule.dst[0].networks) == 0 and
+            elif (not rule.floating and len(subrule.dst[0].networks) == 0 and
                   len(subrule.dst[0].ips) == 1 and
                   subrule.dst[0].ips[0] in self._data.target.interfaces[interface].local_ips):
                 subrule.dst = deepcopy(subrule.dst)
@@ -2312,11 +2296,55 @@ class PFSenseRuleFactory(object):
                 existing_rule = copy(subrule)
                 existing_rule.interfaces = set()
                 new_rules.append(existing_rule)
-            existing_rule.interfaces.add(interface)
 
-            if interface not in interfaces:
-                interfaces[interface] = []
-                last_name[interface] = ""
+            if rule.floating:
+                for sub_interface in sub_interfaces:
+                    existing_rule.interfaces.add(sub_interface)
+                    if sub_interface not in interfaces:
+                        interfaces[sub_interface] = []
+                        last_name[sub_interface] = ""
+            else:
+                existing_rule.interfaces.add(interface)
+
+                if interface not in interfaces:
+                    interfaces[interface] = []
+                    last_name[interface] = ""
+
+        new_rules = list()
+        if rule.floating:
+            src_group_name = set()
+            dst_group_name = set()
+            src_group_ip = set()
+            dst_group_ip = set()
+            src_group_net = set()
+            dst_group_net = set()
+            subrule = None
+            for interface in sub_interfaces:
+                for subrule in sub_interfaces[interface]:
+                    src_group_name.add(subrule.src[0].name)
+                    dst_group_name.add(subrule.dst[0].name)
+                    _add_list(src_group_ip, subrule.src[0].ips)
+                    _add_list(src_group_net, subrule.src[0].networks)
+                    _add_list(dst_group_ip, subrule.dst[0].ips)
+                    _add_list(dst_group_net, subrule.dst[0].networks)
+            _aggregate_job()
+        else:
+            for interface in sub_interfaces:
+                src_group_name = set()
+                dst_group_name = set()
+                src_group_ip = set()
+                dst_group_ip = set()
+                src_group_net = set()
+                dst_group_net = set()
+                subrule = None
+                for subrule in sub_interfaces[interface]:
+                    src_group_name.add(subrule.src[0].name)
+                    dst_group_name.add(subrule.dst[0].name)
+                    _add_list(src_group_ip, subrule.src[0].ips)
+                    _add_list(src_group_net, subrule.src[0].networks)
+                    _add_list(dst_group_ip, subrule.dst[0].ips)
+                    _add_list(dst_group_net, subrule.dst[0].networks)
+                _aggregate_job(interface)
 
         if rule.floating and 'floating' not in interfaces:
             interfaces['floating'] = []

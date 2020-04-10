@@ -505,7 +505,10 @@ class PFSenseModuleAggregate(object):
                 continue
             if separator['name'] != name:
                 continue
-            if interface == 'floatingrules' and separator.get('floating') or self.pfsense.parse_interface(separator['interface']) == interface:
+            if separator.get('floating'):
+                if interface == 'floatingrules':
+                    return True
+            elif self.pfsense.parse_interface(separator['interface']) == interface:
                 return True
         return False
 
