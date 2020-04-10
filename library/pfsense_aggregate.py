@@ -452,10 +452,20 @@ class PFSenseModuleAggregate(object):
 
         return ('', '', '')
 
+    def _parse_floating_interfaces(self, interfaces):
+        """ parse interfaces """
+        res = set()
+        for interface in interfaces.split(','):
+            res.add(self.pfsense.parse_interface(interface))
+        return res
+
     def want_rule(self, rule_elt, rules):
         """ return True if we want to keep rule_elt """
         descr = rule_elt.find('descr')
         interface = rule_elt.find('interface')
+        floating = rule_elt.find('floating') is not None
+        if floating:
+            interfaces = set(interface.text.split(','))
 
         # probably not a rule
         if descr is None or interface is None:
@@ -464,8 +474,21 @@ class PFSenseModuleAggregate(object):
         for rule in rules:
             if rule['state'] == 'absent':
                 continue
-            if rule['name'] == descr.text and self.pfsense.parse_interface(rule['interface']) == interface.text:
-                return True
+            if rule['name'] != descr.text:
+                continue
+
+            rule_floating = (rule.get('floating') is not None and
+                             (isinstance(rule['floating'], bool) and
+                             rule['floating'] or rule['floating'].lower() in ['yes', 'true']))
+            if floating != rule_floating:
+                continue
+
+            if floating:
+                if not self._parse_floating_interfaces(rule['interface']) ^ interfaces:
+                    return True
+            else:
+                if self.pfsense.parse_interface(rule['interface']) == interface.text:
+                    return True
         return False
 
     def want_rule_separator(self, separator_elt, rule_separators):
@@ -478,7 +501,7 @@ class PFSenseModuleAggregate(object):
                 continue
             if separator['name'] != name:
                 continue
-            if self.pfsense.parse_interface(separator['interface']) == interface or interface == 'floatingrules' and separator.get('floating'):
+            if interface == 'floatingrules' and separator.get('floating') or self.pfsense.parse_interface(separator['interface']) == interface:
                 return True
         return False
 
