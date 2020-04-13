@@ -29,6 +29,7 @@ class PFSenseModule(object):
         get_interface_by_port,
         get_interfaces_networks,
         is_interface_display_name,
+        is_interface_group,
         is_interface_port,
         parse_interface,
     )
@@ -53,6 +54,7 @@ class PFSenseModule(object):
         self.root = self.tree.getroot()
         self.aliases = self.get_element('aliases')
         self.interfaces = self.get_element('interfaces')
+        self.ifgroups = self.get_element('ifgroups')
         self.rules = self.get_element('filter')
         self.shapers = self.get_element('shaper')
         self.dnshapers = self.get_element('dnshaper')

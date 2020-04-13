@@ -109,6 +109,17 @@ def is_interface_display_name(self, name):
     return False
 
 
+def is_interface_group(self, name):
+    """ determines if arg is an interface group name or not """
+    for interface in self.ifgroups:
+        ifname_elt = interface.find('ifname')
+        if ifname_elt is not None:
+            # ifgroup names appear to be case sensitive
+            if ifname_elt.text.strip() == name:
+                return True
+    return False
+
+
 def parse_interface(self, interface, fail=True, with_virtual=True):
     """ validate param interface field """
     if with_virtual and (interface == 'enc0' or interface.lower() == 'ipsec') and self.is_ipsec_enabled():
@@ -119,6 +130,8 @@ def parse_interface(self, interface, fail=True, with_virtual=True):
     if self.is_interface_display_name(interface):
         return self.get_interface_by_display_name(interface)
     elif self.is_interface_port(interface):
+        return interface
+    elif self.is_interface_group(interface):
         return interface
 
     if fail:
