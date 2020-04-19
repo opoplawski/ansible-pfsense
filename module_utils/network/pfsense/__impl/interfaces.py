@@ -30,6 +30,8 @@ def get_interface_display_name(self, interface_id, return_none=False):
     if interface_id == 'enc0':
         return 'IPsec'
     if interface_id == 'openvpn':
+        if return_none and not self.is_openvpn_enabled():
+            return None
         return 'OpenVPN'
 
     for interface in self.interfaces:
