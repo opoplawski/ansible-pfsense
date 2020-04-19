@@ -76,6 +76,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self._before = None                 # insert/move before
 
         self._position_changed = False
+        self.trackers = set()
 
     ##############################
     # params processing
@@ -146,6 +147,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
         res = []
         for interface in interfaces.split(','):
             res.append(self.pfsense.parse_interface(interface))
+        self._floating_interfaces = interfaces
         return ','.join(res)
 
     def _validate_params(self):
@@ -276,12 +278,29 @@ class PFSenseRuleModule(PFSenseModuleBase):
                 elif idx > start_idx:
                     row_elt.text = 'fr' + str(idx - 1)
 
+    def _check_tracker(self):
+        """ check the tracking used is unique and change it if required """
+        if not self.trackers:
+            trackers = self.root_elt.findall('tracker')
+            for tracker in trackers:
+                self.trackers.add(tracker.text)
+
+        start = int(time.time())
+        while self.obj['tracker'] in self.trackers:
+            start = start + 1
+            self.obj['tracker'] = str(start)
+
+        # keep the tracker for future calls if module is used with aggregate
+        self.trackers.add(self.obj['tracker'])
+
     def _copy_and_add_target(self):
         """ create the XML target_elt """
         timestamp = '%d' % int(time.time())
         self.obj['id'] = ''
         if 'tracker' not in self.obj:
             self.obj['tracker'] = timestamp
+        self._check_tracker()
+
         self.obj['created'] = self.obj['updated'] = dict()
         self.obj['created']['time'] = self.obj['updated']['time'] = timestamp
         self.obj['created']['username'] = self.obj['updated']['username'] = self.pfsense.get_username()
