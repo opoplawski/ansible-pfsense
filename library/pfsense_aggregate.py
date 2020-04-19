@@ -468,8 +468,6 @@ class PFSenseModuleAggregate(object):
         descr = rule_elt.find('descr')
         interface = rule_elt.find('interface')
         floating = rule_elt.find('floating') is not None
-        if floating:
-            interfaces = set(interface.text.split(','))
 
         # probably not a rule
         if descr is None or interface is None:
@@ -487,12 +485,8 @@ class PFSenseModuleAggregate(object):
             if floating != rule_floating:
                 continue
 
-            if floating:
-                if not self._parse_floating_interfaces(rule['interface']) ^ interfaces:
-                    return True
-            else:
-                if self.pfsense.parse_interface(rule['interface']) == interface.text:
-                    return True
+            if floating or self.pfsense.parse_interface(rule['interface']) == interface.text:
+                return True
         return False
 
     def want_rule_separator(self, separator_elt, rule_separators):
@@ -529,7 +523,8 @@ class PFSenseModuleAggregate(object):
                 return True
         return False
 
-    def want_interface(self, interface_elt, interfaces):
+    @staticmethod
+    def want_interface(interface_elt, interfaces):
         """ return True if we want to keep interface_elt """
         descr_elt = interface_elt.find('descr')
         if descr_elt is not None and descr_elt.text:
