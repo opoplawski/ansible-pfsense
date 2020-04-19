@@ -815,6 +815,8 @@ class PFSenseInterface(object):
     """ Class holding structured pfsense interface definition """
     def __init__(self):
         self.name = None
+        self.local_ip = None        # first ip defined
+        self.local_network = None   # first network defined
         self.local_ips = set()
         self.local_networks = set()
         self.remote_networks = set()
@@ -879,6 +881,22 @@ class PFSenseInterface(object):
                             return True
                 else:
                     raise AssertionError('wrong type in local_network_contains:' + type(address))
+        return False
+
+    def are_in_same_network(self, src, dst):
+        """ return true if both the aliases are in the same network on the interface """
+        def _match(snet, alias):
+            for ip in alias.ips:
+                if ip not in snet:
+                    return False
+            for net in alias.networks:
+                if not net.subnet_of(snet):
+                    return False
+            return True
+
+        for snet in self.local_networks:
+            if _match(snet, src) and _match(snet, dst):
+                return True
         return False
 
 
@@ -1743,6 +1761,8 @@ class PFSenseDataParser(object):
             # extracting & checking local network
             local_ips = set()
             local_networks = set()
+            first_local_ip = None
+            first_local_network = None
 
             tags = set()
             tags.add(iname)
@@ -1759,6 +1779,8 @@ class PFSenseDataParser(object):
                 for ip in interface['ip'].split():
                     try:
                         local_network = to_ip_network(to_unicode(ip), False)
+                        if first_local_network is None:
+                            first_local_network = local_network
                     except ValueError:
                         self._data.set_error("Invalid network " + ip + " in " + name)
                         return {}
@@ -1771,6 +1793,8 @@ class PFSenseDataParser(object):
                     group = re.match(r'([^\/]*)\/(\d+)', ip)
                     try:
                         local_ip = to_ip_address(to_unicode(group.group(1)))
+                        if first_local_ip is None:
+                            first_local_ip = local_ip
                     except ValueError:
                         self._data.set_error("Invalid ip " + ip + " in " + name)
                         return {}
@@ -1801,6 +1825,8 @@ class PFSenseDataParser(object):
 
             obj = PFSenseInterface()
             obj.name = iname
+            obj.local_ip = first_local_ip
+            obj.local_network = first_local_network
             obj.local_ips = local_ips
             obj.local_networks = local_networks
             obj.bridge = (interface.get('bridge'))
@@ -2263,11 +2289,15 @@ class PFSenseRuleFactory(object):
                     'Invalid local interfaces count for {0}: {1}'
                     .format(rule_obj.name, len(rule_obj.dst[0].local_interfaces[self._data.target.name])))
 
-            # if they are both on the same interface, we return nothing, unless the interface is a bridge
-            # or the pfsense is the source/destination of the rule
+            # if they are both on the same interface, we dont need any rule when:
+            # - the interface is not a bridge
+            # - src and dst are in the same network on the interface
+            # - the pfsense is not the source/destination of the rule
             src_interface = ''.join(rule_obj.src[0].local_interfaces[self._data.target.name])
             dst_interface = ''.join(rule_obj.dst[0].local_interfaces[self._data.target.name])
-            if src_interface == dst_interface and not self._data.target.interfaces[src_interface].bridge:
+            if (src_interface == dst_interface and
+                    not self._data.target.interfaces[src_interface].bridge and
+                    self._data.target.interfaces[src_interface].are_in_same_network(rule_obj.src[0], rule_obj.dst[0])):
                 if not rule_obj.src[0].match_local_interface_ip(self._data.target) and not rule_obj.dst[0].match_local_interface_ip(self._data.target):
                     return set()
 
@@ -2458,12 +2488,12 @@ class PFSenseRuleFactory(object):
                 src = self._data.get_hosts_alias(src_group_name, src_group_ip, src_group_net, rule.name)
             elif (not rule.floating and len(subrule.src[0].networks) == 1 and
                   len(subrule.src[0].ips) == 0 and
-                  subrule.src[0].networks[0] in self._data.target.interfaces[interface].local_networks):
+                  subrule.src[0].networks[0] == self._data.target.interfaces[interface].local_network):
                 src = deepcopy(subrule.src[0])
                 src.name = "NET:{0}".format(interface)
             elif (not rule.floating and len(subrule.src[0].networks) == 0 and
                   len(subrule.src[0].ips) == 1 and
-                  subrule.src[0].ips[0] in self._data.target.interfaces[interface].local_ips):
+                  subrule.src[0].ips[0] == self._data.target.interfaces[interface].local_ip):
                 src = deepcopy(subrule.src[0])
                 src.name = "IP:{0}".format(interface)
 
@@ -2471,12 +2501,12 @@ class PFSenseRuleFactory(object):
                 dst = self._data.get_hosts_alias(dst_group_name, dst_group_ip, dst_group_net, rule.name)
             elif (not rule.floating and len(subrule.dst[0].networks) == 1 and
                   len(subrule.dst[0].ips) == 0 and
-                  subrule.dst[0].networks[0] in self._data.target.interfaces[interface].local_networks):
+                  subrule.dst[0].networks[0] == self._data.target.interfaces[interface].local_network):
                 dst = deepcopy(subrule.dst[0])
                 dst.name = "NET:{0}".format(interface)
             elif (not rule.floating and len(subrule.dst[0].networks) == 0 and
                   len(subrule.dst[0].ips) == 1 and
-                  subrule.dst[0].ips[0] in self._data.target.interfaces[interface].local_ips):
+                  subrule.dst[0].ips[0] == self._data.target.interfaces[interface].local_ip):
                 dst = deepcopy(subrule.dst[0])
                 dst.name = "IP:{0}".format(interface)
 
