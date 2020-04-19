@@ -1582,16 +1582,22 @@ class PFSenseDataParser(object):
 
         # if pf_paris has lan and wan interfaces declared, we will generate
         # - pf_paris with all its ips
-        # - pf_paris_net with all its subnets
+        # - pf_paris_nets with all its subnets
 
         # - pf_paris_lan and pf_paris_wan containing pf_paris lan and wan ips (respectivly)
         # - pf_paris_lan_net and pf_paris_wan_net containing pf_paris lan and wan subnets (respectivly)
 
         # - all_lan and all_wan containing all pfsenses lan and wan ips (respectivly)
-        # - all_lan_net and all_wan_net containing all pfsenses lan and wan subnets (respectivly)
+        # - all_lan_nets and all_wan_nets containing all pfsenses lan and wan subnets (respectivly)
+
+        # if lan has a tag named 'voip':
+        # - pf_paris_voip containing pf_paris lan ip
+        # - pf_paris_voip_net containing pf_paris subnet
+        # - all_voip containing all pfsenses ips of interfaces with tag voip
+        # - all_voip_nets containing all pfsenses subnets of interfaces with tag voip
 
         # - all_pfsenses containing all pfsenses ips
-        # - all_pfsenses_net containing all pfsenses subnets
+        # - all_pfsenses_nets containing all pfsenses subnets
 
         # all_pfsenses
         all_pfsenses_definition = list()
@@ -1599,10 +1605,10 @@ class PFSenseDataParser(object):
         # all_lan, all_wan
         all_pfsenses_interfaces_definition = dict()
 
-        # all_pfsenses_net
+        # all_pfsenses_nets
         net_all_pfsenses_definition = list()
 
-        # all_lan_net, all_wan_net
+        # all_lan_nets, all_wan_nets
         net_all_pfsenses_interfaces_definition = dict()
 
         for name, pfsense in self._data.pfsenses.items():
@@ -1613,7 +1619,7 @@ class PFSenseDataParser(object):
             # pf_paris
             pfsense_definition = list()
 
-            # pf_paris_net
+            # pf_paris_nets
             net_pfsense_definition = list()
 
             for iname, interface in pfsense['interfaces'].items():
@@ -2845,7 +2851,7 @@ class LookupModule(LookupBase):
             raise
         except AssertionError:
             raise
-        except:
+        except Exception:
             trace = traceback.format_exc()
         finally:
             if trace is not None:
@@ -2918,7 +2924,7 @@ def main():
     parser = PFSenseDataParser(data)
     print('Parsing data...')
     if not parser.parse():
-        return False
+        return
 
     alias_factory = PFSenseAliasFactory(data)
     rule_factory = PFSenseRuleFactory(data)
