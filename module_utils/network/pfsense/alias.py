@@ -71,8 +71,9 @@ class PFSenseAliasModule(PFSenseModuleBase):
             # the GUI does not allow to create 2 aliases with same name and differents types
             alias_elt = self.pfsense.find_alias(params['name'])
             if alias_elt is not None:
-                if params['type'] != alias_elt.find('type').text:
-                    self.module.fail_json(msg='An alias with this name and a different type already exists: \'{0}\''.format(params['name']))
+                if params['type'] not in ['host', 'network'] or alias_elt.find('type').text not in ['host', 'network']:
+                    if params['type'] != alias_elt.find('type').text:
+                        self.module.fail_json(msg='An alias with this name and a different type already exists: \'{0}\''.format(params['name']))
 
             if self.pfsense.get_interface_by_display_name(params['name']) is not None:
                 self.module.fail_json(msg='An interface description with this name already exists: \'{0}\''.format(params['name']))
@@ -166,6 +167,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('aliases'); }''')
             values += self.format_cli_field(self.obj, 'descr')
             values += self.format_cli_field(self.obj, 'detail')
         else:
+            values += self.format_updated_cli_field(self.obj, before, 'type', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'address', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'updatefreq', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'descr', add_comma=(values))
