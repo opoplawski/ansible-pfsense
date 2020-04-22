@@ -113,12 +113,13 @@ def is_interface_display_name(self, name):
 
 def is_interface_group(self, name):
     """ determines if arg is an interface group name or not """
-    for interface in self.ifgroups:
-        ifname_elt = interface.find('ifname')
-        if ifname_elt is not None:
-            # ifgroup names appear to be case sensitive
-            if ifname_elt.text.strip() == name:
-                return True
+    if self.ifgroups is not None:
+        for interface in self.ifgroups:
+            ifname_elt = interface.find('ifname')
+            if ifname_elt is not None:
+                # ifgroup names appear to be case sensitive
+                if ifname_elt.text.strip() == name:
+                    return True
     return False
 
 
