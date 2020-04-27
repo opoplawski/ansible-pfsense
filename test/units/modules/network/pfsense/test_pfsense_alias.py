@@ -192,9 +192,9 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     #
     def test_urltable_create(self):
         """ test creation of a new urltable alias """
-        alias = dict(name='acme', address='http://www.acme.com', descr='', type='urltable', updatefreq='10', detail='')
+        alias = dict(name='acme_table', address='http://www.acme.com', descr='', type='urltable', updatefreq='10', detail='')
         alias['url'] = alias['address']
-        command = "create alias 'acme', type='urltable', address='http://www.acme.com', updatefreq='10', descr='', detail=''"
+        command = "create alias 'acme_table', type='urltable', address='http://www.acme.com', updatefreq='10', descr='', detail=''"
         self.do_alias_creation_test(alias, command=command)
 
     def test_urltable_delete(self):
@@ -233,9 +233,9 @@ class TestPFSenseAliasModule(TestPFSenseModule):
 
     def test_urltable_ports_create(self):
         """ test creation of a new urltable_ports alias """
-        alias = dict(name='acme', address='http://www.acme.com', descr='', type='urltable_ports', updatefreq='10', detail='')
+        alias = dict(name='acme_table', address='http://www.acme.com', descr='', type='urltable_ports', updatefreq='10', detail='')
         alias['url'] = alias['address']
-        command = "create alias 'acme', type='urltable_ports', address='http://www.acme.com', updatefreq='10', descr='', detail=''"
+        command = "create alias 'acme_table', type='urltable_ports', address='http://www.acme.com', updatefreq='10', descr='', detail=''"
         self.do_alias_creation_test(alias, command=command)
 
     ##############
@@ -315,12 +315,12 @@ class TestPFSenseAliasModule(TestPFSenseModule):
 
     def test_urltable_required_if(self):
         """ test creation of a new urltable alias without giving updatefreq (should fail) """
-        alias = dict(name='acme', address='http://www.acme.com', descr='', type='urltable', detail='')
+        alias = dict(name='acme_table', address='http://www.acme.com', descr='', type='urltable', detail='')
         set_module_args(args_from_var(alias))
         self.execute_module(failed=True, msg='type is urltable but all of the following are missing: updatefreq')
 
     def test_urltable_ports_required_if(self):
         """ test creation of a new urltable_ports alias without giving updatefreq (should fail) """
-        alias = dict(name='acme', address='http://www.acme.com', descr='', type='urltable_ports', detail='')
+        alias = dict(name='acme_table', address='http://www.acme.com', descr='', type='urltable_ports', detail='')
         set_module_args(args_from_var(alias))
         self.execute_module(failed=True, msg='type is urltable_ports but all of the following are missing: updatefreq')
