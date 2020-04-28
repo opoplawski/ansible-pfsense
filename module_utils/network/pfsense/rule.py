@@ -77,6 +77,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
 
         self._position_changed = False
         self.trackers = set()
+        self.unmanaged_elements = RULE_UNMANAGED_ELEMENTS
 
     ##############################
     # params processing
@@ -499,6 +500,18 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self._position_changed = True
         return True
 
+    def get_all(self, return_unmanaged=False):
+        """ return all rule entries """
+        all_rules = list()
+        # Separators are also in <filter>
+        for this_elt in self.root_elt.findall('rule'):
+            params = self._rule_element_to_dict(this_elt)
+            if not return_unmanaged:
+                for param in self.unmanaged_elements:
+                    params.pop(param, '')
+            all_rules.append(params)
+        return all_rules
+
     ##############################
     # run
     #
@@ -508,9 +521,11 @@ class PFSenseRuleModule(PFSenseModuleBase):
         self.diff['before'] = self._rule_element_to_dict()
         self.result['deleted'].append(self._rule_element_to_dict())
 
-    def _rule_element_to_dict(self):
+    def _rule_element_to_dict(self, source_elt=None):
         """ convert rule_elt to dictionary like module arguments """
-        rule = self.pfsense.element_to_dict(self.target_elt)
+        if source_elt is None:
+            source_elt = self.target_elt
+        rule = self.pfsense.element_to_dict(source_elt)
 
         # We use 'name' for 'descr'
         rule['name'] = rule.pop('descr', 'UNKNOWN')

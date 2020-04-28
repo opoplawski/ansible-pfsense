@@ -144,6 +144,39 @@ class PFSenseRuleSeparatorModule(PFSenseModuleBase):
                     separator_elt.tag = name
                 i += 1
 
+    def _rule_separator_element_to_dict(self, source_elt=None):
+        """ convert source_elt to dictionary like module arguments """
+        if source_elt is None:
+            source_elt = self.target_elt
+        rule_separator = self.pfsense.element_to_dict(source_elt)
+
+        # We use 'name' for 'text'
+        rule_separator['name'] = rule_separator.pop('text', 'UNKNOWN')
+
+        # Floating is a separate parameter
+        interface = rule_separator.pop('if', 'UNKNOWN')
+        if interface == 'floatingrules':
+            rule_separator['floating'] = 'yes'
+        else:
+            rule_separator['interface'] = interface 
+
+        # Strip 'bg-' from color
+        rule_separator['color'] = rule_separator['color'][3:]
+        # TODO - convert row to 'after'
+        # Strip 'fr' from row
+        rule_separator['row'] = rule_separator['row'][2:]
+
+
+        return rule_separator
+
+    def get_all(self, return_unmanaged=False):
+        """ return all entries """
+        all_items = list()
+        for this_elt in self.separators.iter():
+            if this_elt.find('if') is not None:
+                all_items.append(self._rule_separator_element_to_dict(this_elt))
+        return all_items
+
     ##############################
     # run
     #

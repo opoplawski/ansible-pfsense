@@ -35,6 +35,7 @@ class PFSenseModuleBase(object):
         self.result['changed'] = False
         self.result['commands'] = []
 
+        self.unmanaged_elements = [ 'created', 'updated' ]
         self.diff = {'after': {}, 'before': {}}
         self.result['diff'] = self.diff
 
@@ -120,6 +121,17 @@ class PFSenseModuleBase(object):
         """ delete target_elt from xml """
         self.root_elt.remove(self.target_elt)
         self.result['changed'] = True
+
+    def get_all(self, return_unmanaged=False):
+        """ return all entries """
+        all_items = list()
+        for this_elt in self.root_elt:
+            params = self.pfsense.element_to_dict(this_elt)
+            if not return_unmanaged:
+                for param in self.unmanaged_elements:
+                    params.pop(param, '')
+            all_items.append(params)
+        return all_items
 
     ##############################
     # run
