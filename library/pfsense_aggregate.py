@@ -138,6 +138,159 @@ options:
         description: Blocks traffic from reserved IP addresses (but not RFC 1918) or not yet assigned by IANA.
         required: false
         type: bool
+  aggregated_nat_outbounds:
+    description: Dict of nat_outbound rules to apply on the target
+    required: False
+    type: list
+    suboptions:
+      descr:
+        description: The name of the nat rule
+        required: true
+        default: null
+        type: str
+      disabled:
+        description: Is the rule disabled
+        default: false
+        type: bool
+      nonat:
+        description: This option will disable NAT for traffic matching this rule and stop processing Outbound NAT rules
+        default: false
+        type: bool
+      interface:
+        description: The interface for the rule
+        required: false
+        type: str
+      ipprotocol:
+        description: The Internet Protocol version this rule applies to.
+        default: inet46
+        choices: [ "inet", "inet46", "inet6" ]
+        type: str
+      protocol:
+        description: Which protocol this rule should match.
+        default: any
+        choices: [ "any", "tcp", "udp", "tcp/udp", "icmp", "esp", "ah", "gre", "ipv6", "igmp", "carp", "pfsync" ]
+        type: str
+      source:
+        description: The matching source address, in {any,(self),ALIAS,NETWORK}[:port] format.
+        required: false
+        default: null
+        type: str
+      destination:
+        description: The matching destination address, in {any,ALIAS,NETWORK}[:port] format.
+        required: false
+        default: null
+        type: str
+      invert:
+        description: Invert the sense of the destination match.
+        default: false
+        type: bool
+      address:
+        description: The translated to address, in {ALIAS,NETWORK}[:port] format. Leave address part empty to use interface address.
+        required: false
+        default: null
+        type: str
+      poolopts:
+        description: When an address pool is used, there are several options available that control how NAT translations happen on the pool.
+        default: ""
+        choices: [ "", "round-robin", "round-robin sticky-address", "random", "random sticky-address", "source-hash", "bitmask" ]
+        type: str
+      source_hash_key:
+        description: >
+            The key that is fed to the hashing algorithm in hex format, preceeded by "0x", or any string.
+            A non-hex string is hashed using md5 to a hexadecimal key. Defaults to a randomly generated value.
+        required: false
+        default: ''
+        type: str
+      staticnatport:
+        description: Do not randomize source port
+        default: false
+        type: bool
+      nosync:
+        description: >
+            Prevents the rule on Master from automatically syncing to other CARP members.
+            This does NOT prevent the rule from being overwritten on Slave.
+        default: false
+        type: bool
+      state:
+        description: State in which to leave the rule
+        default: present
+        choices: [ "present", "absent" ]
+        type: str
+      after:
+        description: Rule to go after, or "top"
+        type: str
+      before:
+        description: Rule to go before, or "bottom"
+        type: str
+  aggregated_nat_port_forwards:
+    description: Dict of nat_port_forward rules to apply on the target
+    required: False
+    type: list
+    suboptions:
+      descr:
+        description: The name of the nat rule
+        required: true
+        default: null
+        type: str
+      disabled:
+        description: Is the rule disabled
+        default: false
+        type: bool
+      nordr:
+        description: Disable redirection for traffic matching this rule
+        default: false
+        type: bool
+      interface:
+        description: The interface for the rule
+        required: false
+        type: str
+      protocol:
+        description: Which protocol this rule should match.
+        default: tcp
+        choices: [ "tcp", "udp", "tcp/udp", "icmp", "esp", "ah", "gre", "ipv6", "igmp", "pim", "ospf" ]
+        type: str
+      source:
+        description: The source address, in [!]{IP,HOST,ALIAS,any,IP:INTERFACE,NET:INTERFACE}[:port] format.
+        default: null
+        type: str
+      destination:
+        description: The destination address, in [!]{IP,HOST,ALIAS,any,IP:INTERFACE,NET:INTERFACE}[:port] format.
+        default: null
+        type: str
+      target:
+        description: The translated to address, in {ALIAS,IP}[:port] format.
+        required: false
+        default: null
+        type: str
+      natreflection:
+        description: Allows NAT reflection to be enabled or disabled on a per-port forward basis.
+        default: system-default
+        choices: [ "system-default", "enable", "purenat", "disable" ]
+        type: str
+      associated_rule:
+        description: >
+          Choose one of Add an associated filter rule gets updated when the port forward is updated,
+          or Add an unassociated filter rule, or pass which passes all traffic that matches the entry without having a firewall rule at all.
+        default: associated
+        choices: [ "associated", "unassociated", "pass", "none" ]
+        type: str
+      nosync:
+        description: >
+            Prevents the rule on Master from automatically syncing to other CARP members.
+            This does NOT prevent the rule from being overwritten on Slave.
+        default: false
+        type: bool
+      state:
+        description: State in which to leave the rule
+        default: present
+        choices: [ "present", "absent" ]
+        type: str
+      after:
+        description: Rule to go after, or "top"
+        type: str
+      before:
+        description: Rule to go before, or "bottom"
+        type: str
   aggregated_rules:
     description: Dict of rules to apply on the target
     required: False
@@ -328,6 +481,16 @@ options:
     required: False
     default: False
     type: bool
+  purge_nat_outbounds:
+    description: delete all the nat_outbound rules that are not defined into aggregated_nat_outbounds
+    required: False
+    default: False
+    type: bool
+  purge_nat_port_forwards:
+    description: delete all the nat_port_forward rules that are not defined into aggregated_nat_port_forwards
+    required: False
+    default: False
+    type: bool
   purge_rules:
     description: delete all the rules that are not defined into aggregated_rules
     required: False
@@ -407,14 +570,24 @@ result_vlans:
 
 from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
 from ansible.module_utils.network.pfsense.alias import PFSenseAliasModule, ALIAS_ARGUMENT_SPEC, ALIAS_REQUIRED_IF
-from ansible.module_utils.network.pfsense.interface import PFSenseInterfaceModule
-from ansible.module_utils.network.pfsense.interface import INTERFACE_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.interface import INTERFACE_REQUIRED_IF
+from ansible.module_utils.network.pfsense.interface import (
+    PFSenseInterfaceModule,
+    INTERFACE_ARGUMENT_SPEC,
+    INTERFACE_REQUIRED_IF
+)
+from ansible.module_utils.network.pfsense.nat_outbound import PFSenseNatOutboundModule, NAT_OUTBOUND_ARGUMENT_SPEC, NAT_OUTBOUD_REQUIRED_IF
+from ansible.module_utils.network.pfsense.nat_port_forward import (
+    PFSenseNatPortForwardModule,
+    NAT_PORT_FORWARD_ARGUMENT_SPEC,
+    NAT_PORT_FORWARD_REQUIRED_IF
+)
 from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule, RULE_ARGUMENT_SPEC, RULE_REQUIRED_IF
-from ansible.module_utils.network.pfsense.rule_separator import PFSenseRuleSeparatorModule
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_ARGUMENT_SPEC
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_REQUIRED_ONE_OF
-from ansible.module_utils.network.pfsense.rule_separator import RULE_SEPARATOR_MUTUALLY_EXCLUSIVE
+from ansible.module_utils.network.pfsense.rule_separator import (
+    PFSenseRuleSeparatorModule,
+    RULE_SEPARATOR_ARGUMENT_SPEC,
+    RULE_SEPARATOR_REQUIRED_ONE_OF,
+    RULE_SEPARATOR_MUTUALLY_EXCLUSIVE,
+)
 from ansible.module_utils.network.pfsense.vlan import PFSenseVlanModule, VLAN_ARGUMENT_SPEC
 
 from ansible.module_utils.basic import AnsibleModule
@@ -428,6 +601,8 @@ class PFSenseModuleAggregate(object):
         self.pfsense = PFSenseModule(module)
         self.pfsense_aliases = PFSenseAliasModule(module, self.pfsense)
         self.pfsense_interfaces = PFSenseInterfaceModule(module, self.pfsense)
+        self.pfsense_nat_outbounds = PFSenseNatOutboundModule(module, self.pfsense)
+        self.pfsense_nat_port_forwards = PFSenseNatPortForwardModule(module, self.pfsense)
         self.pfsense_rules = PFSenseRuleModule(module, self.pfsense)
         self.pfsense_rule_separators = PFSenseRuleSeparatorModule(module, self.pfsense)
         self.pfsense_vlans = PFSenseVlanModule(module, self.pfsense)
@@ -463,7 +638,7 @@ class PFSenseModuleAggregate(object):
             res.add(self.pfsense.parse_interface(interface))
         return res
 
-    def want_rule(self, rule_elt, rules):
+    def want_rule(self, rule_elt, rules, name_field='name'):
         """ return True if we want to keep rule_elt """
         descr = rule_elt.find('descr')
         interface = rule_elt.find('interface')
@@ -476,7 +651,7 @@ class PFSenseModuleAggregate(object):
         for rule in rules:
             if rule['state'] == 'absent':
                 continue
-            if rule['name'] != descr.text:
+            if rule[name_field] != descr.text:
                 continue
 
             rule_floating = (rule.get('floating') is not None and
@@ -640,6 +815,76 @@ class PFSenseModuleAggregate(object):
                 continue
             self.pfsense_rules.run(params)
 
+    def run_nat_outbounds_rules(self):
+        """ process input params to add/update/delete all nat_outbound rules """
+
+        want = self.module.params['aggregated_nat_outbounds']
+        interface_filter = self.module.params['interface_filter'].lower().split(' ') if self.module.params.get('interface_filter') is not None else None
+
+        if want is None:
+            return
+
+        # delete every other rule if required
+        if self.module.params['purge_nat_outbounds']:
+            todel = []
+            for rule_elt in self.pfsense_nat_outbounds.root_elt:
+                if not self.want_rule(rule_elt, want, name_field='descr'):
+                    params = {}
+                    params['state'] = 'absent'
+                    params['descr'] = rule_elt.find('descr').text
+                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text, return_none=True)
+
+                    if params['interface'] is None:
+                        continue
+
+                    todel.append(params)
+
+            for params in todel:
+                if self.is_filtered(interface_filter, params):
+                    continue
+                self.pfsense_nat_outbounds.run(params)
+
+        # processing aggregated parameters
+        for params in want:
+            if self.is_filtered(interface_filter, params):
+                continue
+            self.pfsense_nat_outbounds.run(params)
+
+    def run_nat_port_forwards_rules(self):
+        """ process input params to add/update/delete all nat_port_forwards_rule rules """
+
+        want = self.module.params['aggregated_nat_port_forwards']
+        interface_filter = self.module.params['interface_filter'].lower().split(' ') if self.module.params.get('interface_filter') is not None else None
+
+        if want is None:
+            return
+
+        # delete every other rule if required
+        if self.module.params['purge_nat_port_forwards']:
+            todel = []
+            for rule_elt in self.pfsense_nat_port_forwards.root_elt:
+                if not self.want_rule(rule_elt, want, name_field='descr'):
+                    params = {}
+                    params['state'] = 'absent'
+                    params['descr'] = rule_elt.find('descr').text
+                    params['interface'] = self.pfsense.get_interface_display_name(rule_elt.find('interface').text, return_none=True)
+
+                    if params['interface'] is None:
+                        continue
+
+                    todel.append(params)
+
+            for params in todel:
+                if self.is_filtered(interface_filter, params):
+                    continue
+                self.pfsense_nat_port_forwards.run(params)
+
+        # processing aggregated parameters
+        for params in want:
+            if self.is_filtered(interface_filter, params):
+                continue
+            self.pfsense_nat_port_forwards.run(params)
+
     def run_aliases(self):
         """ process input params to add/update/delete all aliases """
         want = self.module.params['aggregated_aliases']
@@ -756,7 +1001,8 @@ class PFSenseModuleAggregate(object):
         stdout = ''
         stderr = ''
         changed = (
-            self.pfsense_aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_rules.result['changed']
+            self.pfsense_aliases.result['changed'] or self.pfsense_interfaces.result['changed'] or self.pfsense_nat_outbounds.result['changed']
+            or self.pfsense_nat_port_forwards.result['changed'] or self.pfsense_rules.result['changed']
             or self.pfsense_rule_separators.result['changed'] or self.pfsense_vlans.result['changed']
         )
 
@@ -767,6 +1013,8 @@ class PFSenseModuleAggregate(object):
         result = {}
         result['result_aliases'] = self.pfsense_aliases.result['commands']
         result['result_interfaces'] = self.pfsense_interfaces.result['commands']
+        result['result_nat_outbounds'] = self.pfsense_nat_outbounds.result['commands']
+        result['result_nat_port_forwards'] = self.pfsense_nat_port_forwards.result['commands']
         result['result_rules'] = self.pfsense_rules.result['commands']
         result['result_rule_separators'] = self.pfsense_rule_separators.result['commands']
         result['result_vlans'] = self.pfsense_vlans.result['commands']
@@ -781,6 +1029,8 @@ def main():
         aggregated_aliases=dict(type='list', elements='dict', options=ALIAS_ARGUMENT_SPEC, required_if=ALIAS_REQUIRED_IF),
         aggregated_interfaces=dict(type='list', elements='dict', options=INTERFACE_ARGUMENT_SPEC, required_if=INTERFACE_REQUIRED_IF),
         aggregated_rules=dict(type='list', elements='dict', options=RULE_ARGUMENT_SPEC, required_if=RULE_REQUIRED_IF),
+        aggregated_nat_outbounds=dict(type='list', elements='dict', options=NAT_OUTBOUND_ARGUMENT_SPEC, required_if=NAT_OUTBOUD_REQUIRED_IF),
+        aggregated_nat_port_forwards=dict(type='list', elements='dict', options=NAT_PORT_FORWARD_ARGUMENT_SPEC, required_if=NAT_PORT_FORWARD_REQUIRED_IF),
         aggregated_rule_separators=dict(
             type='list', elements='dict',
             options=RULE_SEPARATOR_ARGUMENT_SPEC, required_one_of=RULE_SEPARATOR_REQUIRED_ONE_OF, mutually_exclusive=RULE_SEPARATOR_MUTUALLY_EXCLUSIVE),
@@ -788,13 +1038,23 @@ def main():
         order_rules=dict(default=False, type='bool'),
         purge_aliases=dict(default=False, type='bool'),
         purge_interfaces=dict(default=False, type='bool'),
+        purge_nat_outbounds=dict(default=False, type='bool'),
+        purge_nat_port_forwards=dict(default=False, type='bool'),
         purge_rules=dict(default=False, type='bool'),
         purge_rule_separators=dict(default=False, type='bool'),
         purge_vlans=dict(default=False, type='bool'),
         interface_filter=dict(required=False, type='str'),
     )
 
-    required_one_of = [['aggregated_aliases', 'aggregated_interfaces', 'aggregated_rules', 'aggregated_rule_separators', 'aggregated_vlans']]
+    required_one_of = [[
+        'aggregated_aliases',
+        'aggregated_interfaces',
+        'aggregated_nat_outbounds',
+        'aggregated_nat_port_forwards',
+        'aggregated_rules',
+        'aggregated_rule_separators',
+        'aggregated_vlans'
+    ]]
 
     module = AnsibleModule(
         argument_spec=argument_spec,
@@ -807,6 +1067,8 @@ def main():
     pfmodule.run_interfaces()
 
     pfmodule.run_aliases()
+    pfmodule.run_nat_outbounds_rules()
+    pfmodule.run_nat_port_forwards_rules()
     pfmodule.run_rules()
     pfmodule.run_rule_separators()
 

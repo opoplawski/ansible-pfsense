@@ -194,7 +194,10 @@ class PFSenseNatPortForwardModule(PFSenseModuleBase):
             interface = self.params['interface']
         self.pfsense_rule_module = PFSenseRuleModule(self.module, self.pfsense)
         params = dict()
-        params['name'] = 'NAT ' + self.params['descr']
+        if self.params['descr'] is None:
+            params['name'] = 'NAT '
+        else:
+            params['name'] = 'NAT ' + self.params['descr']
         params['interface'] = interface
         params['state'] = 'absent'
         params['associated-rule-id'] = ruleid
@@ -337,7 +340,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('natconf'); clear_subsystem
     #
     def _get_obj_name(self):
         """ return obj's name """
-        return "'" + self.obj['descr'] + "'"
+        return "'{0}'".format(self.obj['descr'])
 
     @staticmethod
     def fassociate(value):

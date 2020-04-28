@@ -209,7 +209,7 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
             if self.params['before'] == self.params['descr']:
                 self.module.fail_json(msg='Cannot specify the current rule in before')
 
-        if self.params['source_hash_key'].startswith('0x'):
+        if self.params.get('source_hash_key') is not None and self.params['source_hash_key'].startswith('0x'):
             hash = self.params['source_hash_key'][2:]
             if len(hash) != 32 or not all(c in hexdigits for c in hash):
                 self.module.fail_json(msg='Incorrect format for source-hash key, \"0x\" must be followed by exactly 32 hexadecimal characters.')
@@ -350,7 +350,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('natconf'); clear_subsystem
     #
     def _get_obj_name(self):
         """ return obj's name """
-        return "'" + self.obj['descr'] + "'"
+        return "'{0}'".format(self.obj['descr'])
 
     @staticmethod
     def fvalue_protocol(value):
