@@ -60,7 +60,10 @@ issues: https://github.com/pfsensible/core/issues
 
 
 build_ignore:
+  - .gitignore
+  - .travis.yml
   - '*.tar.gz'
   - examples
   - misc
+  - setup.cfg
   - tests
