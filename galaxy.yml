@@ -63,4 +63,4 @@ build_ignore:
   - '*.tar.gz'
   - examples
   - misc
-  - test
+  - tests
