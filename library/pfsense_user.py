@@ -93,11 +93,11 @@ from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 USER_PHP_COMMAND_PREFIX = """
 require_once('auth.inc');
 init_config_arr(array('system', 'user'));
-$a_user = &$config['system']['user'];
-$userent = $a_user[{idx}];
 """
 
 USER_PHP_COMMAND_SET = USER_PHP_COMMAND_PREFIX + """
+$a_user = &$config['system']['user'];
+$userent = $a_user[{idx}];
 local_user_set($userent);
 foreach ({mod_groups} as $groupname) {{
     $group = &$config['system']['group'][$groupindex[$groupname]];
@@ -108,7 +108,10 @@ if (is_dir("/etc/inc/privhooks")) {{
 }}
 """
 
+# This runs after we remove the group from the config so we can't use $config
 USER_PHP_COMMAND_DEL = USER_PHP_COMMAND_PREFIX + """
+$userent['name'] = '{name}';
+$userent['uid'] = {uid};
 foreach ({mod_groups} as $groupname) {{
     $group = &$config['system']['group'][$groupindex[$groupname]];
     local_group_set($group);
@@ -298,17 +301,18 @@ class PFSenseUserModule(PFSenseModuleBase):
         if self.params['state'] == 'present':
             return self.pfsense.phpshell(USER_PHP_COMMAND_SET.format(idx=self._find_this_user_index(), mod_groups=self.mod_groups))
         else:
-            return self.pfsense.phpshell(USER_PHP_COMMAND_DEL.format(cmd='del', idx=self._find_this_user_index(), mod_groups=self.mod_groups))
+            return self.pfsense.phpshell(USER_PHP_COMMAND_DEL.format(name=self.obj['name'], uid=self.obj['uid'], mod_groups=self.mod_groups))
 
     def _pre_remove_target_elt(self):
         self.diff['after'] = {}
         if self.target_elt is not None:
             changed = True
             self.diff['before'] = self.pfsense.element_to_dict(self.target_elt)
-            uid = self.target_elt.find('uid').text
+            # Store uid for _update()
+            self.obj['uid'] = self.target_elt.find('uid').text
 
             # Get current group membership
-            self.diff['before']['groups'] = self._find_groups_for_uid(uid)
+            self.diff['before']['groups'] = self._find_groups_for_uid(self.obj['uid'])
 
             # Remove user from groups if needed
             for group in self.diff['before']['groups']:
@@ -316,7 +320,7 @@ class PFSenseUserModule(PFSenseModuleBase):
                 if group_elt is None:
                     self.module.fail_json(msg='Group (%s) does not exist' % group)
                 for member_elt in group_elt.findall('member'):
-                    if member_elt.text == uid:
+                    if member_elt.text == self.obj['uid']:
                         self.mod_groups.append(group)
                         group_elt.remove(member_elt)
                         break
