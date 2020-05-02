@@ -160,7 +160,7 @@ class PFSenseModuleBase(object):
 
     def _pre_remove_target_elt(self):
         """ processing before removing elt """
-        pass
+        self.diff['before'] = self.pfsense.element_to_dict(self.target_elt)
 
     def _remove(self):
         """ delete obj """
