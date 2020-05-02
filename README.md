@@ -32,14 +32,16 @@ Just checkout the [repository](https://github.com/opoplawski/ansible-pfsense) an
 
 ## Configuration
 
-The Python interpreter is in a non-standard location on pfSense, so you will
-need to set in your playbook or hosts vars:
+Current ansible (2.9) python discovery should detect the installed python.  If not, you can set in your playbook or hosts vars:
 
+pfSense >= 2.4.5:
+```
+ansible_python_interpreter: /usr/local/bin/python3.7
+```
+pfSense < 2.4.5:
 ```
 ansible_python_interpreter: /usr/local/bin/python2.7
 ```
-
-Note: starting with pfSense 2.4.5, you have to use python 3.7
 
 ## Modules
 The following modules are currently available:
