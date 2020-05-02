@@ -75,6 +75,23 @@ import time
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
+GROUP_PHP_COMMAND_PREFIX = """
+require_once('auth.inc');
+init_config_arr(array('system', 'group'));
+$a_group = &$config['system']['group'];
+"""
+
+GROUP_PHP_COMMAND_SET = GROUP_PHP_COMMAND_PREFIX + """
+$groupent = $a_group[{idx}];
+local_group_set($groupent);
+"""
+
+# This runs after we remove the group from the config so we can't use it
+GROUP_PHP_COMMAND_DEL = GROUP_PHP_COMMAND_PREFIX + """
+$group['name'] = '{name}';
+local_group_del($group);
+"""
+
 
 class PFSenseGroupModule(PFSenseModuleBase):
     """ module managing pfsense user groups """
@@ -100,9 +117,9 @@ class PFSenseGroupModule(PFSenseModuleBase):
 
         if state == 'present':
             obj['description'] = params['descr']
-            obj['scope'] = params['scope']
-            obj['gid'] = params['gid']
-            obj['priv'] = params['priv']
+            for option in ['scope', 'gid', 'priv']:
+                if option in params and params[option] is not None:
+                    obj[option] = params[option]
 
         return obj
 
@@ -110,29 +127,32 @@ class PFSenseGroupModule(PFSenseModuleBase):
         """ do some extra checks on input parameters """
         params = self.params
 
-    def _find_target(self):
-        result = self.root_elt.findall("group[name='{0}']".format(self.obj['name']))
-        if len(result) == 1:
-            return result[0]
-        elif len(result) > 1:
-            self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
-        else:
-            return None
+    def _nextgid(self):
+        """ return and update netgid counter """
+        nextgid_elt = self.root_elt.find('nextgid')
+        nextgid = nextgid_elt.text
+        nextgid_elt.text = str(int(nextgid) + 1)
+        return nextgid
 
     ##############################
     # XML processing
     #
     def _copy_and_add_target(self):
         """ create the XML target_elt """
+        if 'gid' not in self.obj:
+            # Search for an open gid
+            while True:
+                self.obj['gid'] = self._nextgid()
+                if self._find_group_by_gid(self.obj['gid']) is None:
+                    break
+        else:
+            if self._find_group_by_gid(self.obj['gid']) is not None:
+                self.module.fail_json(msg='A different group already exists with gid {0}.'.format(self.obj['gid']))
         self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
         self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
-        i = 0
-        for group in self.groups:
-            i = list(self.root_elt).index(group)
-            if group.find('name').text == self.obj['name']:
-                found = group
-                break
-        self.root_elt.insert(i + 1, self.target_elt)
+        self.root_elt.insert(self._find_last_group_index(), self.target_elt)
+        # Reset groups list
+        self.groups = self.root_elt.findall('group')
 
     def _copy_and_update_target(self):
         """ update the XML target_elt """
@@ -146,6 +166,48 @@ class PFSenseGroupModule(PFSenseModuleBase):
     def _create_target(self):
         """ create the XML target_elt """
         return self.pfsense.new_element('group')
+
+    def _find_target(self):
+        result = self.root_elt.findall("group[name='{0}']".format(self.obj['name']))
+        if len(result) == 1:
+            return result[0]
+        elif len(result) > 1:
+            self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
+        else:
+            return None
+
+    def _find_group_by_name(self, name):
+        result = self.root_elt.findall("group[name='{0}']".format(name))
+        if len(result) == 1:
+            return result[0]
+        elif len(result) > 1:
+            self.module.fail_json(msg='Found multiple groups for name {0}.'.format(name))
+        else:
+            return None
+
+    def _find_group_by_gid(self, gid):
+        result = self.root_elt.findall("group[gid='{0}']".format(gid))
+        if len(result) == 1:
+            return result[0]
+        elif len(result) > 1:
+            self.module.fail_json(msg='Found multiple groups for gid {0}.'.format(gid))
+        else:
+            return None
+
+    def _find_this_group_index(self):
+        return self.groups.index(self.target_elt)
+
+    def _find_last_group_index(self):
+        return list(self.root_elt).index(self.groups[len(self.groups) - 1])
+
+    ##############################
+    # run
+    #
+    def _update(self):
+        if self.params['state'] == 'present':
+            return self.pfsense.phpshell(GROUP_PHP_COMMAND_SET.format(idx=self._find_this_group_index()))
+        else:
+            return self.pfsense.phpshell(GROUP_PHP_COMMAND_DEL.format(name=self.obj['name']))
 
     ##############################
     # Logging
@@ -173,7 +235,7 @@ def main():
                 'default': 'local',
                 'choices': ['local', 'remote', 'system']
             },
-            'gid': {'default': '', 'type': 'str'},
+            'gid': {'required': False, 'type': 'str'},
             'priv': {'required': False, 'type': 'list', 'elements': 'str'},
         },
         supports_check_mode=True)
