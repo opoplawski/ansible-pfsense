@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright: (c) 2018, Orion Poplawski <orion@nwra.com>
+# Copyright: (c) 2018-2020, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -35,9 +35,9 @@ options:
     description: Description of the group
     type: str
   scope:
-    description: Scope of the group ('system' is 'Local')
-    default: system
-    choices: [ "system", "remote" ]
+    description: Scope of the group
+    default: local
+    choices: ["local", "remote", "system" ]
     type: str
   gid:
     description:
@@ -49,6 +49,7 @@ options:
     - A list of privileges to assign.
     - Allowed values include page-all, user-shell-access.
     type: list
+    elements: str
 """
 
 EXAMPLES = """
@@ -70,57 +71,93 @@ RETURN = """
 
 """
 
+import time
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 
-class pfSenseGroup(object):
+class PFSenseGroupModule(PFSenseModuleBase):
+    """ module managing pfsense user groups """
 
-    def __init__(self, module):
-        self.module = module
-        self.pfsense = PFSenseModule(module)
-        self.system = self.pfsense.get_element('system')
-        self.groups = self.system.findall('group')
+    def __init__(self, module, pfsense=None):
+        super(PFSenseGroupModule, self).__init__(module, pfsense)
+        self.name = "pfsense_group"
+        self.root_elt = self.pfsense.get_element('system')
+        self.groups = self.root_elt.findall('group')
 
-    def _find_group(self, name):
-        found = None
+    ##############################
+    # params processing
+    #
+    def _params_to_obj(self):
+        """ return a dict from module params """
+        params = self.params
+
+        obj = dict()
+        self.obj = obj
+
+        obj['name'] = params['name']
+        state = params['state']
+
+        if state == 'present':
+            obj['description'] = params['descr']
+            obj['scope'] = params['scope']
+            obj['gid'] = params['gid']
+            obj['priv'] = params['priv']
+
+        return obj
+
+    def _validate_params(self):
+        """ do some extra checks on input parameters """
+        params = self.params
+
+    def _find_target(self):
+        result = self.root_elt.findall("group[name='{0}']".format(self.obj['name']))
+        if len(result) == 1:
+            return result[0]
+        elif len(result) > 1:
+            self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
+        else:
+            return None
+
+    ##############################
+    # XML processing
+    #
+    def _copy_and_add_target(self):
+        """ create the XML target_elt """
+        self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
         i = 0
         for group in self.groups:
-            i = list(self.system).index(group)
-            if group.find('name').text == name:
+            i = list(self.root_elt).index(group)
+            if group.find('name').text == self.obj['name']:
                 found = group
                 break
-        return (found, i)
+        self.root_elt.insert(i + 1, self.target_elt)
 
-    def add(self, group):
-        group_elt, i = self._find_group(group['name'])
-        changed = False
-        if group_elt is None:
-            changed = True
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
-            group_elt = self.pfsense.new_element('group')
-            self.pfsense.copy_dict_to_element(group, group_elt)
-            self.system.insert(i + 1, group_elt)
-            self.pfsense.write_config(descr='ansible pfsense_group added %s' % (group['name']))
-        else:
-            changed = self.pfsense.copy_dict_to_element(group, group_elt)
-            if self.module.check_mode:
-                self.module.exit_json(changed=changed)
-            if changed:
-                self.pfsense.write_config(descr='ansible pfsense_group updated "%s"' % (group['name']))
-        self.module.exit_json(changed=changed)
+    def _copy_and_update_target(self):
+        """ update the XML target_elt """
+        before = self.pfsense.element_to_dict(self.target_elt)
+        self.diff['before'] = before
+        changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self.diff['after'].update(self.pfsense.element_to_dict(self.target_elt))
 
-    def remove(self, group):
-        group_elt, dummy = self._find_group(group['name'])
-        changed = False
-        if group_elt is not None:
-            if self.module.check_mode:
-                self.module.exit_json(changed=True)
-            self.system.remove(group_elt)
-            changed = True
-            self.pfsense.write_config(descr='ansible pfsense_group removed "%s"' % (group['name']))
-        self.module.exit_json(changed=changed)
+        return (before, changed)
+
+    def _create_target(self):
+        """ create the XML target_elt """
+        return self.pfsense.new_element('group')
+
+    ##############################
+    # Logging
+    #
+    def _get_obj_name(self):
+        """ return obj's name """
+        return self.obj['name']
+
+    def _log_fields(self, before=None):
+        """ generate pseudo-CLI command fields parameters to create an obj """
+        values = ''
+        return values
 
 
 def main():
@@ -133,27 +170,17 @@ def main():
             },
             'descr': {'required': False, 'type': 'str'},
             'scope': {
-                'default': 'system',
-                'choices': ['system', 'remote']
+                'default': 'local',
+                'choices': ['local', 'remote', 'system']
             },
             'gid': {'default': '', 'type': 'str'},
-            'priv': {'required': False, 'type': 'list'},
+            'priv': {'required': False, 'type': 'list', 'elements': 'str'},
         },
         supports_check_mode=True)
 
-    pfgroup = pfSenseGroup(module)
-
-    group = dict()
-    group['name'] = module.params['name']
-    state = module.params['state']
-    if state == 'absent':
-        pfgroup.remove(group)
-    elif state == 'present':
-        group['description'] = module.params['descr']
-        group['scope'] = module.params['scope']
-        group['gid'] = module.params['gid']
-        group['priv'] = module.params['priv']
-        pfgroup.add(group)
+    pfmodule = PFSenseGroupModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':
