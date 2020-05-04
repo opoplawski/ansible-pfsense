@@ -50,7 +50,6 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         self.obj = dict()
 
         self.root_elt = self.pfsense.interfaces
-        self.target_elt = None
         self.setup_interface_cmds = ""
 
     ##############################

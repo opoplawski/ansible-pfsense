@@ -131,11 +131,6 @@ class PFSenseAliasModule(PFSenseModuleBase):
         """ find the XML target_elt """
         return self.pfsense.find_alias(self.obj['name'])
 
-    def _remove_target_elt(self):
-        """ delete target_elt from xml """
-        super(PFSenseAliasModule, self)._remove_target_elt()
-        self.diff['before'] = self.pfsense.element_to_dict(self.target_elt)
-
     ##############################
     # run
     #

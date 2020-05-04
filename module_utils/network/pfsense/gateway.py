@@ -42,7 +42,6 @@ class PFSenseGatewayModule(PFSenseModuleBase):
         self.obj = dict()
         self.interface_elt = None
         self.dynamic = False
-        self.target_elt = None
 
         if self.root_elt is None:
             self.root_elt = self.pfsense.new_element('gateways')

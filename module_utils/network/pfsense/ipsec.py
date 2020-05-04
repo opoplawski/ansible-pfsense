@@ -77,7 +77,6 @@ class PFSenseIpsecModule(PFSenseModuleBase):
         super(PFSenseIpsecModule, self).__init__(module, pfsense)
         self.name = "pfsense_ipsec"
         self.obj = dict()
-        self.target_elt = None
         self.apply = True
 
         self.root_elt = self.pfsense.ipsec
