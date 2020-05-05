@@ -622,7 +622,13 @@ class PFSenseModuleAggregate(object):
         if self.pfsense_aliases.result['changed']:
             run = True
             cmd += 'clear_subsystem_dirty(\'aliases\');\n'
-        if self.pfsense_rules.result['changed'] or self.pfsense_rule_separators.result['changed']:
+
+        if self.pfsense_nat_port_forwards.result['changed'] or self.pfsense_nat_outbounds.result['changed']:
+            run = True
+            cmd += 'clear_subsystem_dirty(\'natconf\');\n'
+
+        if (self.pfsense_rules.result['changed'] or self.pfsense_rule_separators.result['changed'] or
+                self.pfsense_nat_port_forwards.result['changed'] or self.pfsense_nat_outbounds.result['changed']):
             run = True
             cmd += 'clear_subsystem_dirty(\'filter\');\n'
         cmd += '}'

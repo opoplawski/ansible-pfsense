@@ -209,8 +209,12 @@ from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
-OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter', 'sched', 'quick', 'direction']
+OPTION_FIELDS = [
+    'gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter', 'sched', 'quick', 'direction',
+    'staticnatport', 'ipprotocol'
+]
 OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'sched', 'quick', 'direction']
+OUTPUT_SRC_NAT_OPTION_FIELDS = ['staticnatport', 'ipprotocol']
 
 display = Display()
 
@@ -1471,7 +1475,7 @@ class PFSenseDataParser(object):
 
         if 'force' in rule:
             obj.force = _get_bool('force')
-            if obj.force and not (obj.options.get('filter') and obj.options.get('ifilter')):
+            if obj.force and not (obj.get_option('filter') and obj.get_option('ifilter')):
                 self._data.set_error('force must not be used without filter and ifilter')
 
         if 'floating' in rule:
@@ -1654,8 +1658,8 @@ class PFSenseDataParser(object):
         # - all_lan_nets and all_wan_nets containing all pfsenses lan and wan subnets (respectivly)
 
         # if lan has a tag named 'voip':
-        # - pf_paris_voip_ips containing pf_paris lan ip
-        # - pf_paris_voip_nets containing pf_paris subnet
+        # - pf_paris_voip_ips containing pf_paris lan ips
+        # - pf_paris_voip_nets containing pf_paris lan subnets
         # - all_voip_ips containing all pfsenses ips of interfaces with tag voip
         # - all_voip_nets containing all pfsenses subnets of interfaces with tag voip
 
@@ -2548,8 +2552,11 @@ class PFSenseRuleFactory(object):
             definition['interface'] = interface
             definition['state'] = 'present'
             definition['address'] = '{0}'.format(src_nat.name)
-            definition['staticnatport'] = 'True'
             definition.update(rule_def)
+            for field in OUTPUT_SRC_NAT_OPTION_FIELDS:
+                value = rule_obj.get_option(field)
+                if value is not None:
+                    definition[field] = value
 
             for field in ['source', 'destination']:
                 key = field + '_port'
@@ -2670,12 +2677,12 @@ class PFSenseRuleFactory(object):
             dst = subrule.dst[0]
             if len(src_group_name) != 1:
                 src = self._data.get_hosts_alias(src_group_name, src_group_ip, src_group_net, rule.name)
-            elif (not rule.floating and len(subrule.src[0].networks) == 1 and
+            elif (not rule.src_nat and not rule.floating and len(subrule.src[0].networks) == 1 and
                   len(subrule.src[0].ips) == 0 and
                   subrule.src[0].networks[0] == self._data.target.interfaces[interface].local_network):
                 src = deepcopy(subrule.src[0])
                 src.name = "NET:{0}".format(interface)
-            elif (not rule.floating and len(subrule.src[0].networks) == 0 and
+            elif (not rule.src_nat and not rule.floating and len(subrule.src[0].networks) == 0 and
                   len(subrule.src[0].ips) == 1 and
                   subrule.src[0].ips[0] == self._data.target.interfaces[interface].local_ip):
                 src = deepcopy(subrule.src[0])
@@ -2683,12 +2690,12 @@ class PFSenseRuleFactory(object):
 
             if len(dst_group_name) != 1:
                 dst = self._data.get_hosts_alias(dst_group_name, dst_group_ip, dst_group_net, rule.name)
-            elif (not rule.floating and len(subrule.dst[0].networks) == 1 and
+            elif (not rule.src_nat and not rule.floating and len(subrule.dst[0].networks) == 1 and
                   len(subrule.dst[0].ips) == 0 and
                   subrule.dst[0].networks[0] == self._data.target.interfaces[interface].local_network):
                 dst = deepcopy(subrule.dst[0])
                 dst.name = "NET:{0}".format(interface)
-            elif (not rule.floating and len(subrule.dst[0].networks) == 0 and
+            elif (not rule.src_nat and not rule.floating and len(subrule.dst[0].networks) == 0 and
                   len(subrule.dst[0].ips) == 1 and
                   subrule.dst[0].ips[0] == self._data.target.interfaces[interface].local_ip):
                 dst = deepcopy(subrule.dst[0])
@@ -2906,7 +2913,11 @@ class PFSenseRuleFactory(object):
                         definition += 'destination_port: "{0}", '.format(rule['destination_port'])
 
                     definition += 'interface: "{0}", address: "{1}"'.format(rule['interface'], rule['address'])
-                    definition += ', staticnatport: "{0}"'.format(rule['staticnatport'])
+
+                    for field in OUTPUT_SRC_NAT_OPTION_FIELDS:
+                        value = rule.get(field)
+                        if value is not None:
+                            definition += ', {0}: {1}'.format(field, value)
 
                     if rule.get('protocol'):
                         definition += ", protocol: \"" + rule['protocol'] + "\""

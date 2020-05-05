@@ -239,6 +239,15 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
         target_elt = self.pfsense.new_element('rule')
         return target_elt
 
+    def _find_first_rule_idx(self):
+        """ find the XML first rule idx """
+        for idx, rule_elt in enumerate(self.root_elt):
+            if rule_elt.tag != 'rule':
+                continue
+            return idx
+
+        return len(self.root_elt)
+
     def _find_rule_by_descr(self, descr):
         """ find the XML target_elt """
         for idx, rule_elt in enumerate(self.root_elt):
@@ -264,13 +273,13 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
         if self.before == 'bottom':
             return len(self.root_elt)
         elif self.after == 'top':
-            return 0
+            return self._find_first_rule_idx()
         elif self.after is not None:
             return self._get_rule_position(self.after) + 1
         elif self.before is not None:
             position = self._get_rule_position(self.before) - 1
             if position < 0:
-                return 0
+                return self._find_first_rule_idx()
             return position
         else:
             position = self._get_rule_position(self.after, fail=False)
@@ -284,7 +293,7 @@ class PFSenseNatOutboundModule(PFSenseModuleBase):
         if self.before == 'bottom':
             return len(self.root_elt)
         elif self.after == 'top':
-            return 0
+            return self._find_first_rule_idx()
         elif self.after is not None:
             found, i = self._find_rule_by_descr(self.after)
             if found is not None:
