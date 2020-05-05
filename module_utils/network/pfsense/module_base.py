@@ -179,6 +179,7 @@ class PFSenseModuleBase(object):
     def run(self, params):
         """ process input params to add/update/delete """
         self.params = params
+        self.target_elt = None
         self._validate_params()
 
         self.obj = self._params_to_obj()
