@@ -2186,15 +2186,11 @@ class PFSenseAliasFactory(object):
 
     def add_hosts_aliases(self, rule, aliases):
         """ Return aliases hosts names to define """
-        for alias in rule.src:
-            if alias.fake:
-                continue
-            self.add_host_alias_rec(alias, aliases)
-
-        for alias in rule.dst:
-            if alias.fake:
-                continue
-            self.add_host_alias_rec(alias, aliases)
+        for rule_aliases in [rule.src, rule.dst, rule.src_nat, rule.dst_nat]:
+            for alias in rule_aliases:
+                if alias.fake:
+                    continue
+                self.add_host_alias_rec(alias, aliases)
 
     def add_ports_aliases(self, rule, aliases):
         """ Return aliases ports names to define """
