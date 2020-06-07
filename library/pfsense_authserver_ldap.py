@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright: (c) 2018, Orion Poplawski <orion@nwra.com>
+# Copyright: (c) 2018-2020, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -28,7 +28,7 @@ options:
     type: str
   state:
     description: State in which to leave the authentication server
-    required: true
+    default: 'present'
     choices: [ "present", "absent" ]
     type: str
   host:
@@ -127,66 +127,120 @@ RETURN = """
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
+from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
 
-class PFSenseAuthserverLDAP(object):
+class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
+    """ module managing pfsense LDAP authentication """
 
-    def __init__(self, module):
-        self.module = module
-        self.pfsense = PFSenseModule(module)
-        self.system = self.pfsense.get_element('system')
-        self.authservers = self.system.findall('authserver')
-        self.diff = {'after': {}, 'before': {}}
+    def __init__(self, module, pfsense=None):
+        super(PFSenseAuthserverLDAPModule, self).__init__(module, pfsense)
+        self.name = "pfsense_ca"
+        self.root_elt = self.pfsense.get_element('system')
+        self.authservers = self.root_elt.findall('authserver')
 
-    def _find_authserver_ldap(self, name):
-        found = None
-        i = 0
-        for authserver in self.authservers:
-            i = list(self.system).index(authserver)
-            if authserver.find('name').text == name and authserver.find('type').text == 'ldap':
-                found = authserver
-                break
-        return (found, i)
+    ##############################
+    # params processing
+    #
+    def _validate_params(self):
+        """ do some extra checks on input parameters """
+        params = self.params
 
-    def add(self, authserver):
-        authserver_elt, i = self._find_authserver_ldap(authserver['name'])
-        changed = False
+    def _params_to_obj(self):
+        """ return a dict from module params """
+        params = self.params
 
-        # Replace the text CA name with the caref id
-        authserver['ldap_caref'] = self.pfsense.get_caref(authserver['ca'])
-        # CA is required for SSL/TLS
-        if authserver['ldap_caref'] is None and authserver['ldap_urltype'] != 'TCP - Standard':
-            self.module.fail_json(msg="could not find CA '%s'" % (authserver['ca']))
-        del authserver['ca']
-        if authserver_elt is None:
-            changed = True
-            authserver_elt = self.pfsense.new_element('authserver')
-            authserver['refid'] = self.pfsense.uniqid()
-            self.pfsense.copy_dict_to_element(authserver, authserver_elt)
-            self.system.insert(i + 1, authserver_elt)
-            change_descr = 'ansible pfsense_authserver_ldap added %s' % (authserver['name'])
+        obj = dict()
+        self.obj = obj
+
+        obj['name'] = params['name']
+        if params['state'] == 'present':
+            obj['type'] = 'ldap'
+            for option in ['host']:
+                if option in params and params[option] is not None:
+                    obj[option] = params[option]
+
+            obj['ldap_port'] = params['port']
+            urltype = dict({'tcp': 'TCP - Standard', 'starttls': 'TCP - STARTTLS', 'ssl': 'SSL - Encrypted'})
+            obj['ldap_urltype'] = urltype[params['transport']]
+            obj['ldap_protver'] = params['protver']
+            obj['ldap_timeout'] = params['timeout']
+            obj['ldap_scope'] = params['scope']
+            obj['ldap_basedn'] = params['basedn']
+            obj['ldap_authcn'] = params['authcn']
+            if params['extended_enabled']:
+                obj['ldap_extended_enabled'] = 'yes'
+            else:
+                obj['ldap_extended_enabled'] = ''
+            obj['ldap_extended_query'] = params['extended_query']
+            if params['binddn']:
+                obj['ldap_binddn'] = params['binddn']
+            if params['bindpw']:
+                obj['ldap_bindpw'] = params['bindpw']
+            obj['ldap_attr_user'] = params['attr_user']
+            obj['ldap_attr_group'] = params['attr_group']
+            obj['ldap_attr_member'] = params['attr_member']
+            obj['ldap_attr_groupobj'] = params['attr_groupobj']
+
+            # Find the caref id for the named CA
+            obj['ldap_caref'] = self.pfsense.get_caref(params['ca'])
+            # CA is required for SSL/TLS
+            if obj['ldap_caref'] is None and obj['ldap_urltype'] != 'TCP - Standard':
+                self.module.fail_json(msg="Could not find CA '%s'" % (params['ca']))
+
+        return obj
+
+    ##############################
+    # XML processing
+    #
+    def _find_target(self):
+        result = self.root_elt.findall("authserver[name='{0}'][type='ldap']".format(self.obj['name']))
+        if len(result) == 1:
+            return result[0]
+        elif len(result) > 1:
+            self.module.fail_json(msg='Found multiple ldap authentication servers for name {0}.'.format(self.obj['name']))
         else:
-            self.diff['before'] = self.pfsense.element_to_dict(authserver_elt)
-            changed = self.pfsense.copy_dict_to_element(authserver, authserver_elt)
-            change_descr = 'ansible pfsense_authserver_ldap updated "%s"' % (authserver['name'])
+            return None
 
-        self.diff['after'] = self.pfsense.element_to_dict(authserver_elt)
-        if changed and not self.module.check_mode:
-            self.pfsense.write_config(descr=change_descr)
-        self.module.exit_json(changed=changed, diff=self.diff)
+    def _find_this_index(self):
+        return self.authservers.index(self.target_elt)
 
-    def remove(self, authserver):
-        authserver_elt, dummy = self._find_authserver_ldap(authserver['name'])
-        changed = False
-        if authserver_elt is not None:
-            self.diff['before'] = self.pfsense.element_to_dict(authserver_elt)
-            self.authservers.remove(authserver_elt)
-            changed = True
+    def _find_last_index(self):
+        return list(self.root_elt).index(self.authservers[len(self.authservers) - 1])
 
-        if changed and not self.module.check_mode:
-            self.pfsense.write_config(descr='ansible pfsense_authserver_ldap removed "%s"' % (authserver['name']))
-        self.module.exit_json(changed=changed, diff=self.diff)
+    def _create_target(self):
+        """ create the XML target_elt """
+        return self.pfsense.new_element('user')
+
+    def _copy_and_add_target(self):
+        """ populate the XML target_elt """
+        obj = self.obj
+
+        self.target_elt = self.pfsense.new_element('authserver')
+        obj['refid'] = self.pfsense.uniqid()
+        self.pfsense.copy_dict_to_element(obj, self.target_elt)
+        self.diff['after'] = obj
+        self.root_elt.insert(self._find_last_index(), self.target_elt)
+
+    def _copy_and_update_target(self):
+        """ update the XML target_elt """
+        before = self.pfsense.element_to_dict(self.target_elt)
+        self.diff['before'] = before
+        changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
+        return (before, changed)
+
+    ##############################
+    # Logging
+    #
+    def _get_obj_name(self):
+        """ return obj's name """
+        return self.obj['name']
+
+    def _log_fields(self, before=None):
+        """ generate pseudo-CLI command fields parameters to create an obj """
+        values = ''
+        return values
 
 
 def main():
@@ -194,7 +248,7 @@ def main():
         argument_spec={
             'name': {'required': True, 'type': 'str'},
             'state': {
-                'required': True,
+                'default': 'present',
                 'choices': ['present', 'absent']
             },
             'host': {'type': 'str'},
@@ -227,40 +281,9 @@ def main():
         ],
         supports_check_mode=True)
 
-    pfauthserverldap = PFSenseAuthserverLDAP(module)
-
-    authserver = dict()
-    authserver['name'] = module.params['name']
-    authserver['type'] = 'ldap'
-    state = module.params['state']
-    if state == 'absent':
-        pfauthserverldap.remove(authserver)
-    elif state == 'present':
-        authserver['host'] = module.params['host']
-        authserver['ldap_port'] = module.params['port']
-        urltype = dict({'tcp': 'TCP - Standard', 'starttls': 'TCP - STARTTLS', 'ssl': 'SSL - Encrypted'})
-        authserver['ldap_urltype'] = urltype[module.params['transport']]
-        authserver['ldap_protver'] = module.params['protver']
-        authserver['ldap_timeout'] = module.params['timeout']
-        authserver['ldap_scope'] = module.params['scope']
-        authserver['ldap_basedn'] = module.params['basedn']
-        authserver['ldap_authcn'] = module.params['authcn']
-        if module.params['extended_enabled']:
-            authserver['ldap_extended_enabled'] = 'yes'
-        else:
-            authserver['ldap_extended_enabled'] = ''
-        authserver['ldap_extended_query'] = module.params['extended_query']
-        if module.params['binddn']:
-            authserver['ldap_binddn'] = module.params['binddn']
-        if module.params['bindpw']:
-            authserver['ldap_bindpw'] = module.params['bindpw']
-        authserver['ldap_attr_user'] = module.params['attr_user']
-        authserver['ldap_attr_group'] = module.params['attr_group']
-        authserver['ldap_attr_member'] = module.params['attr_member']
-        authserver['ldap_attr_groupobj'] = module.params['attr_groupobj']
-        # This gets replaced by add()
-        authserver['ca'] = module.params['ca']
-        pfauthserverldap.add(authserver)
+    pfmodule = PFSenseAuthserverLDAPModule(module)
+    pfmodule.run(module.params)
+    pfmodule.commit_changes()
 
 
 if __name__ == '__main__':
