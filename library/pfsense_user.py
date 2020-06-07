@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright: (c) 2019, Orion Poplawski <orion@nwra.com>
+# Copyright: (c) 2019-2020, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -209,8 +209,12 @@ class PFSenseUserModule(PFSenseModuleBase):
         else:
             return priv
 
-    def _copy_and_add_target(self):
+    def _create_target(self):
         """ create the XML target_elt """
+        return self.pfsense.new_element('user')
+
+    def _copy_and_add_target(self):
+        """ populate the XML target_elt """
         obj = self.obj
         if 'bcrypt-hash' not in obj:
             self.module.fail_json(msg='Password is required when adding a user')
@@ -234,16 +238,14 @@ class PFSenseUserModule(PFSenseModuleBase):
         self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
         if 'priv' in self.diff['after']:
             self.diff['after']['priv'] = self._format_diff_priv(self.diff['after']['priv'])
-        self._update_groups()
+        if self._update_groups():
+            changed = True
 
         return (before, changed)
 
-    def _create_target(self):
-        """ create the XML target_elt """
-        return self.pfsense.new_element('user')
-
     def _update_groups(self):
         user = self.obj
+        changed = False
 
         # Handle group member element - need uid set or retrieved above
         if 'groups' in user:
@@ -282,6 +284,8 @@ class PFSenseUserModule(PFSenseModuleBase):
             if 'authorizedkeys' in self.diff[k]:
                 self.diff[k]['authorizedkeys'] = base64.b64decode(self.diff[k]['authorizedkeys'])
 
+        return changed
+
     ##############################
     # Logging
     #
@@ -306,7 +310,6 @@ class PFSenseUserModule(PFSenseModuleBase):
     def _pre_remove_target_elt(self):
         self.diff['after'] = {}
         if self.target_elt is not None:
-            changed = True
             self.diff['before'] = self.pfsense.element_to_dict(self.target_elt)
             # Store uid for _update()
             self.obj['uid'] = self.target_elt.find('uid').text
