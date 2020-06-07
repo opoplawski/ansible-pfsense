@@ -135,7 +135,7 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
 
     def __init__(self, module, pfsense=None):
         super(PFSenseAuthserverLDAPModule, self).__init__(module, pfsense)
-        self.name = "pfsense_ca"
+        self.name = "pfsense_authserver_ldap"
         self.root_elt = self.pfsense.get_element('system')
         self.authservers = self.root_elt.findall('authserver')
 
