@@ -8,10 +8,17 @@ python:
   - '3.5'
   - '3.6'
   - '3.7'
-  - '3.8-dev'
+  - '3.8'
 
+# Need to specify pytest version or ansible-test --requirements fails
 install:
-  - pip install pycodestyle
+  - pip install jinja2 MarkupSafe pyparsing pycodestyle 'pytest>=4.4.0' pytest-xdist pyyaml
 
+# Build against 2.9 for now.  2.10 fails due to removal of ipaddress to ansible.network
 script:
-  - python -m pycodestyle .
+  - 'git clone --branch stable-2.9 --single-branch https://github.com/ansible/ansible.git'
+  - . ansible/hacking/env-setup
+  - ./misc/local2ansible
+  - cd ansible
+  - ansible-test sanity --requirements --python $TRAVIS_PYTHON_VERSION pfsense_.*
+  - ansible-test units --requirements --python $TRAVIS_PYTHON_VERSION pfsense_.*
