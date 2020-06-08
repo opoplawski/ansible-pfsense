@@ -15,4 +15,5 @@ install:
 
 script:
   - which ansible
+  - find /home/travis -print
   - python -m pycodestyle .
