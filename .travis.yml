@@ -8,12 +8,16 @@ python:
   - '3.5'
   - '3.6'
   - '3.7'
-  - '3.8-dev'
+  - '3.8'
+  - '3.9-dev'
 
 install:
-  - pip install ansible pycodestyle
+  - pip install pycodestyle
 
 script:
-  - which ansible
-  - find /home/travis -print
-  - python -m pycodestyle .
+  - git clone https://github.com/ansible/ansible.git
+  - . ansible/hacking/env-setup
+  . ./misc/local2ansible
+  - cd ansible
+  - ansible-test sanity pfsense_.*
+  - ansible-test units pfsense_.*
