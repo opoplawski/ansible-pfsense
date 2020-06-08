@@ -13,22 +13,9 @@ if sys.version_info < (2, 7):
 
 from units.modules.utils import set_module_args
 from ansible.modules.network.pfsense import pfsense_alias
+from ansible.module_utils.network.pfsense.alias import PFSenseAliasModule
 
 from .pfsense_module import TestPFSenseModule
-
-
-def args_from_var(var, state='present', **kwargs):
-    """ return arguments for pfsense_alias module from var """
-    args = {}
-    for field in ['name', 'address', 'descr', 'type', 'updatefreq', 'detail']:
-        if field in var and (state == 'present' or field == 'name'):
-            args[field] = var[field]
-
-    args['state'] = state
-    for key, value in kwargs.items():
-        args[key] = value
-
-    return args
 
 
 class TestPFSenseAliasModule(TestPFSenseModule):
@@ -38,6 +25,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseAliasModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_alias_config.xml'
+        self.pfmodule = PFSenseAliasModule
 
     ########################################################
     # Generic set of funcs used for testing aliases
@@ -46,7 +34,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     # Finally, we check the xml
     def do_alias_creation_test(self, alias, failed=False, msg='', command=None):
         """ test creation of a new alias """
-        set_module_args(args_from_var(alias))
+        set_module_args(self.args_from_var(alias))
         result = self.execute_module(changed=True, failed=failed, msg=msg)
 
         if not failed:
@@ -59,7 +47,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
 
     def do_alias_deletion_test(self, alias, command=None):
         """ test deletion of an alias """
-        set_module_args(args_from_var(alias, 'absent'))
+        set_module_args(self.args_from_var(alias, 'absent'))
         result = self.execute_module(changed=True)
 
         diff = dict(before=alias, after='')
@@ -69,7 +57,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
 
     def do_alias_update_noop_test(self, alias):
         """ test not updating an alias """
-        set_module_args(args_from_var(alias))
+        set_module_args(self.args_from_var(alias))
         result = self.execute_module(changed=False)
 
         diff = dict(before=alias, after=alias)
@@ -81,7 +69,7 @@ class TestPFSenseAliasModule(TestPFSenseModule):
         """ test updating field of an host alias """
         target = copy(alias)
         target.update(kwargs)
-        set_module_args(args_from_var(target))
+        set_module_args(self.args_from_var(target))
         result = self.execute_module(changed=True)
 
         diff = dict(before=alias, after=copy(target))
@@ -286,25 +274,17 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def test_delete_inexistent_alias(self):
         """ test deletion of an inexistent alias """
         alias = dict(name='ad_poc12', address='192.168.1.3', descr='', type='host', detail='')
-        set_module_args(args_from_var(alias, 'absent'))
+        set_module_args(self.args_from_var(alias, 'absent'))
         result = self.execute_module(changed=False)
 
         diff = dict(before='', after='')
         self.assertEqual(result['diff'], diff)
         self.assertEqual(result['commands'], [])
 
-    def test_delete_invalid_param(self):
-        """ test deletion of an host alias with invalid params """
-        alias = dict(name='ad_poc1', address='192.168.1.3', descr='', type='host', detail='')
-        args = args_from_var(alias)
-        args['state'] = 'absent'
-        set_module_args(args)
-        self.execute_module(failed=True, msg="address is invalid with state='absent'")
-
     def test_check_mode(self):
         """ test updating an host alias without generating result """
         alias = dict(name='ad_poc1', address='192.168.1.3', descr='', type='host', detail='')
-        set_module_args(args_from_var(alias, address='192.168.1.4', _ansible_check_mode=True))
+        set_module_args(self.args_from_var(alias, address='192.168.1.4', _ansible_check_mode=True))
         result = self.execute_module(changed=True)
 
         diff = dict(before=alias, after=copy(alias))
@@ -316,11 +296,11 @@ class TestPFSenseAliasModule(TestPFSenseModule):
     def test_urltable_required_if(self):
         """ test creation of a new urltable alias without giving updatefreq (should fail) """
         alias = dict(name='acme_table', address='http://www.acme.com', descr='', type='urltable', detail='')
-        set_module_args(args_from_var(alias))
+        set_module_args(self.args_from_var(alias))
         self.execute_module(failed=True, msg='type is urltable but all of the following are missing: updatefreq')
 
     def test_urltable_ports_required_if(self):
         """ test creation of a new urltable_ports alias without giving updatefreq (should fail) """
         alias = dict(name='acme_table', address='http://www.acme.com', descr='', type='urltable_ports', detail='')
-        set_module_args(args_from_var(alias))
+        set_module_args(self.args_from_var(alias))
         self.execute_module(failed=True, msg='type is urltable_ports but all of the following are missing: updatefreq')

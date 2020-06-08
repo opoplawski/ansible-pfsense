@@ -48,6 +48,7 @@ class TestPFSenseModule(ModuleTestCase):
         self.xml_result = None
         self.tmp_file = None
         self.config_file = None
+        self.pfmodule = None
 
     def setUp(self):
         """ mocking up """
@@ -97,7 +98,10 @@ class TestPFSenseModule(ModuleTestCase):
 
     def get_args_fields(self):
         """ return params fields """
-        raise NotImplementedError()
+        try:
+            return self.pfmodule.get_argument_spec().keys()
+        except AttributeError:
+            raise NotImplementedError()
 
     def get_target_elt(self, obj, absent=False):
         """ return target elt from XML """
