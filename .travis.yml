@@ -14,5 +14,5 @@ install:
   - pip install ansible pycodestyle
 
 script:
-  - find . -print
+  - which ansible
   - python -m pycodestyle .
