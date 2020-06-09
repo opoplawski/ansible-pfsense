@@ -12,6 +12,11 @@ from ansible.module_utils.network.pfsense.pfsense import PFSenseModule
 class PFSenseModuleBase(object):
     """ class providing base services for pfSense modules """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        raise NotImplementedError()
+
     ##############################
     # init
     #

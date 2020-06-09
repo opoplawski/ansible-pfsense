@@ -28,6 +28,11 @@ ALIAS_REQUIRED_IF = [
 class PFSenseAliasModule(PFSenseModuleBase):
     """ module managing pfsense aliases """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return ALIAS_ARGUMENT_SPEC
+
     ##############################
     # init
     #
@@ -62,12 +67,7 @@ class PFSenseAliasModule(PFSenseModuleBase):
         # check name
         self.pfsense.check_name(params['name'], 'alias')
 
-        # when deleting, only name is allowed
-        if params['state'] == 'absent':
-            for param, value in sorted(params.items()):
-                if param != 'state' and param != 'name' and value is not None:
-                    self.module.fail_json(msg=param + " is invalid with state='absent'")
-        else:
+        if params['state'] == 'present':
             # the GUI does not allow to create 2 aliases with same name and differents types
             alias_elt = self.pfsense.find_alias(params['name'])
             if alias_elt is not None:
