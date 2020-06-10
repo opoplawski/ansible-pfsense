@@ -120,10 +120,10 @@ class TestPFSenseLookup(ModuleTestCase):
                 self.fail('{0} found'.format(rule_name))
 
     @staticmethod
-    def add_missing_fields(expected_rule):
+    def add_missing_fields(expected_rule, rule):
         """ add missing generated field with default values """
         for param in ['ackqueue', 'gateway', 'icmptype', 'in_queue', 'out_queue', 'queue', 'log', 'sched']:
-            if param not in expected_rule:
+            if param not in expected_rule and param in rule:
                 expected_rule[param] = None
 
         if 'action' not in expected_rule:
@@ -132,11 +132,23 @@ class TestPFSenseLookup(ModuleTestCase):
         if 'state' not in expected_rule:
             expected_rule['state'] = 'present'
 
+    @staticmethod
+    def correct_aliases(expected_rule):
+        """ we correct IP values with interface names """
+        translations = {
+            '10.20.30.1': 'IP:LANA',
+            # '10.20.30.3': 'IP:LANB',
+        }
+        for field in ['source', 'destination']:
+            if expected_rule[field] in translations:
+                expected_rule[field] = translations[expected_rule[field]]
+
     def compare_rules(self, expected_rule, rule):
         """ compare rule with the expected result """
         if 'after' in rule:
             del rule['after']
-        self.add_missing_fields(expected_rule)
+        self.add_missing_fields(expected_rule, rule)
+        self.correct_aliases(expected_rule)
         self.assertEqual(expected_rule, rule)
 
     def gen_rule(self, src, dst, interface, action):
