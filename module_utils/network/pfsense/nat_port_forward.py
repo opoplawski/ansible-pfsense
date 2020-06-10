@@ -34,6 +34,11 @@ NAT_PORT_FORWARD_REQUIRED_IF = [
 class PFSenseNatPortForwardModule(PFSenseModuleBase):
     """ module managing pfsense NAT rules """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return NAT_PORT_FORWARD_ARGUMENT_SPEC
+
     ##############################
     # init
     #

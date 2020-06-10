@@ -7,6 +7,7 @@ __metaclass__ = type
 import sys
 import pytest
 from ansible.modules.network.pfsense import pfsense_rule_separator
+from ansible.module_utils.network.pfsense.rule_separator import PFSenseRuleSeparatorModule
 from .pfsense_module import TestPFSenseModule
 
 if sys.version_info < (2, 7):
@@ -20,12 +21,7 @@ class TestPFSenseRuleSeparatorModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseRuleSeparatorModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_rule_separator_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['interface', 'floating', 'color', 'after', 'before', 'state', 'name']
-        return fields
+        self.pfmodule = PFSenseRuleSeparatorModule
 
     def get_target_elt(self, separator, absent=False):
         """ get separator from XML """

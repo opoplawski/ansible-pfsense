@@ -41,6 +41,11 @@ NAT_OUTBOUD_REQUIRED_IF = [
 class PFSenseNatOutboundModule(PFSenseModuleBase):
     """ module managing pfsense NAT rules """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return NAT_OUTBOUND_ARGUMENT_SPEC
+
     ##############################
     # init
     #

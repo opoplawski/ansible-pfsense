@@ -32,6 +32,11 @@ GATEWAY_REQUIRED_IF = [
 class PFSenseGatewayModule(PFSenseModuleBase):
     """ module managing pfsense gateways """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return GATEWAY_ARGUMENT_SPEC
+
     ##############################
     # init
     #

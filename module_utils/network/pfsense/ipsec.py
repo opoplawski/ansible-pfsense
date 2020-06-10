@@ -70,6 +70,11 @@ IPSEC_REQUIRED_IF = [
 class PFSenseIpsecModule(PFSenseModuleBase):
     """ module managing pfsense ipsec tunnels phase 1 options """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return IPSEC_ARGUMENT_SPEC
+
     ##############################
     # init
     #

@@ -56,6 +56,11 @@ RULE_UNMANAGED_ELEMENTS = [
 class PFSenseRuleModule(PFSenseModuleBase):
     """ module managing pfsense rules """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return RULE_ARGUMENT_SPEC
+
     ##############################
     # init
     #

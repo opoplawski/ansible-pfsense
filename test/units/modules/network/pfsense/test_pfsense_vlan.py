@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_vlan
+from ansible.module_utils.network.pfsense.vlan import PFSenseVlanModule
 from .pfsense_module import TestPFSenseModule
 
 
@@ -21,11 +22,7 @@ class TestPFSenseVlanModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseVlanModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_vlan_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        return ['descr', 'vlan_id', 'interface', 'priority']
+        self.pfmodule = PFSenseVlanModule
 
     ##############
     # tests utils

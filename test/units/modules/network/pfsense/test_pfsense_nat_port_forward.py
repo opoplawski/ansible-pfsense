@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_nat_port_forward
+from ansible.module_utils.network.pfsense.nat_port_forward import PFSenseNatPortForwardModule
 from .pfsense_module import TestPFSenseModule
 from .test_pfsense_rule import TestPFSenseRuleModule
 
@@ -22,14 +23,7 @@ class TestPFSenseNatPortForwardModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseNatPortForwardModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_nat_port_forward_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['descr', 'interface', 'disabled', 'nordr', 'interface', 'protocol', 'source']
-        fields += ['destination', 'target', 'natreflection', 'associated_rule', 'nosync']
-        fields += ['after', 'before']
-        return fields
+        self.pfmodule = PFSenseNatPortForwardModule
 
     def check_target_addr(self, params, target_elt):
         """ test the addresses definition """

@@ -11,25 +11,19 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_nat_outbound
+from ansible.module_utils.network.pfsense.nat_outbound import PFSenseNatOutboundModule
 from .pfsense_module import TestPFSenseModule
 from ansible.module_utils.compat.ipaddress import ip_address, IPv4Address
 
 
-class TestPFSenseNatOutboutModule(TestPFSenseModule):
+class TestPFSenseNatOutboundModule(TestPFSenseModule):
 
     module = pfsense_nat_outbound
 
     def __init__(self, *args, **kwargs):
-        super(TestPFSenseNatOutboutModule, self).__init__(*args, **kwargs)
+        super(TestPFSenseNatOutboundModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_nat_outbound.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['descr', 'interface', 'disabled', 'nonat', 'interface', 'ipprotocol', 'protocol', 'source']
-        fields += ['destination', 'invert', 'address', 'poolopts', 'source_hash_key', 'staticnatport', 'nosync']
-        fields += ['after', 'before']
-        return fields
+        self.pfmodule = PFSenseNatOutboundModule
 
     @staticmethod
     def is_ipv4_address(address):

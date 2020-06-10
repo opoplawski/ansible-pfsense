@@ -31,6 +31,11 @@ IPSEC_PROPOSAL_REQUIRED_IF = [
 class PFSenseIpsecProposalModule(PFSenseModuleBase):
     """ module managing pfsense ipsec phase 1 proposals """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return IPSEC_PROPOSAL_ARGUMENT_SPEC
+
     ##############################
     # init
     #

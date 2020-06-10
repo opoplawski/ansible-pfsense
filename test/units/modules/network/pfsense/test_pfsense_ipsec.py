@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_ipsec
+from ansible.module_utils.network.pfsense.ipsec import PFSenseIpsecModule
 from .pfsense_module import TestPFSenseModule
 
 
@@ -21,15 +22,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseIpsecModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_ipsec_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['descr', 'interface', 'iketype', 'protocol', 'remote_gateway', 'disabled', 'authentication_method', 'mode']
-        fields += ['myid_type', 'myid_data', 'peerid_type', 'peerid_data', 'certificate', 'certificate_authority', 'preshared_key']
-        fields += ['lifetime', 'disable_rekey', 'margintime', 'responderonly', 'nat_traversal', 'enable_dpd', 'dpd_delay', 'dpd_maxfail', 'apply']
-        fields += ['disable_reauth', 'mobike', 'splitconn']
-        return fields
+        self.pfmodule = PFSenseIpsecModule
 
     ##############
     # tests utils

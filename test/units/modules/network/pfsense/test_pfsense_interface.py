@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_interface
+from ansible.module_utils.network.pfsense.interface import PFSenseInterfaceModule
 from .pfsense_module import TestPFSenseModule
 
 
@@ -21,13 +22,7 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseInterfaceModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_interface_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['descr', 'interface', 'enable', 'mac', 'mtu', 'mss', 'speed_duplex', 'blockpriv', 'blockbogons']
-        fields += ['ipv4_type', 'ipv4_address', 'ipv4_prefixlen', 'ipv4_gateway', 'ipv6_type', 'ipv6_address', 'ipv6_prefixlen', 'ipv6_gateway']
-        return fields
+        self.pfmodule = PFSenseInterfaceModule
 
     def setUp(self):
         """ mocking up """

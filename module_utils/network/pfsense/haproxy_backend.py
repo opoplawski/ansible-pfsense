@@ -32,6 +32,11 @@ HAPROXY_BACKEND_ARGUMENT_SPEC = dict(
 class PFSenseHaproxyBackendModule(PFSenseModuleBase):
     """ module managing pfsense haproxy backends """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return HAPROXY_BACKEND_ARGUMENT_SPEC
+
     ##############################
     # init
     #

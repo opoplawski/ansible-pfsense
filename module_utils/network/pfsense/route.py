@@ -23,6 +23,11 @@ ROUTE_REQUIRED_IF = [
 class PFSenseRouteModule(PFSenseModuleBase):
     """ module managing pfsense routes """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return ROUTE_ARGUMENT_SPEC
+
     ##############################
     # init
     #

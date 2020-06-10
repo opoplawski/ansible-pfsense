@@ -13,6 +13,7 @@ if sys.version_info < (2, 7):
 from xml.etree.ElementTree import fromstring, ElementTree
 from units.compat.mock import patch
 from ansible.modules.network.pfsense import pfsense_rule
+from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule
 from .pfsense_module import TestPFSenseModule, load_fixture
 
 
@@ -23,14 +24,7 @@ class TestPFSenseRuleModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseRuleModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_rule_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['name', 'source', 'source_port', 'destination', 'destination_port', 'descr', 'interface', 'action', 'tracker', 'icmptype']
-        fields += ['log', 'disabled', 'floating', 'direction', 'ipprotocol', 'gateway', 'quick']
-        fields += ['protocol', 'statetype', 'after', 'before', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'sched']
-        return fields
+        self.pfmodule = PFSenseRuleModule
 
     @staticmethod
     def runTest():

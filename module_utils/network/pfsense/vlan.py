@@ -19,6 +19,11 @@ VLAN_ARGUMENT_SPEC = dict(
 class PFSenseVlanModule(PFSenseModuleBase):
     """ module managing pfsense vlans """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return VLAN_ARGUMENT_SPEC
+
     ##############################
     # init
     #

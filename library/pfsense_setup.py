@@ -194,6 +194,11 @@ SETUP_ARGUMENT_SPEC = dict(
 class PFSenseSetupModule(PFSenseModuleBase):
     """ module managing pfsense routes """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return SETUP_ARGUMENT_SPEC
+
     ##############################
     # init
     #

@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_haproxy_backend
+from ansible.module_utils.network.pfsense.haproxy_backend import PFSenseHaproxyBackendModule
 from .pfsense_module import TestPFSenseModule
 
 
@@ -21,14 +22,7 @@ class TestPFSenseHaproxyBackendModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseHaproxyBackendModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_haproxy_backend_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['balance', 'balance_urilen', 'balance_uridepth', 'balance_uriwhole', 'connection_timeout', 'server_timeout']
-        fields += ['check_type', 'check_frequency', 'retries', 'log_checks', 'httpcheck_method', 'monitor_uri']
-        fields += ['monitor_httpversion', 'monitor_username', 'monitor_domain', 'name']
-        return fields
+        self.pfmodule = PFSenseHaproxyBackendModule
 
     ##############
     # tests utils

@@ -25,6 +25,11 @@ RULE_SEPARATOR_MUTUALLY_EXCLUSIVE = [['interface', 'floating']]
 class PFSenseRuleSeparatorModule(PFSenseModuleBase):
     """ module managing pfsense rule separators """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return RULE_SEPARATOR_ARGUMENT_SPEC
+
     ##############################
     # init
     #

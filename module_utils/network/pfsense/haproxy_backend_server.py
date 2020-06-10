@@ -39,6 +39,11 @@ HAPROXY_BACKEND_SERVER_MUTUALLY_EXCLUSIVE = [
 class PFSenseHaproxyBackendServerModule(PFSenseModuleBase):
     """ module managing pfsense haproxy backend servers """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return HAPROXY_BACKEND_SERVER_ARGUMENT_SPEC
+
     ##############################
     # init
     #

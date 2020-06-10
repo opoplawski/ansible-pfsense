@@ -71,6 +71,11 @@ IPSEC_P2_REQUIRED_IF = [
 class PFSenseIpsecP2Module(PFSenseModuleBase):
     """ module managing pfsense ipsec phase 2 options and proposals """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return IPSEC_P2_ARGUMENT_SPEC
+
     ##############################
     # init
     #

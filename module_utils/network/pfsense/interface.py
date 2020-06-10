@@ -41,6 +41,11 @@ INTERFACE_REQUIRED_IF = [
 class PFSenseInterfaceModule(PFSenseModuleBase):
     """ module managing pfsense interfaces """
 
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return INTERFACE_ARGUMENT_SPEC
+
     ##############################
     # init
     #

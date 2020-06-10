@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_gateway
+from ansible.module_utils.network.pfsense.gateway import PFSenseGatewayModule
 from .pfsense_module import TestPFSenseModule
 
 
@@ -21,13 +22,7 @@ class TestPFSenseGatewayModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseGatewayModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_gateway_config.xml'
-
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['descr', 'interface', 'disabled', 'name', 'ipprotocol', 'gateway', 'monitor']
-        fields += ['monitor_disable', 'action_disable', 'force_down', 'weight', 'nonlocalgateway']
-        return fields
+        self.pfmodule = PFSenseGatewayModule
 
     def check_target_elt(self, params, target_elt):
         """ test the xml definition """
