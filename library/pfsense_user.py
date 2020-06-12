@@ -90,6 +90,18 @@ import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
+USER_ARGUMENT_SPEC = dict(
+    name=dict(required=True, type='str'),
+    state=dict(type='str', default='present', choices=['present', 'absent']),
+    descr=dict(type='str'),
+    scope=dict(type='str', default='user', choices=['user', 'system']),
+    uid=dict(type='str'),
+    password=dict(type='str', no_log=True),
+    groups=dict(type='list', elements='str'),
+    priv=dict(type='list', elements='str'),
+    authorizedkeys=dict(type='str'),
+)
+
 USER_PHP_COMMAND_PREFIX = """
 require_once('auth.inc');
 init_config_arr(array('system', 'user'));
@@ -122,6 +134,11 @@ local_user_del($userent);
 
 class PFSenseUserModule(PFSenseModuleBase):
     """ module managing pfsense users """
+
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return USER_ARGUMENT_SPEC
 
     def __init__(self, module, pfsense=None):
         super(PFSenseUserModule, self).__init__(module, pfsense)
@@ -291,11 +308,15 @@ class PFSenseUserModule(PFSenseModuleBase):
     #
     def _get_obj_name(self):
         """ return obj's name """
-        return self.obj['name']
+        return "'" + self.obj['name'] + "'"
 
     def _log_fields(self, before=None):
         """ generate pseudo-CLI command fields parameters to create an obj """
         values = ''
+        if before is None:
+            values += self.format_cli_field(self.params, 'descr')
+        else:
+            values += self.format_updated_cli_field(self.obj, before, 'descr', add_comma=(values))
         return values
 
     ##############################
@@ -331,25 +352,7 @@ class PFSenseUserModule(PFSenseModuleBase):
 
 def main():
     module = AnsibleModule(
-        argument_spec={
-            'name': {'required': True, 'type': 'str'},
-            'state': {
-                'type': 'str',
-                'default': 'present',
-                'choices': ['present', 'absent']
-            },
-            'descr': {'type': 'str'},
-            'scope': {
-                'type': 'str',
-                'default': 'user',
-                'choices': ['user', 'system']
-            },
-            'uid': {'type': 'str'},
-            'password': {'type': 'str', 'no_log': True},
-            'groups': {'type': 'list', 'elements': 'str'},
-            'priv': {'type': 'list', 'elements': 'str'},
-            'authorizedkeys': {'type': 'str'},
-        },
+        argument_spec=USER_ARGUMENT_SPEC,
         supports_check_mode=True)
 
     pfmodule = PFSenseUserModule(module)
