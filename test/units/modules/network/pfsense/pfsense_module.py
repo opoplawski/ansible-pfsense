@@ -294,6 +294,24 @@ class TestPFSenseModule(ModuleTestCase):
             self.fail('Element <' + elt_name + '> differs. Expected: NoneType result: \'' + elt.text + '\'')
         return elt
 
+    def assert_list_xml_elt_equal(self, tag, elt_name, elt_value):
+        elts = tag.findall(elt_name)
+        if elts is None:
+            self.fail('Element not found: ' + elt_name)
+        elt_value_copy = list(elt_value)
+        elt_texts = []
+        for elt in elts:
+            if elt.text not in elt_value_copy:
+                if elt.text is None:
+                    self.fail('Element <' + elt_name + '> differs. Expected: \'' + str(elt_value) + '\' result: None')
+                else:
+                    self.fail('Element <' + elt_name + '> differs. Expected: \'' + str(elt_value) + '\' result: \'' + elt.text + '\'')
+            elt_value_copy.remove(elt.text)
+            elt_texts.append(elt.text)
+        if len(elt_value_copy):
+            self.fail('Element <' + elt_name + '> differs. Expected: \'' + str(elt_value) + '\' result: \'' + str(elt_texts) + '\'')
+        return elts
+
     @staticmethod
     def unalias_interface(interface, physical=False):
         """ return real alias name if required """
@@ -350,5 +368,36 @@ class TestPFSenseModule(ModuleTestCase):
                 self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
             else:
                 self.assert_xml_elt_equal(target_elt, xml_field, params[param])
+        else:
+            self.assert_not_find_xml_elt(target_elt, xml_field)
+
+    def check_list_param_equal(self, params, target_elt, param, default=None, xml_field=None, not_find_val=None):
+        """ if param is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
+        if xml_field is None:
+            xml_field = param
+
+        value = default
+        if param in params:
+            value = params[param]
+
+        if value is not None:
+            if not_find_val is not None and not_find_val == default:
+                self.assert_not_find_xml_elt(target_elt, xml_field)
+            else:
+                self.assert_list_xml_elt_equal(target_elt, xml_field, value)
+        else:
+            self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+
+    def check_list_param_equal_or_not_find(self, params, target_elt, param, xml_field=None, not_find_val=None, empty=False):
+        """ if param is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
+        if xml_field is None:
+            xml_field = param
+        if param in params:
+            if not_find_val is not None and not_find_val == params[param]:
+                self.assert_not_find_xml_elt(target_elt, xml_field)
+            elif empty and params[param]:
+                self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+            else:
+                self.assert_list_xml_elt_equal(target_elt, xml_field, params[param])
         else:
             self.assert_not_find_xml_elt(target_elt, xml_field)
