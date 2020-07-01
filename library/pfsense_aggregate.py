@@ -367,6 +367,9 @@ options:
       before:
         description: Rule to go before, or C(bottom)
         type: str
+      tcpflags_any:
+        description: Allow TCP packets with any flags set.
+        type: bool
       statetype:
         description: State type
         default: keep state
@@ -610,6 +613,7 @@ class PFSenseModuleAggregate(object):
     def _update(self):
         run = False
         cmd = 'require_once("filter.inc");\n'
+        # TODO: manage one global list of commands as ordering can be important between modules
         if self.pfsense_vlans.result['changed']:
             run = True
             cmd += self.pfsense_vlans.get_update_cmds()

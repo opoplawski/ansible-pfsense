@@ -147,6 +147,12 @@ class TestPFSenseRuleModule(TestPFSenseModule):
         else:
             self.assert_not_find_xml_elt(target_elt, 'protocol')
 
+        # checking tcpflags_any option
+        if 'tcpflags_any' in obj and obj['tcpflags_any'] == 'yes':
+            self.assert_xml_elt_is_none_or_empty(target_elt, 'tcpflags_any')
+        elif 'tcpflags_any' not in obj or obj['tcpflags_any'] == 'no':
+            self.assert_not_find_xml_elt(target_elt, 'tcpflags_any')
+
         # checking statetype option
         if 'statetype' in obj and obj['statetype'] != 'keep state':
             statetype = obj['statetype']

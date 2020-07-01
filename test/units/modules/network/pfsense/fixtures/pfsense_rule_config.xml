@@ -494,6 +494,30 @@
 				<username></username>
 				<time>1545574416</time>
 			</updated>
+			<tcpflags_any></tcpflags_any>
+			<descr>test_rule_4</descr>
+			<created>
+				<username></username>
+				<time>1545574416</time>
+			</created>
+			<destination>
+				<any></any>
+			</destination>
+			<statetype>keep state</statetype>
+			<source>
+				<any></any>
+			</source>
+			<tracker>1545574416</tracker>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<type>pass</type>
+			<id></id>
+		</rule>
+		<rule>
+			<updated>
+				<username></username>
+				<time>1545574416</time>
+			</updated>
 			<protocol>tcp</protocol>
 			<descr>antilock_out_3</descr>
 			<created>

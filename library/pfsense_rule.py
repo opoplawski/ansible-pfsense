@@ -93,6 +93,9 @@ options:
   before:
     description: Rule to go before, or C(bottom)
     type: str
+  tcpflags_any:
+    description: Allow TCP packets with any flags set.
+    type: bool
   statetype:
     description: State type
     default: keep state

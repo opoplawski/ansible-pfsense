@@ -28,6 +28,7 @@ RULE_ARGUMENT_SPEC = dict(
     log=dict(required=False, type='bool'),
     after=dict(required=False, type='str'),
     before=dict(required=False, type='str'),
+    tcpflags_any=dict(required=False, type='bool'),
     statetype=dict(default='keep state', choices=['keep state', 'sloppy state', 'synproxy state', 'none']),
     queue=dict(required=False, type='str'),
     ackqueue=dict(required=False, type='str'),
@@ -140,6 +141,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
             self._get_ansible_param_bool(obj, 'disabled', value='')
             self._get_ansible_param_bool(obj, 'log', value='')
             self._get_ansible_param_bool(obj, 'quick')
+            self._get_ansible_param_bool(obj, 'tcpflags_any', value='')
 
         self._floating = 'floating' in self.obj and self.obj['floating'] == 'yes'
         self._after = params.get('after')
@@ -464,7 +466,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
     @staticmethod
     def _get_params_to_remove():
         """ returns the list of params to remove if they are not set """
-        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype', 'sched', 'quick']
+        return ['log', 'protocol', 'disabled', 'defaultqueue', 'ackqueue', 'dnpipe', 'pdnpipe', 'gateway', 'icmptype', 'sched', 'quick', 'tcpflags_any']
 
     def _get_rule_position(self, descr=None, fail=True):
         """ get rule position in interface/floating """
@@ -560,6 +562,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_cli_field(self.params, 'direction')
             values += self.format_cli_field(self.params, 'ipprotocol', default='inet')
             values += self.format_cli_field(self.params, 'icmptype', default='any')
+            values += self.format_cli_field(self.params, 'tcpflags_any', fvalue=self.fvalue_bool)
             values += self.format_cli_field(self.params, 'statetype', default='keep state')
             values += self.format_cli_field(self.params, 'action', default='pass')
             values += self.format_cli_field(self.params, 'disabled', fvalue=self.fvalue_bool, default=False)
@@ -590,6 +593,7 @@ if (filter_configure() == 0) { clear_subsystem_dirty('filter'); }''')
             values += self.format_updated_cli_field(self.obj, before, 'floating', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'direction', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'ipprotocol', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'tcpflags_any', fvalue=self.fvalue_bool, add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'statetype', add_comma=(values))
             values += self.format_updated_cli_field(self.params, before, 'action', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'disabled', fvalue=self.fvalue_bool, add_comma=(values))

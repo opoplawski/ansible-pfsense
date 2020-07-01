@@ -144,6 +144,18 @@ class TestPFSenseRuleUpdateModule(TestPFSenseRuleModule):
         command = "update rule 'test_rule_2' on 'wan' set log=False"
         self.do_module_test(obj, command=command)
 
+    def test_rule_update_tcpflags_any_yes(self):
+        """ test updating log of a rule to yes """
+        obj = dict(name='test_rule', source='any', destination='any', interface='wan', protocol='tcp', tcpflags_any='yes')
+        command = "update rule 'test_rule' on 'wan' set tcpflags_any=True"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_update_tcpflags_any_no(self):
+        """ test updating log of a rule to no """
+        obj = dict(name='test_rule_4', source='any', destination='any', interface='lan_100', tcpflags_any='no')
+        command = "update rule 'test_rule_4' on 'lan_100' set tcpflags_any=False"
+        self.do_module_test(obj, command=command)
+
     def test_rule_update_log_default(self):
         """ test updating log of a rule to default """
         obj = dict(name='test_rule_2', source='any', destination='any', interface='wan', protocol='tcp')

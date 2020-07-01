@@ -156,6 +156,12 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         command = "create rule 'one_rule' on 'lan', source='any', destination='any'"
         self.do_module_test(obj, command=command)
 
+    def test_rule_create_tcpflags_any(self):
+        """ test creation of a new rule with tcpflags_any """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', tcpflags_any='yes')
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', tcpflags_any=True"
+        self.do_module_test(obj, command=command)
+
     def test_rule_create_state_keep(self):
         """ test creation of a new rule with explicit keep state """
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', statetype='keep state')
