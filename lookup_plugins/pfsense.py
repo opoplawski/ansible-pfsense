@@ -759,6 +759,9 @@ class PFSenseRule(object):
         self.options = dict()
         self.floating = False
         self.force = False
+        self.asymmetric = False
+        self.invert_dst = False
+        self.invert_src = False
 
         self.sub_rules = []
         self.interfaces = None
@@ -1510,6 +1513,19 @@ class PFSenseDataParser(object):
             target = self._data.hosts_aliases_obj[dst]
             obj.dst_nat.append(target)
 
+        if 'asymmetric' in rule:
+            obj.asymmetric = _get_bool('asymmetric')
+
+        if 'invert_src' in rule:
+            obj.invert_src = _get_bool('invert_src')
+            if not obj.force:
+                self._data.set_error('invert_src must be used with force (for now)')
+
+        if 'invert_dst' in rule:
+            obj.invert_dst = _get_bool('invert_dst')
+            if not obj.force:
+                self._data.set_error('invert_dst must be used with force (for now)')
+
         return obj
 
     def parse_rules(self, parent=None, parent_separator=None):
@@ -1592,7 +1608,7 @@ class PFSenseDataParser(object):
 
             # we check that all fields are valid
             valid_fields = ['src', 'dst', 'src_port', 'dst_port', 'protocol', 'action', 'floating', 'force']
-            valid_fields.extend(['src_nat', 'dst_nat', 'dst_nat_port'])
+            valid_fields.extend(['src_nat', 'dst_nat', 'dst_nat_port', 'asymmetric', 'invert_dst', 'invert_src'])
             valid_fields.extend(OPTION_FIELDS)
             for field in rule:
                 if field not in valid_fields:
@@ -2296,7 +2312,7 @@ class PFSenseRuleFactory(object):
 
         # if rule is forced, we return the interface defined
         if rule_obj.force:
-            return set(rule_obj.options['ifilter'].split())
+            return set(rule_obj.get_option('ifilter').split())
 
         if src.name == 'any' and dst.name == 'any':
             # we return all interfaces of target
@@ -2535,9 +2551,20 @@ class PFSenseRuleFactory(object):
                 definition['after'] = last_name[interface]
             else:
                 definition['after'] = 'top'
+
+            if rule_obj.asymmetric:
+                definition['statetype'] = 'sloppy state'
+                definition['tcpflags_any'] = True
+
             definition.update(rule_def)
             interfaces[interface].append(definition)
             last_name[interface] = name
+
+            if rule_obj.invert_src and 'source' in definition:
+                definition['source'] = '!' + definition['source']
+
+            if rule_obj.invert_dst and 'destination' in definition:
+                definition['destination'] = '!' + definition['destination']
 
             if interface not in rule_obj.generated_names:
                 rule_obj.generated_names[interface] = name
@@ -2878,6 +2905,12 @@ class PFSenseRuleFactory(object):
 
                     if rule.get('floating'):
                         definition += ", floating: True"
+
+                    if rule.get('statetype') is not None:
+                        definition += ", statetype: '{0}'".format(rule.get('statetype'))
+
+                    if rule.get('tcpflags_any'):
+                        definition += ", tcpflags_any: True"
 
                     if rule.get('after') and not self._data.gendiff:
                         definition += ", after: \"" + rule['after'] + "\""
