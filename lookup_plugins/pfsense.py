@@ -204,6 +204,7 @@ import sys
 import yaml
 import dns
 import traceback
+import os
 
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
@@ -230,14 +231,25 @@ def ordered_load(stream, loader_cls=yaml.Loader, object_pairs_hook=OrderedDict):
     """ load and return yaml data from stream using ordered dicts """
 
     class OrderedLoader(loader_cls):
-        pass
+        def __init__(self, stream):
+            self._root = os.path.split(stream.name)[0]
+            super(OrderedLoader, self).__init__(stream)
+
+        def include(self, node):
+            filename = os.path.join(self._root, self.construct_scalar(node))
+            with open(filename, 'r') as f:
+                return yaml.load(f, OrderedLoader)
 
     def construct_mapping(loader, node):
         loader.flatten_mapping(node)
         return object_pairs_hook(loader.construct_pairs(node))
+
     OrderedLoader.add_constructor(
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
         construct_mapping)
+    OrderedLoader.add_constructor(
+        '!include',
+        OrderedLoader.include)
     return yaml.load(stream, OrderedLoader)
 
 
