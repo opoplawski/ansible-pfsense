@@ -43,6 +43,15 @@ pfSense < 2.4.5:
 ansible_python_interpreter: /usr/local/bin/python2.7
 ```
 
+Modules must run as root in order to make changes to the system.  By default pfSense does not have sudo capability so `become` will not work.  You can install it with:
+```
+  - name: "Install packages"
+    package:
+      name:
+        - pfSense-pkg-sudo
+      state: present
+```
+and then configure sudo so that your user has permission to use sudo.
 ## Modules
 The following modules are currently available:
 
