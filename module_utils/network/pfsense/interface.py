@@ -514,6 +514,11 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
 
     def _log_update(self, before):
         """ generate pseudo-CLI command to update an interface """
-        log = "update {0} '{1}'".format(self._get_module_name(True), before['descr'])
+        log = "update {0} '{1}'".format(
+            self._get_module_name(True),
+            # pfSense doesn't enforce a descr on an interface, especially on
+            # first-run so fallback to interface specifier if not known
+            before.get('descr', before['if']),
+        )
         values = self._log_fields(before)
         self.result['commands'].append(log + ' set ' + values)
