@@ -58,6 +58,7 @@ The following modules are currently available:
 * [pfsense_alias](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_alias) for aliases
 * [pfsense_authserver_ldap](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_authserver_ldap) for LDAP authentication servers
 * [pfsense_ca](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ca) for Certificate Authorities
+* [pfsense_file](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ca) for pushing files
 * [pfsense_gateway](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_gateway) for routing gateways
 * [pfsense_group](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_group) for groups
 * [pfsense_interface](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_interface) for interfaces
