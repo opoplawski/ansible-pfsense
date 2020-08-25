@@ -211,7 +211,7 @@ from ansible.plugins.lookup import LookupBase
 from ansible.module_utils.compat import ipaddress
 
 OPTION_FIELDS = [
-    'gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'ifilter', 'sched', 'quick', 'direction',
+    'gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'efilter', 'ifilter', 'sched', 'quick', 'direction',
     'staticnatport', 'ipprotocol'
 ]
 OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'sched', 'quick', 'direction']
@@ -2402,6 +2402,11 @@ class PFSenseRuleFactory(object):
         # if the rule has a filter, apply it
         rule_filter = rule_obj.get_option('filter')
         if rule_filter and self._data.target.name not in rule_filter.split():
+            return set()
+
+        # if the rule has a efilter, apply it
+        rule_efilter = rule_obj.get_option('efilter')
+        if rule_efilter and self._data.target.name in rule_efilter.split():
             return set()
 
         interface_filter = rule_obj.get_option('ifilter')
