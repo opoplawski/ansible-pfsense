@@ -212,10 +212,12 @@ from ansible.module_utils.compat import ipaddress
 
 OPTION_FIELDS = [
     'gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'efilter', 'ifilter', 'sched', 'quick', 'direction',
-    'staticnatport', 'ipprotocol'
+    'staticnatport', 'ipprotocol',
+    'associated_rule', 'natreflection',
 ]
 OUTPUT_OPTION_FIELDS = ['gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'sched', 'quick', 'direction']
 OUTPUT_SRC_NAT_OPTION_FIELDS = ['staticnatport', 'ipprotocol']
+OUTPUT_DST_NAT_OPTION_FIELDS = ['associated_rule', 'natreflection']
 
 display = Display()
 
@@ -2612,8 +2614,14 @@ class PFSenseRuleFactory(object):
             definition['interface'] = interface
             definition['state'] = 'present'
             definition['target'] = '{0}:{1}'.format(dst_nat.name, dst_nat_port)
-            definition['associated_rule'] = 'pass'
             definition.update(rule_def)
+            for field in OUTPUT_DST_NAT_OPTION_FIELDS:
+                value = rule_obj.get_option(field)
+                if value is not None:
+                    definition[field] = value
+
+            if 'associated_rule' not in definition:
+                definition['associated_rule'] = 'pass'
 
             for field in ['source', 'destination']:
                 key = field + '_port'
@@ -2994,7 +3002,11 @@ class PFSenseRuleFactory(object):
                     definition = '          - { descr: "%s", source: "%s", ' % (rule['descr'], rule['source'])
                     definition += 'destination: "{0}", '.format(rule['destination'])
                     definition += 'interface: "{0}", target: "{1}"'.format(rule['interface'], rule['target'])
-                    definition += ', associated_rule: "{0}"'.format(rule['associated_rule'])
+
+                    for field in OUTPUT_SRC_NAT_OPTION_FIELDS:
+                        value = rule.get(field)
+                        if value is not None:
+                            definition += ', {0}: {1}'.format(field, value)
 
                     if rule.get('descr'):
                         definition += ", descr: \"" + rule['descr'] + "\""
