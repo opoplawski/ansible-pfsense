@@ -1781,7 +1781,8 @@ class PFSenseDataParser(object):
                         ikey = 'all_' + tag + ipext
                         if ikey not in all_pfsenses_interfaces_definition:
                             all_pfsenses_interfaces_definition[ikey] = list()
-                        all_pfsenses_interfaces_definition[ikey].append(interface_definition_name)
+                        if interface_definition_name not in all_pfsenses_interfaces_definition[ikey]:
+                            all_pfsenses_interfaces_definition[ikey].append(interface_definition_name)
 
                         if idx == 0:
                             # we only add the interface and not all the tags in the pfsense_definition
@@ -1800,7 +1801,8 @@ class PFSenseDataParser(object):
                         ikey_net = 'all_' + tag + netext
                         if ikey_net not in net_all_pfsenses_interfaces_definition:
                             net_all_pfsenses_interfaces_definition[ikey_net] = list()
-                        net_all_pfsenses_interfaces_definition[ikey_net].append(interface_definition_name)
+                        if interface_definition_name not in net_all_pfsenses_interfaces_definition[ikey_net]:
+                            net_all_pfsenses_interfaces_definition[ikey_net].append(interface_definition_name)
 
                         if idx == 0:
                             # we only add the interface and not all the tags in the pfsense_definition
