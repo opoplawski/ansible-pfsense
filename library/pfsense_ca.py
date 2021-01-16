@@ -93,6 +93,9 @@ class PFSenseCAModule(PFSenseModuleBase):
         """ do some extra checks on input parameters """
         params = self.params
 
+        if params['state'] == 'absent':
+            return
+
         # TODO - Make sure certificate purpose includes CA
         cert = params['certificate']
         lines = cert.splitlines()
