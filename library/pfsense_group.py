@@ -168,31 +168,10 @@ class PFSenseGroupModule(PFSenseModuleBase):
         return self.pfsense.new_element('group')
 
     def _find_target(self):
-        result = self.root_elt.findall("group[name='{0}']".format(self.obj['name']))
-        if len(result) == 1:
-            return result[0]
-        elif len(result) > 1:
-            self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
-        else:
-            return None
-
-    def _find_group_by_name(self, name):
-        result = self.root_elt.findall("group[name='{0}']".format(name))
-        if len(result) == 1:
-            return result[0]
-        elif len(result) > 1:
-            self.module.fail_json(msg='Found multiple groups for name {0}.'.format(name))
-        else:
-            return None
+        return self.pfsense.find_elt('group', self.obj['name'], search_field='name', root_elt=self.root_elt)
 
     def _find_group_by_gid(self, gid):
-        result = self.root_elt.findall("group[gid='{0}']".format(gid))
-        if len(result) == 1:
-            return result[0]
-        elif len(result) > 1:
-            self.module.fail_json(msg='Found multiple groups for gid {0}.'.format(gid))
-        else:
-            return None
+        return self.pfsense.find_elt('group', gid, search_field='gid', root_elt=self.root_elt)
 
     def _find_this_group_index(self):
         return self.groups.index(self.target_elt)
