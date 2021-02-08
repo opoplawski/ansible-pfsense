@@ -1,20 +1,22 @@
 # Needed for python 3.7+
-dist: xenial
+dist: bionic
 
 language: python
 
 cache: pip
 
 python:
-  - '2.7'
-  - '3.5'
   - '3.6'
   - '3.7'
   - '3.8'
 
-# Need to specify pytest version or ansible-test --requirements fails
+before_install:
+  - pip install -U pip 
+  - pip install -U pytest 
+
 install:
-  - pip install jinja2 MarkupSafe pyparsing pycodestyle 'pytest>=4.4.0' pytest-xdist pyyaml
+  - pip install 'urllib3<1.27,>=1.25.4'
+  - pip install jinja2 MarkupSafe pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
 
 # Build against 2.9 for now.  2.10 fails due to removal of ipaddress to ansible.network
 script:
