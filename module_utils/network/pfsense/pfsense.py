@@ -63,7 +63,6 @@ class PFSenseModule(object):
         self.ipsec = self.get_element('ipsec')
         self.openvpn = self.get_element('openvpn')
         self.virtualip = None
-        self.schedules = self.get_element('schedules')
         self.debug = open('/tmp/pfsense.debug', 'w')
 
     @staticmethod
@@ -85,17 +84,46 @@ class PFSenseModule(object):
             address = '!' + address
         return address, ports
 
-    def get_element(self, node):
+    def get_element(self, node, root_elt=None, create_node=False):
         """ return <node> configuration element """
-        return self.root.find(node)
+        if root_elt is None:
+            root_elt = self.root
+        elt = root_elt.find(node)
+        if elt is None and create_node:
+            elt = new_element(node)
+            root_elt.append(elt)
+        return elt
 
-    def get_elements(self, node):
+    def get_elements(self, node, root_elt=None):
         """ return all <node> configuration elements  """
-        return self.root.findall(node)
+        if root_elt is None:
+            root_elt = self.root
+        return root_elt.findall(node)
 
-    def get_index(self, elt):
+    def get_index(self, elt, root_elt=None):
         """ Get elt index  """
-        return list(self.root).index(elt)
+        if root_elt is None:
+            root_elt = self.root
+        return list(root_elt).index(elt)
+
+    def find_elt(self, node, search_text, search_field='descr', root_elt=None, multiple_ok=False):
+        """ return object elt if found """
+        search_xpath = "{0}[{1}='{2}']".format(node, search_field, search_text)
+        return self.find_elt_xpath(search_xpath, root_elt, multiple_ok)
+
+    def find_elt_xpath(self, search_xpath, root_elt=None, multiple_ok=False):
+        """ return object elt if found """
+        if root_elt is None:
+            root_elt = self.root
+        result = root_elt.findall(search_xpath)
+        if len(result) == 1:
+            return result[0]
+        elif len(result) > 1:
+            if multiple_ok:
+                return results
+            else:
+                self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
+        return None
 
     @staticmethod
     def remove_deleted_param_from_elt(elt, param, params):
@@ -478,35 +506,21 @@ class PFSenseModule(object):
 
         return None
 
-    def find_certobj_elt(self, descr, objtype, search_field='descr'):
-        """ return certificate object elt if found """
-        cas_elt = self.get_elements(objtype)
-        for ca_elt in cas_elt:
-            descr_elt = ca_elt.find(search_field)
-            if descr_elt is not None and descr_elt.text == descr:
-                return ca_elt
-        return None
-
-    def find_ca_elt(self, descr, search_field='descr'):
+    def find_ca_elt(self, ca, search_field='descr'):
         """ return certificate authority elt if found """
-        return self.find_certobj_elt(descr, 'ca', search_field)
+        return self.find_elt('ca', ca, search_field)
 
-    def find_cert_elt(self, descr, search_field='descr'):
+    def find_cert_elt(self, cert, search_field='descr'):
         """ return certificate elt if found """
-        return self.find_certobj_elt(descr, 'cert', search_field)
+        return self.find_elt('cert', cert, search_field)
 
-    def find_crl_elt(self, descr, search_field='descr'):
+    def find_crl_elt(self, crl, search_field='descr'):
         """ return certificate revocation list elt if found """
-        return self.find_certobj_elt(descr, 'crl', search_field)
+        return self.find_elt('crl', crl, search_field)
 
     def find_schedule_elt(self, name):
         """ return schedule elt if found """
-        if self.schedules is not None:
-            for schedule_elt in self.schedules:
-                if schedule_elt.find('name').text == name:
-                    return schedule_elt
-
-        return None
+        return self.find_elt_xpath("./schedules/schedule[name='{0}']".format(name))
 
     @staticmethod
     def uniqid(prefix='', more_entropy=False):
