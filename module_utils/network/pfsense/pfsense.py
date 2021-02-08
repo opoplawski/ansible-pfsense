@@ -6,6 +6,7 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import html
 import json
 import shutil
 import os
@@ -65,6 +66,15 @@ class PFSenseModule(object):
         self.openvpn = self.get_element('openvpn')
         self.virtualip = None
         self.debug = open('/tmp/pfsense.debug', 'w')
+        if sys.version_info >= (3, 4):
+            self._scrub()
+
+    # Work around pfSense CDATA xml formatting issue
+    # https://github.com/opoplawski/ansible-pfsense/issues/61
+    def _scrub(self):
+        for elt in self.root.iter():
+            if elt.text is not None:
+                elt.text = html.unescape(elt.text)
 
     @staticmethod
     def addr_normalize(addr):
