@@ -11,6 +11,7 @@ import shutil
 import os
 import pwd
 import random
+import sys
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
@@ -558,9 +559,10 @@ class PFSenseModule(object):
         revision.find('username').text = username
         (tmp_handle, tmp_name) = mkstemp()
         os.close(tmp_handle)
-        # TODO: when pfsense will adopt python3
-        # detect python version and use 3.4 short_empty_elements parameter to try to preserve format
-        self.tree.write(tmp_name, xml_declaration=True, method='xml')
+        if sys.version_info >= (3, 4):
+            self.tree.write(tmp_name, xml_declaration=True, method='xml', short_empty_elements=False)
+        else:
+            self.tree.write(tmp_name, xml_declaration=True, method='xml')
         shutil.move(tmp_name, self.config)
         os.chmod(self.config, 0o644)
         try:
