@@ -26,6 +26,12 @@ Additionally, you can set the `collections_paths` option in your `ansible.cfg` f
 collections_paths=collections
 ```
 
+### NOTE: Changes with pfsensible.core 0.4.0
+
+With pfsensible.core 0.4.0 we have stopped stripping the pfsense_ prefix from the module names.  This caused conflicts with other
+modules (like the ansible core 'setup' module).  You can use the ['collections'](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#simplifying-module-names-with-the-collections-keyword)
+keyword in your playbooks and roles to simplify the module names instead.
+
 ## Installing using ansible pre-2.9 (not galaxy)
 
 Just checkout the [repository](https://github.com/opoplawski/ansible-pfsense) and run your playbooks from the ansible-pfsense directory.
