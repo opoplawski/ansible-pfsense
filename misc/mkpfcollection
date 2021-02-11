@@ -1,24 +1,30 @@
-#!/bin/bash
+#!/bin/bash -eux
 
-mkdir -p {examples,misc,plugins,tests/unit/modules}
-git mv library plugins/modules
+mkdir -p {examples,misc,plugins,tests/unit}
+git mv library/* plugins/modules/
+rmdir library
 git mv module_utils/network/pfsense plugins/module_utils
 git rm -r module_utils
 rm -rf module_utils
-git mv {group_vars,pfsense.yml,pfsense_setup.yml,roles} examples/
+git mv {pfsense.yml,pfsense_setup.yml,roles} examples/
 git mv lookup_plugins plugins/lookup/
-git mv test/units/modules/network/pfsense/* tests/unit/modules/
 git mv test/units/plugins tests/unit/
+mkdir tests/unit/plugins/modules
+git mv test/units/modules/network/pfsense/* tests/unit/plugins/modules/
 git rm -r test
 rm -r test
 
-sed -i -e 's/pfsense_/pfsensible.core.pfsense_/g' -e s,opoplawski/ansible-pfsense,pfsensible/core, README.md
+sed -i -e 's/pfsense_\([a-z]\)/pfsensible.core.pfsense_\1/g' -e s,opoplawski/ansible-pfsense,pfsensible/core, README.md
 sed -i -e 's/\(pfsense_.*:\)/pfsensible.core.\1/g' $(find examples -name \*.yml)
-#sed -i -e '/import\|module:\|^ *pfsense_[a-z_0-9]*:$\|descr *= *.ansible pfsense_/s/pfsense_/pfsensible.core./' $(find pfsensible/core/plugins/modules -name \*.py)
-sed -i -e '/self.name = /s/pfsense_/pfsensible.core.pfsense_/' \
+sed -i -e s/ansible.modules.network.pfsense/ansible_collections.pfsensible.core.plugins.modules/ \
+       -e s/ansible.plugins.lookup.pfsense/ansible_collections.pfsensible.core.plugins.lookup.pfsense/ \
+       -e "s/lookup_loader.get('pfsense')/lookup_loader.get('pfsensible.core.pfsense')/" \
        -e s/ansible.module_utils.network.pfsense/ansible_collections.pfsensible.core.plugins.module_utils/ \
-       -e s/ansible.module_utils.compat.ipaddress/ansible_collections.ansible.netcommon.plugins.module_utils.compat.ipaddress/ \
-       -e 's/ansible.modules.network.pfsense import /ansible_collections.pfsensible.core import /' $(find tests -name \*.py)
+       -e s/ansible.module_utils.compat/ansible_collections.ansible.netcommon.plugins.module_utils.compat/ \
+       -e s/units.compat.mock/ansible_collections.community.internal_test_tools.tests.unit.compat.mock/ \
+       -e s/units.modules.utils/ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils/ \
+       -e '/version_added/s/"2.10"/0.1.0/' \
+       $(find -name \*.py)
 
 rm -f pfsensible-core-*.tar.gz
 ansible-galaxy collection build

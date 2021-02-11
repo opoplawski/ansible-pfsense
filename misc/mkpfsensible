@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -eu
 
 [ ! -d ansible-pfsense ] && echo "No such directory ansible-pfsense" && exit 1
 [ ! -d pfsensible/core ] && echo "No such directory pfsensible/core" && exit 1
