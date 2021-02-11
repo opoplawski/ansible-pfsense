@@ -37,7 +37,7 @@ rules:
     allow_icmp:             { src: any,             dst: any,                 protocol: icmp,     icmptype: any, log: no }
 
   OSPF:
-    ospf_vtis:              { src: ipsec_vtis,      dst: ipsec_vtis,          protocol: ospf,     log: no  }
+    ospf_vtis:              { src: ipsec_vtis,      dst: ipsec_vtis,          protocol: ospf,     log: no }
 
   FROM_FARGO:
     config_from_fargo:      { src: fargo_station,   dst: 10.20.30.101,        protocol: tcp,      dst_port: admin_ports }

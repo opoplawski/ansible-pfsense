@@ -9,12 +9,12 @@
       detail: "{{ item.detail }}"
       state: present
     with_items:
-    - { name: adservers,
-        type: host,
+      - name: adservers
+        type: host
         address: "172.16.10.10 172.16.10.11"
-        descr: "Active Directory Servers",
-        detail: "ad1||ad2" }
-    - "{{ pfsense_aliases }}"
+        descr: "Active Directory Servers"
+        detail: "ad1||ad2"
+      - "{{ pfsense_aliases }}"
 
   - name: "Set local network"
     set_fact:
@@ -32,8 +32,8 @@
       after: 'top'
       state: present
     with_items:
-    - 10.0.0.0/8
-    - 192.168.0.0/16
+      - 10.0.0.0/8
+      - 192.168.0.0/16
 
   - name: "Add Allow proxies out rule"
     pfsense_rule:
