@@ -22,7 +22,7 @@ from tempfile import mkstemp
 class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=bad-option-value, import-outside-toplevel
     from ansible.module_utils.network.pfsense.__impl.interfaces import (
         get_interface_display_name,
         get_interface_elt,
@@ -48,7 +48,6 @@ class PFSenseModule(object):
         parse_port,
     )
     from ansible.module_utils.network.pfsense.__impl.checks import check_name, check_ip_address
-    # pylint: enable=import-outside-toplevel
 
     def __init__(self, module, config='/cf/conf/config.xml'):
         self.module = module
