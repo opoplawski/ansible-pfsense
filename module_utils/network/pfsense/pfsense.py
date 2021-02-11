@@ -96,13 +96,22 @@ class PFSenseModule(object):
             address = '!' + address
         return address, ports
 
+    @staticmethod
+    def new_element(tag, text='\n\t\t\t'):
+        """ Create and return new XML configuration element  """
+        elt = ET.Element(tag)
+        # Attempt to preserve some of the formatting of pfSense's config.xml
+        elt.text = text
+        elt.tail = '\n\t\t'
+        return elt
+
     def get_element(self, node, root_elt=None, create_node=False):
         """ return <node> configuration element """
         if root_elt is None:
             root_elt = self.root
         elt = root_elt.find(node)
         if elt is None and create_node:
-            elt = new_element(node)
+            elt = self.new_element(node)
             root_elt.append(elt)
         return elt
 
@@ -132,7 +141,7 @@ class PFSenseModule(object):
             return result[0]
         elif len(result) > 1:
             if multiple_ok:
-                return results
+                return result
             else:
                 self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
         return None
@@ -215,15 +224,6 @@ class PFSenseModule(object):
             i += 1
 
         return None
-
-    @staticmethod
-    def new_element(tag, text='\n\t\t\t'):
-        """ Create and return new XML configuration element  """
-        elt = ET.Element(tag)
-        # Attempt to preserve some of the formatting of pfSense's config.xml
-        elt.text = text
-        elt.tail = '\n\t\t'
-        return elt
 
     def copy_dict_to_element(self, src, top_elt, sub=0):
         """ Copy/update top_elt from src """
