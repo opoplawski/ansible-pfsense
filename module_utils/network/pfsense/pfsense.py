@@ -6,13 +6,14 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import html
+import sys
+if sys.version_info >= (3, 4):
+    import html
 import json
 import shutil
 import os
 import pwd
 import random
-import sys
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
