@@ -202,7 +202,6 @@ import re
 import socket
 import sys
 import yaml
-import dns
 import traceback
 import os
 
