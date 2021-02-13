@@ -93,7 +93,11 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.ipsec_proposal import PFSenseIpsecProposalModule, IPSEC_PROPOSAL_ARGUMENT_SPEC, IPSEC_PROPOSAL_REQUIRED_IF
+from ansible.module_utils.network.pfsense.ipsec_proposal import (
+    PFSenseIpsecProposalModule,
+    IPSEC_PROPOSAL_ARGUMENT_SPEC,
+    IPSEC_PROPOSAL_REQUIRED_IF
+)
 
 
 def main():
