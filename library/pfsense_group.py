@@ -71,7 +71,6 @@ RETURN = """
 
 """
 
-import time
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
@@ -125,7 +124,6 @@ class PFSenseGroupModule(PFSenseModuleBase):
 
     def _validate_params(self):
         """ do some extra checks on input parameters """
-        params = self.params
 
     def _nextgid(self):
         """ return and update netgid counter """

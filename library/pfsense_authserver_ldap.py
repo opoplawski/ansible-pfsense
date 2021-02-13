@@ -144,7 +144,6 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
     #
     def _validate_params(self):
         """ do some extra checks on input parameters """
-        params = self.params
 
     def _params_to_obj(self):
         """ return a dict from module params """
