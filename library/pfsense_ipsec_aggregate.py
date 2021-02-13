@@ -26,6 +26,7 @@ options:
     description: Dict of ipsec tunnels and phase 1 options to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       iketype:
         description: Internet Key Exchange protocol version to be used. Auto uses IKEv2 when initiator, and accepts either IKEv1 or IKEv2 as responder.
@@ -153,6 +154,7 @@ options:
     description: Dict of ipsec proposals to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       encryption:
         description:
@@ -193,11 +195,13 @@ options:
     description: Dict of ipsec tunnels phase 2 options to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       disabled:
         description: Set this option to disable this phase2 without removing it from the list.
         required: false
         type: bool
+        default: false
       mode:
         description: Method for managing ipsec traffic
         required: False

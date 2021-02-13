@@ -25,6 +25,7 @@ options:
     description: Set this option to disable this phase2 without removing it from the list.
     required: false
     type: bool
+    default: false
   mode:
     description: Method for managing ipsec traffic
     required: False

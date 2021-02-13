@@ -26,6 +26,7 @@ options:
     description: Dict of aliases to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       name:
         description: The name of the alias
@@ -61,6 +62,7 @@ options:
     description: Dict of interfaces to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       state:
         description: State in which to leave the interface.
@@ -142,6 +144,7 @@ options:
     description: Dict of nat_outbound rules to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       descr:
         description: The name of the nat rule
@@ -226,6 +229,7 @@ options:
     description: Dict of nat_port_forward rules to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       descr:
         description: The name of the nat rule
@@ -295,6 +299,7 @@ options:
     description: Dict of rules to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       name:
         description: The name the rule
@@ -416,6 +421,7 @@ options:
     description: Dict of rule separators to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       name:
         description: The name of the separator
@@ -447,6 +453,7 @@ options:
     description: Dict of vlans to apply on the target
     required: False
     type: list
+    elements: dict
     suboptions:
       vlan_id:
         description: The vlan tag. Must be between 1 and 4094.
