@@ -32,10 +32,6 @@ Additionally, you can set the `collections_paths` option in your `ansible.cfg` f
 collections_paths=collections
 ```
 
-## Installing using ansible pre-2.9 (not galaxy)
-
-Just checkout the [repository](https://github.com/pfsensible/core) and run your playbooks from the ansible-pfsense directory.
-
 ## Configuration
 
 Current ansible (2.9) python discovery should detect the installed python.  If not, you can set in your playbook or hosts vars:

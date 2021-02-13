@@ -11,18 +11,22 @@ python:
   - '3.8'
 
 before_install:
+  - pip install -U setuptools 
   - pip install -U pip 
   - pip install -U pytest 
 
 install:
   - pip install 'urllib3<1.27,>=1.25.4'
-  - pip install jinja2 MarkupSafe pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
+  - pip install ansible-base jinja2 MarkupSafe pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
+  - ansible-galaxy collection install ansible.netcommon 
+  - ansible-galaxy collection install community.internal_test_tools
 
-# Build against 2.9 for now.  2.10 fails due to removal of ipaddress to ansible.network
 script:
-  - 'git clone --branch stable-2.9 --single-branch https://github.com/ansible/ansible.git'
-  - . ansible/hacking/env-setup
-  - ./misc/local2ansible
-  - cd ansible
-  - ansible-test sanity --requirements --python $TRAVIS_PYTHON_VERSION pfsense_.*
-  - ansible-test units --requirements --python $TRAVIS_PYTHON_VERSION pfsense_.*
+  - pwd
+  - dir=$(pwd)
+  - mkdir -p ~/.ansible/collections/ansible_collections/pfsensible
+  - cd ~/.ansible/collections/ansible_collections/pfsensible
+  - mv $dir core
+  - cd core
+  - ansible-test sanity --requirements --python $TRAVIS_PYTHON_VERSION
+  - ansible-test units --requirements --python $TRAVIS_PYTHON_VERSION
