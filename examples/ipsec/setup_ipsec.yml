@@ -11,7 +11,7 @@
 
   tasks:
     - name: "setup ipsec"
-      pfsense_ipsec_aggregate:
+      pfsensible.core.pfsense_ipsec_aggregate:
         purge_ipsecs: true
         purge_ipsec_proposals: true
         purge_ipsec_p2s: true

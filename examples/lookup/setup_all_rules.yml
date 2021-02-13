@@ -8,7 +8,7 @@
 
   tasks:
     - name: "setup aliases, rules & seperators"
-      pfsense_aggregate:
+      pfsensible.core.pfsense_aggregate:
         purge_rule_separators: true
         purge_aliases: true
         purge_rules: true
