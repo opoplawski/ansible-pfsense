@@ -17,7 +17,7 @@ before_install:
 
 install:
   - pip install 'urllib3<1.27,>=1.25.4'
-  - pip install ansible-base jinja2 MarkupSafe pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
+  - pip install ansible-base dnspython jinja2 MarkupSafe pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
   - ansible-galaxy collection install ansible.netcommon 
   - ansible-galaxy collection install community.internal_test_tools
 
