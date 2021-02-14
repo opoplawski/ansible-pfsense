@@ -159,7 +159,12 @@ class PFSenseIpsecModule(PFSenseModuleBase):
         ipsec['descr'] = params['descr']
 
         if params['state'] == 'present':
-            ipsec['interface'] = self.pfsense.parse_interface(params['interface'], with_virtual=False)
+            # Valid interfaces are physical, virtual IPs, and gateway groups
+            # TODO - handle gateway groups
+            if params['interface'].lower().startswith('vip:'):
+                ipsec['interface'] = self.pfsense.get_virtual_ip_interface(params['interface'][4:])
+            else:    
+                ipsec['interface'] = self.pfsense.parse_interface(params['interface'], with_virtual=False)
             ipsec['iketype'] = params['iketype']
 
             if params.get('mode') is not None:
@@ -238,6 +243,12 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
             if name == params['descr']:
                 continue
+
+            # Valid interfaces are physical, virtual IPs, and gateway groups
+            # TODO - handle gateway groups
+            if params['interface'].lower().startswith('vip:'):
+                if self.pfsense.get_virtual_ip_interface(params['interface'][4:]) is None:
+                    self.module.fail_json(msg='Cannot find virtual IP "{0}".'.format(params['interface'][4:]))
 
             # two ikev2 can share the same gateway
             iketype_elt = ipsec_elt.find('iketype')

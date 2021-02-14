@@ -2033,6 +2033,19 @@ emFSCndVNi9BdTJFQU1vNHhZU2hYR1Z0M0gzUDE1TjlUTXN5UEltRXRTMmpEeER0d1lOSTBJUjhESGJQ
 			<subnet_bits>24</subnet_bits>
 			<subnet>10.255.3.254</subnet>
 		</vip>
+		<vip>
+			<mode>carp</mode>
+			<interface>wan</interface>
+			<vhid>90</vhid>
+			<advskew>100</advskew>
+			<advbase>1</advbase>
+			<password><![CDATA[123456]]></password>
+			<uniqid>602874de0ff00</uniqid>
+			<descr><![CDATA[WAN CARP]]></descr>
+			<type>single</type>
+			<subnet_bits>29</subnet_bits>
+			<subnet>151.25.19.11</subnet>
+		</vip>
 	</virtualip>
 	<wizardtemp>
 		<system>

@@ -178,6 +178,28 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
+    def test_ipsec_create_vip_descr(self):
+        """ test creation of a new ipsec tunnel with vip: interface name """
+        ipsec = dict(
+            descr='new_tunnel', interface='vip:WAN CARP', remote_gateway='1.2.3.4', iketype='ikev1',
+            authentication_method='pre_shared_key', preshared_key='1234', mode='main')
+        command = (
+            "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='vip:WAN CARP', remote_gateway='1.2.3.4', "
+            "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
+        self.do_module_test(ipsec, command=command)
+
+    def test_ipsec_create_vip_subnet(self):
+        """ test creation of a new ipsec tunnel with vip: interface address """
+        ipsec = dict(
+            descr='new_tunnel', interface='vip:151.25.19.11', remote_gateway='1.2.3.4', iketype='ikev1',
+            authentication_method='pre_shared_key', preshared_key='1234', mode='main')
+        command = (
+            "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='vip:151.25.19.11', remote_gateway='1.2.3.4', "
+            "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
+        self.do_module_test(ipsec, command=command)
+
     def test_ipsec_create_auto(self):
         """ test creation of a new ipsec tunnel """
         ipsec = dict(
