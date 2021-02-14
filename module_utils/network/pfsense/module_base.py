@@ -87,12 +87,15 @@ class PFSenseModuleBase(object):
     def _copy_and_add_target(self):
         """ create the XML target_elt """
         self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self.diff['after'] = self.obj
         self.root_elt.append(self.target_elt)
 
     def _copy_and_update_target(self):
         """ update the XML target_elt """
         before = self.pfsense.element_to_dict(self.target_elt)
+        self.diff['before'] = self.obj
         changed = self.pfsense.copy_dict_to_element(self.obj, self.target_elt)
+        self.diff['after'] = self.pfsense.element_to_dict(self.target_elt)
         if self._remove_deleted_params():
             changed = True
 
