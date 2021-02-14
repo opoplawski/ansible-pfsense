@@ -6,13 +6,14 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import html
+import sys
+if sys.version_info >= (3, 4):
+    import html
 import json
 import shutil
 import os
 import pwd
 import random
-import sys
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
@@ -382,10 +383,10 @@ class PFSenseModule(object):
         if self.virtualip is None:
             return False
 
-        for ip_elt in self.virtualip:
-            if ip_elt.find('subnet').text == addr:
-                return True
-        return False
+        if self.find_elt('vip', addr, 'subnet', root_elt=self.virtualip) is None:
+            return False
+
+        return True
 
     def find_queue(self, name, interface=None, enabled=False):
         """ return QOS queue if found """
