@@ -163,7 +163,7 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             # TODO - handle gateway groups
             if params['interface'].lower().startswith('vip:'):
                 ipsec['interface'] = self.pfsense.get_virtual_ip_interface(params['interface'][4:])
-            else:    
+            else:
                 ipsec['interface'] = self.pfsense.parse_interface(params['interface'], with_virtual=False)
             ipsec['iketype'] = params['iketype']
 
