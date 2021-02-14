@@ -32,7 +32,7 @@ options:
     choices: [ 'inet', 'inet6', 'both' ]
     type: str
   interface:
-    description: Interface for the local endpoint of this phase1 entry.
+    description: Interface for the local endpoint of this phase1 entry.  Can be a virtual IP name or address prefixed with "vip:".
     required: false
     type: str
   remote_gateway:

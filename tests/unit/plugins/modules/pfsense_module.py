@@ -320,6 +320,8 @@ class TestPFSenseModule(ModuleTestCase):
             interfaces = dict(lan='vmx1', wan='vmx0', opt1='vmx2', vpn='vmx2', opt2='vmx3', vt1='vmx3', opt3='vmx3.100', lan_100='vmx3.100')
         else:
             interfaces = dict(lan='lan', wan='wan', vpn='opt1', vt1='opt2', lan_100='opt3')
+        if interface.startswith('vip:'):
+            return '_vip602874de0ff00'
         for iface in interface.split(','):
             if interface in interfaces:
                 res.append(interfaces[iface])

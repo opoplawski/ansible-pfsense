@@ -64,7 +64,7 @@ class PFSenseModule(object):
         self.gateways = self.get_element('gateways')
         self.ipsec = self.get_element('ipsec')
         self.openvpn = self.get_element('openvpn')
-        self.virtualip = None
+        self.virtualip = self.get_element('virtualip')
         self.debug = open('/tmp/pfsense.debug', 'w')
         if sys.version_info >= (3, 4):
             self._scrub()
@@ -377,15 +377,30 @@ class PFSenseModule(object):
     def is_virtual_ip(self, addr):
         """ return True if addr is a virtual ip """
         if self.virtualip is None:
-            self.virtualip = self.get_element('virtualip')
-
-        if self.virtualip is None:
             return False
 
-        for ip_elt in self.virtualip:
-            if ip_elt.find('subnet').text == addr:
-                return True
-        return False
+        if self.find_elt('vip', addr, 'subnet', root_elt=self.virtualip) is None:
+            return False
+
+        return True
+
+    def get_virtual_ip_interface(self, vip):
+        """ return interface name for virtual IP name or network """
+        if self.virtualip is None:
+            return None
+
+        vip_elt = self.find_elt('vip', vip, 'descr', root_elt=self.virtualip)
+        if vip_elt is None:
+            vip_elt = self.find_elt('vip', vip, 'subnet', root_elt=self.virtualip)
+
+        if vip_elt is None:
+            return None
+
+        uniqid_elt = vip_elt.find('uniqid')
+        if uniqid_elt is None:
+            return None
+
+        return "_vip" + vip_elt.find('uniqid').text
 
     def find_queue(self, name, interface=None, enabled=False):
         """ return QOS queue if found """
