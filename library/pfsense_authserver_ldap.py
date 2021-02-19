@@ -160,7 +160,10 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
                     obj[option] = params[option]
 
             obj['ldap_port'] = params['port']
-            urltype = dict({'tcp': 'TCP - Standard', 'starttls': 'TCP - STARTTLS', 'ssl': 'SSL - Encrypted'})
+            if self.pfsense.config_version >= 20.1:
+                urltype = dict({'tcp': 'Standard TCP', 'starttls': 'STARTTLS Encrypted', 'ssl': 'SSL/TLS Encrypted'})
+            else:
+                urltype = dict({'tcp': 'TCP - Standard', 'starttls': 'TCP - STARTTLS', 'ssl': 'SSL - Encrypted'})
             obj['ldap_urltype'] = urltype[params['transport']]
             obj['ldap_protver'] = params['protver']
             obj['ldap_timeout'] = params['timeout']
@@ -184,8 +187,12 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
             # Find the caref id for the named CA
             obj['ldap_caref'] = self.pfsense.get_caref(params['ca'])
             # CA is required for SSL/TLS
-            if obj['ldap_caref'] is None and obj['ldap_urltype'] != 'TCP - Standard':
-                self.module.fail_json(msg="Could not find CA '%s'" % (params['ca']))
+            if self.pfsense.config_version >= 20.1:
+                if obj['ldap_caref'] is None and obj['ldap_urltype'] != 'Standard TCP':
+                    self.module.fail_json(msg="Could not find CA '%s'" % (params['ca']))
+            else:
+                if obj['ldap_caref'] is None and obj['ldap_urltype'] != 'TCP - Standard':
+                    self.module.fail_json(msg="Could not find CA '%s'" % (params['ca']))
 
         return obj
 
