@@ -55,6 +55,7 @@ class PFSenseModule(object):
         self.config = config
         self.tree = ET.parse(config)
         self.root = self.tree.getroot()
+        self.config_version = float(self.get_element('version').text)
         self.aliases = self.get_element('aliases')
         self.interfaces = self.get_element('interfaces')
         self.ifgroups = self.get_element('ifgroups')
