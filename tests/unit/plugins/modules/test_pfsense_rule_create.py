@@ -150,6 +150,12 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
         msg = 'You must specify at least one icmptype or any for all of them'
         self.do_module_test(obj, failed=True, msg=msg)
 
+    def test_rule_create_esp(self):
+        """ test creation of a new rule for esp protocol """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='esp')
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', protocol='esp'"
+        self.do_module_test(obj, command=command)
+
     def test_rule_create_protocol_any(self):
         """ test creation of a new rule for (self) """
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', protocol='any')

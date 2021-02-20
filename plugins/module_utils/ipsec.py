@@ -86,6 +86,9 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
         self.root_elt = self.pfsense.ipsec
 
+        if self.pfsense.config_version >= 19.9:
+            self.module.fail_json(msg='This version of pfSense is not yet supported by this module')
+
     ##############################
     # XML processing
     #
