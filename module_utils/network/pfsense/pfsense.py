@@ -70,6 +70,7 @@ class PFSenseModule(object):
         self.debug = open('/tmp/pfsense.debug', 'w')
         if sys.version_info >= (3, 4):
             self._scrub()
+        self.pfsense_version = None
 
     # Work around pfSense CDATA xml formatting issue
     # https://github.com/opoplawski/ansible-pfsense/issues/61
@@ -600,3 +601,27 @@ class PFSenseModule(object):
                 pass
             else:
                 raise
+
+    @staticmethod
+    def get_version():
+        """ get pfSense version """
+        # TODO: use subprocess when we'll drop support for python 2.7
+        os.system("pkg-static info | grep pfSense-base > /tmp/pfVersion")
+        vfile = open("/tmp/pfVersion", "r")
+        version = vfile.read().replace("pfSense-base-", "").split()[0]
+        vfile.close()
+        return version
+
+    def is_version(self, version, or_more=True):
+        """ check target pfSense version """
+        if self.pfsense_version is None:
+            self.pfsense_version = self.get_version()
+
+        if self.pfsense_version.startswith(version):
+            return True
+
+        if not or_more:
+            return False
+
+        # TODO: add some hardcoded checks to support new versions here
+        return False

@@ -76,6 +76,10 @@ class TestPFSenseModule(ModuleTestCase):
         self.mock_chmod = patch('ansible.module_utils.network.pfsense.pfsense.os.chmod')
         self.chmod = self.mock_chmod.start()
 
+        self.mock_get_version = patch('ansible.module_utils.network.pfsense.pfsense.PFSenseModule.get_version')
+        self.get_version = self.mock_get_version.start()
+        self.get_version.return_value = "2.5.0"
+
         self.maxDiff = None
 
     def tearDown(self):
@@ -88,6 +92,7 @@ class TestPFSenseModule(ModuleTestCase):
         self.mock_phpshell.stop()
         self.mock_mkstemp.stop()
         self.mock_chmod.stop()
+        self.mock_get_version.stop()
 
         try:
             if self.tmp_file is not None:
