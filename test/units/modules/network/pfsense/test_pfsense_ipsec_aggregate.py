@@ -74,6 +74,9 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         def strip_command(command):
             if self.get_version.return_value.startswith("2.4."):
                 command = command.replace(", prf='sha256'", "")
+                command = command.replace("rekey_time='', ", "")
+                command = command.replace("reauth_time='', ", "")
+                command = command.replace("rand_time='', ", "")
             else:
                 command = command.replace("margintime='', ", "")
                 command = command.replace("disable_rekey=False, ", "")
@@ -113,12 +116,14 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         result_ipsecs = []
         result_ipsecs.append(
             "create ipsec 't1', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.1', authentication_method='pre_shared_key', "
-            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append(
             "create ipsec 't2', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.2', authentication_method='pre_shared_key', "
-            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append("delete ipsec 'test_tunnel2'")
@@ -147,12 +152,14 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         result_ipsecs = []
         result_ipsecs.append(
             "create ipsec 't1', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.1', authentication_method='pre_shared_key', "
-            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append(
             "create ipsec 't2', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.2', authentication_method='pre_shared_key', "
-            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append("delete ipsec 'test_tunnel'")

@@ -301,11 +301,17 @@ class TestPFSenseModule(ModuleTestCase):
         elt = tag.find(elt_name)
         if elt is None:
             self.fail('Element not found: ' + elt_name)
-        if elt.text != elt_value:
+
+        if isinstance(elt_value, int):
+            value = str(elt_value)
+        else:
+            value = elt_value
+
+        if elt.text != value:
             if elt.text is None:
-                self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: None')
+                self.fail('Element <' + elt_name + '> differs. Expected: \'' + value + '\' result: None')
             else:
-                self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: \'' + elt.text + '\'')
+                self.fail('Element <' + elt_name + '> differs. Expected: \'' + value + '\' result: \'' + elt.text + '\'')
         return elt
 
     def assert_xml_elt_is_none_or_empty(self, tag, elt_name):
@@ -370,6 +376,19 @@ class TestPFSenseModule(ModuleTestCase):
                 self.assert_xml_elt_equal(target_elt, xml_field, value)
         else:
             self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+
+    def check_param_bool(self, params, target_elt, param, default=None, xml_field=None):
+        """ if param is defined, check the elt exist, otherwise that it does not exist in XML """
+        if xml_field is None:
+            xml_field = param
+
+        if params.get(param):
+            if default is None:
+                self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+            else:
+                self.assert_xml_elt_equal(target_elt, xml_field, default)
+        else:
+            self.assert_not_find_xml_elt(target_elt, xml_field)
 
     def check_value_equal(self, target_elt, xml_field, value, empty=True):
         """ if value is defined, check if target_elt has the right value, otherwise that it does not exist in XML """

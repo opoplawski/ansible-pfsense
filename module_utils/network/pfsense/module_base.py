@@ -46,7 +46,7 @@ class PFSenseModuleBase(object):
     ##############################
     # params processing
     #
-    def _get_ansible_param(self, obj, name, fname=None, force=False, exclude=None):
+    def _get_ansible_param(self, obj, name, fname=None, force=False, exclude=None, force_value=''):
         """ get parameter from params and set it into obj """
         if fname is None:
             fname = name
@@ -59,7 +59,7 @@ class PFSenseModuleBase(object):
             elif exclude != self.params[name]:
                 obj[fname] = self.params[name]
         elif force:
-            obj[fname] = ''
+            obj[fname] = force_value
 
     def _get_ansible_param_bool(self, obj, name, fname=None, force=False, value='yes'):
         """ get bool parameter from params and set it into obj """
@@ -80,6 +80,34 @@ class PFSenseModuleBase(object):
     def _validate_params():
         """ do some extra checks on input parameters """
         pass
+
+    def _deprecated_params(self):
+        """ return deprecated params """
+        return None
+
+    def _onward_params(self):
+        """ return onwards params """
+        return None
+
+    def _check_deprecated_params(self):
+        """ check if input parameters are deprecated """
+        deprecated_params = self._deprecated_params()
+        if deprecated_params is None:
+            return
+
+        for deprecated in deprecated_params:
+            if self.params.get(deprecated[0]) is not None and deprecated[1]():
+                self.module.fail_json(msg='{} is deprecated on pfSense {}.'.format(deprecated[0], self.pfsense.get_version()))
+
+    def _check_onward_params(self):
+        """ check if input parameters are too recents """
+        onwards_params = self._onward_params()
+        if onwards_params is None:
+            return
+
+        for onward in onwards_params:
+            if self.params.get(onward[0]) is not None and not onward[1]():
+                self.module.fail_json(msg='{} is not supported on pfSense {}.'.format(onward[0], self.pfsense.get_version()))
 
     ##############################
     # XML processing
@@ -188,6 +216,8 @@ class PFSenseModuleBase(object):
         """ process input params to add/update/delete """
         self.params = params
         self.target_elt = None
+        self._check_deprecated_params()
+        self._check_onward_params()
         self._validate_params()
 
         self.obj = self._params_to_obj()

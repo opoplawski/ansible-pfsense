@@ -16,6 +16,8 @@ IPSEC_ARGUMENT_SPEC = dict(
     protocol=dict(default='inet', choices=['inet', 'inet6', 'both']),
     interface=dict(required=False, type='str'),
     remote_gateway=dict(required=False, type='str'),
+    nattport=dict(required=False, type='int'),
+
     disabled=dict(required=False, type='bool'),
 
     authentication_method=dict(choices=['pre_shared_key', 'rsasig']),
@@ -29,12 +31,16 @@ IPSEC_ARGUMENT_SPEC = dict(
     preshared_key=dict(required=False, type='str'),
 
     lifetime=dict(default=28800, type='int'),
+    rekey_time=dict(required=False, type='int'),
+    reauth_time=dict(required=False, type='int'),
+    rand_time=dict(required=False, type='int'),
 
     disable_rekey=dict(required=False, type='bool'),
     margintime=dict(required=False, type='int'),
     responderonly=dict(default=False, type='bool'),
     disable_reauth=dict(default=False, type='bool'),
     mobike=dict(default='off', choices=['on', 'off']),
+    gw_duplicates=dict(required=False, type='bool'),
     splitconn=dict(default=False, type='bool'),
 
     nat_traversal=dict(default='on', choices=['on', 'force']),
@@ -118,8 +124,8 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
     def _get_params_to_remove(self):
         """ returns the list of params to remove if they are not set """
-        params = ['disabled', 'rekey_enable', 'reauth_enable', 'splitconn']
-        if self.params['disable_rekey']:
+        params = ['disabled', 'rekey_enable', 'reauth_enable', 'splitconn', 'nattport', 'gw_duplicates']
+        if self.params.get('disable_rekey'):
             params.append('margintime')
 
         if not self.params['enable_dpd']:
@@ -203,11 +209,6 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             if params.get('disable_rekey'):
                 ipsec['rekey_enable'] = ''
 
-            if params.get('margintime') is not None:
-                ipsec['margintime'] = str(params['margintime'])
-            else:
-                ipsec['margintime'] = ''
-
             if params.get('responderonly'):
                 ipsec['responderonly'] = params['responderonly']
 
@@ -222,7 +223,31 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             if params.get('mobike'):
                 ipsec['mobike'] = params['mobike']
 
+            if self.pfsense.is_at_least_2_5_0():
+                self._get_ansible_param_bool(ipsec, 'gw_duplicates', value='')
+                self._get_ansible_param(ipsec, 'nattport')
+                self._get_ansible_param(ipsec, 'rekey_time', force=True)
+                self._get_ansible_param(ipsec, 'reauth_time', force=True)
+                self._get_ansible_param(ipsec, 'rand_time', force=True)
+            else:
+                self._get_ansible_param(ipsec, 'margintime', force=True)
+
         return ipsec
+
+    def _deprecated_params(self):
+        return [
+            ['disable_rekey', self.pfsense.is_at_least_2_5_0],
+            ['margintime', self.pfsense.is_at_least_2_5_0],
+        ]
+
+    def _onward_params(self):
+        return [
+            ['gw_duplicates', self.pfsense.is_at_least_2_5_0],
+            ['nattport', self.pfsense.is_at_least_2_5_0],
+            ['rekey_time', self.pfsense.is_at_least_2_5_0],
+            ['reauth_time', self.pfsense.is_at_least_2_5_0],
+            ['rand_time', self.pfsense.is_at_least_2_5_0],
+        ]
 
     def _validate_params(self):
         """ do some extra checks on input parameters """
@@ -231,10 +256,10 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             return
 
         if self.pfsense.is_at_least_2_5_0():
-            if params.get('disable_rekey') is not None:
-                self.module.fail_json(msg='disable_rekey is deprecated since 2.5.0. Set rekey_time to 0 instead. {}'.format(params.get('disable_rekey')))
-            if params.get('margintime') is not None:
-                self.module.fail_json(msg='margintime is deprecated since 2.5.0. Set rand_time instead.')
+            if params.get('lifetime') is not None:
+                if (params.get('rekey_time') is not None and params.get('rekey_time') >= params.get('lifetime') or
+                        params.get('reauth_time') is not None and params.get('reauth_time') >= params.get('lifetime')):
+                    self.module.fail_json(msg='Life Time must be larger than Rekey Time and Reauth Time.')
         else:
             if params.get('disable_rekey') is None:
                 params['disable_rekey'] = False
@@ -301,6 +326,7 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             values += self.format_cli_field(self.obj, 'protocol')
             values += self.format_cli_field(self.params, 'interface')
             values += self.format_cli_field(self.obj, 'remote-gateway', fname='remote_gateway')
+            values += self.format_cli_field(self.obj, 'nattport')
             values += self.format_cli_field(self.obj, 'authentication_method')
             if self.obj['authentication_method'] == 'rsasig':
                 values += self.format_cli_field(self.params, 'certificate')
@@ -318,6 +344,9 @@ class PFSenseIpsecModule(PFSenseModuleBase):
                 values += self.format_cli_field(self.obj, 'peerid_data')
 
             values += self.format_cli_field(self.obj, 'lifetime')
+            values += self.format_cli_field(self.obj, 'rekey_time')
+            values += self.format_cli_field(self.obj, 'reauth_time')
+            values += self.format_cli_field(self.obj, 'rand_time')
 
             if not self.pfsense.is_at_least_2_5_0():
                 values += self.format_cli_field(self.params, 'disable_rekey', fvalue=self.fvalue_bool)
@@ -328,6 +357,8 @@ class PFSenseIpsecModule(PFSenseModuleBase):
                 values += self.format_cli_field(self.obj, 'reauth_enable', fname='disable_reauth', fvalue=self.fvalue_bool)
                 values += self.format_cli_field(self.obj, 'mobike')
                 values += self.format_cli_field(self.obj, 'splitconn', fvalue=self.fvalue_bool)
+
+            values += self.format_cli_field(self.obj, 'gw_duplicates', fvalue=self.fvalue_bool)
 
             values += self.format_cli_field(self.params, 'responderonly', fvalue=self.fvalue_bool)
             values += self.format_cli_field(self.obj, 'nat_traversal')
@@ -344,6 +375,7 @@ class PFSenseIpsecModule(PFSenseModuleBase):
             values += self.format_updated_cli_field(self.obj, before, 'protocol', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'interface', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'remote-gateway', add_comma=(values), fname='remote_gateway')
+            values += self.format_updated_cli_field(self.obj, before, 'nattport', add_comma=(values))
             values += self.format_updated_cli_field(self.obj, before, 'authentication_method', add_comma=(values))
             if self.obj['authentication_method'] == 'rsasig':
                 values += self.format_updated_cli_field(self.params, before, 'certificate', add_comma=(values))
@@ -360,6 +392,9 @@ class PFSenseIpsecModule(PFSenseModuleBase):
                 values += self.format_updated_cli_field(self.obj, before, 'peerid_data', add_comma=(values))
 
             values += self.format_updated_cli_field(self.obj, before, 'lifetime', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'rekey_time', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'reauth_time', add_comma=(values))
+            values += self.format_updated_cli_field(self.obj, before, 'rand_time', add_comma=(values))
 
             if not self.pfsense.is_at_least_2_5_0():
                 values += self.format_updated_cli_field(self.obj, before, 'disable_rekey', add_comma=(values), fvalue=self.fvalue_bool)
@@ -370,6 +405,8 @@ class PFSenseIpsecModule(PFSenseModuleBase):
                 values += self.format_updated_cli_field(self.obj, before, 'reauth_enable', add_comma=(values), fname='disable_reauth', fvalue=self.fvalue_bool)
                 values += self.format_updated_cli_field(self.obj, before, 'mobike', add_comma=(values))
                 values += self.format_updated_cli_field(self.obj, before, 'splitconn', add_comma=(values), fvalue=self.fvalue_bool)
+
+            values += self.format_updated_cli_field(self.obj, before, 'gw_duplicates', add_comma=(values), fvalue=self.fvalue_bool)
 
             values += self.format_updated_cli_field(self.obj, before, 'responderonly', add_comma=(values), fvalue=self.fvalue_bool)
             values += self.format_updated_cli_field(self.obj, before, 'nat_traversal', add_comma=(values))

@@ -39,6 +39,10 @@ options:
     description: Public IP address or host name of the remote gateway.
     required: false
     type: str
+  nattport:
+    description: UDP port for NAT-T on the remote gateway.
+    required: false
+    type: int
   disabled:
     description: Set this option to disable this phase1 without removing it from the list.
     required: false
@@ -85,6 +89,18 @@ options:
     description: The lifetime defines how often the connection will be rekeyed, in seconds.
     default: 28800
     type: int
+  rekey_time:
+    description: Time, in seconds, before an IKE SA establishes new keys.
+    required: False
+    type: int
+  reauth_time:
+    description: Time, in seconds, before an IKE SA is torn down and recreated from scratch, including authentication.
+    required: False
+    type: int
+  rand_time:
+    description: A random value up to this amount will be subtracted from Rekey Time/Reauth Time to avoid simultaneous renegotiation.
+    required: False
+    type: int
   disable_rekey:
     description: Disables renegotiation when a connection is about to expire (deprecated with pfSense 2.5.0)
     required: false
@@ -106,6 +122,10 @@ options:
     default: 'off'
     choices: [ 'on', 'off' ]
     type: str
+  gw_duplicates:
+    description: Allow multiple phase 1 configurations with the same endpoint
+    required: false
+    type: bool
   splitconn:
     description: (IKEv2 only) Enable this to split connection entries with multiple phase 2 configurations
     default: false

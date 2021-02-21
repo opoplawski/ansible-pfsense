@@ -54,6 +54,11 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
     ##############################
     # params processing
     #
+    def _onward_params(self):
+        return [
+            ['prf', self.pfsense.is_at_least_2_5_0],
+        ]
+
     def _params_to_obj(self):
         """ return a dict from module params """
         params = self.params
@@ -111,9 +116,6 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
             iketype_elt = self._phase1.find('iketype')
             if iketype_elt is not None and iketype_elt.text != 'ikev2':
                 self.module.fail_json(msg='Encryption Algorithm AES-GCM can only be used with IKEv2')
-
-        if params.get('prf') is not None and not self.pfsense.is_at_least_2_5_0():
-            self.module.fail_json(msg='prf selection is invalid before pfSense 2.5.0.')
 
     ##############################
     # XML processing
