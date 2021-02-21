@@ -13,6 +13,7 @@ if sys.version_info < (2, 7):
 from ansible.modules.network.pfsense import pfsense_ipsec
 from ansible.module_utils.network.pfsense.ipsec import PFSenseIpsecModule
 from .pfsense_module import TestPFSenseModule
+from parameterized import parameterized
 
 
 class TestPFSenseIpsecModule(TestPFSenseModule):
@@ -61,15 +62,16 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         else:
             self.assert_not_find_xml_elt(ipsec_elt, 'disabled')
 
-        if ipsec.get('disable_rekey'):
-            self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'disable_rekey')
-            self.assert_not_find_xml_elt(ipsec_elt, 'margintime')
-        else:
-            self.assert_not_find_xml_elt(ipsec_elt, 'disable_rekey')
-            if ipsec.get('margintime'):
-                self.assert_xml_elt_equal(ipsec_elt, 'margintime', ipsec['margintime'])
+        if self.get_version.return_value == "2.4.4":
+            if ipsec.get('disable_rekey'):
+                self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'disable_rekey')
+                self.assert_not_find_xml_elt(ipsec_elt, 'margintime')
             else:
-                self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'margintime')
+                self.assert_not_find_xml_elt(ipsec_elt, 'disable_rekey')
+                if ipsec.get('margintime'):
+                    self.assert_xml_elt_equal(ipsec_elt, 'margintime', ipsec['margintime'])
+                else:
+                    self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'margintime')
 
         if ipsec.get('responderonly'):
             self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'responderonly')
@@ -153,11 +155,20 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         else:
             self.assert_xml_elt_equal(ipsec_elt, 'lifetime', '28800')
 
+    def strip_commands(self, commands):
+        if not self.get_version.return_value.startswith("2.4."):
+            if isinstance(commands, str):
+                commands = commands.replace("margintime='', ", "")
+                commands = commands.replace("disable_rekey=False, ", "")
+        return commands
+
     ##############
     # tests
     #
-    def test_ipsec_create_ikev2(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_ikev2(self, pfsense_version):
         """ test creation of a new ipsec tunnel """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='ikev2',
             authentication_method='pre_shared_key', preshared_key='1234')
@@ -167,8 +178,10 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "disable_rekey=False, margintime='', mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_ikev1(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_ikev1(self, pfsense_version):
         """ test creation of a new ipsec tunnel """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
@@ -178,8 +191,10 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_vip_descr(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_vip_descr(self, pfsense_version):
         """ test creation of a new ipsec tunnel with vip: interface name """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='vip:WAN CARP', remote_gateway='1.2.3.4', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
@@ -189,8 +204,10 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_vip_subnet(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_vip_subnet(self, pfsense_version):
         """ test creation of a new ipsec tunnel with vip: interface address """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='vip:151.25.19.11', remote_gateway='1.2.3.4', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
@@ -200,8 +217,10 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_auto(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_auto(self, pfsense_version):
         """ test creation of a new ipsec tunnel """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='auto',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
@@ -211,8 +230,10 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_auto_rsasig(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_auto_rsasig(self, pfsense_version):
         """ test creation of a new ipsec tunnel with certificate """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='ikev2',
             authentication_method='rsasig', certificate='webConfigurator default (5c00e5f9029df)', certificate_authority='test ca')

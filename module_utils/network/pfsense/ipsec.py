@@ -30,7 +30,7 @@ IPSEC_ARGUMENT_SPEC = dict(
 
     lifetime=dict(default=28800, type='int'),
 
-    disable_rekey=dict(default=False, type='bool'),
+    disable_rekey=dict(required=False, type='bool'),
     margintime=dict(required=False, type='int'),
     responderonly=dict(default=False, type='bool'),
     disable_reauth=dict(default=False, type='bool'),
@@ -85,9 +85,6 @@ class PFSenseIpsecModule(PFSenseModuleBase):
         self.apply = True
 
         self.root_elt = self.pfsense.ipsec
-
-        if self.pfsense.config_version >= 19.9:
-            self.module.fail_json(msg='This version of pfSense is not yet supported by this module')
 
     ##############################
     # XML processing
@@ -233,6 +230,15 @@ class PFSenseIpsecModule(PFSenseModuleBase):
         if params['state'] == 'absent':
             return
 
+        if self.pfsense.is_at_least_2_5_0():
+            if params.get('disable_rekey') is not None:
+                self.module.fail_json(msg='disable_rekey is deprecated since 2.5.0. Set rekey_time to 0 instead. {}'.format(params.get('disable_rekey')))
+            if params.get('margintime') is not None:
+                self.module.fail_json(msg='margintime is deprecated since 2.5.0. Set rand_time instead.')
+        else:
+            if params.get('disable_rekey') is None:
+                params['disable_rekey'] = False
+
         for ipsec_elt in self.root_elt:
             if ipsec_elt.tag != 'phase1':
                 continue
@@ -273,14 +279,8 @@ class PFSenseIpsecModule(PFSenseModuleBase):
     # run
     #
     def _update(self):
-        return self.pfsense.phpshell(
-            "require_once('vpn.inc');"
-            "$ipsec_dynamic_hosts = vpn_ipsec_configure();"
-            "$retval = 0;"
-            "$retval |= filter_configure();"
-            "if ($ipsec_dynamic_hosts >= 0 && is_subsystem_dirty('ipsec'))"
-            "   clear_subsystem_dirty('ipsec');"
-        )
+        """ make the target pfsense reload """
+        return self.pfsense.apply_ipsec_changes()
 
     ##############################
     # Logging
@@ -319,9 +319,10 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
             values += self.format_cli_field(self.obj, 'lifetime')
 
-            values += self.format_cli_field(self.params, 'disable_rekey', fvalue=self.fvalue_bool)
-            if not self.params['disable_rekey']:
-                values += self.format_cli_field(self.obj, 'margintime')
+            if not self.pfsense.is_at_least_2_5_0():
+                values += self.format_cli_field(self.params, 'disable_rekey', fvalue=self.fvalue_bool)
+                if not self.params['disable_rekey']:
+                    values += self.format_cli_field(self.obj, 'margintime')
 
             if self.obj['iketype'] == 'ikev2':
                 values += self.format_cli_field(self.obj, 'reauth_enable', fname='disable_reauth', fvalue=self.fvalue_bool)
@@ -360,9 +361,10 @@ class PFSenseIpsecModule(PFSenseModuleBase):
 
             values += self.format_updated_cli_field(self.obj, before, 'lifetime', add_comma=(values))
 
-            values += self.format_updated_cli_field(self.obj, before, 'disable_rekey', add_comma=(values), fvalue=self.fvalue_bool)
-            if not self.params['disable_rekey']:
-                values += self.format_updated_cli_field(self.obj, before, 'margintime', add_comma=(values))
+            if not self.pfsense.is_at_least_2_5_0():
+                values += self.format_updated_cli_field(self.obj, before, 'disable_rekey', add_comma=(values), fvalue=self.fvalue_bool)
+                if not self.params['disable_rekey']:
+                    values += self.format_updated_cli_field(self.obj, before, 'margintime', add_comma=(values))
 
             if self.obj['iketype'] == 'ikev2':
                 values += self.format_updated_cli_field(self.obj, before, 'reauth_enable', add_comma=(values), fname='disable_reauth', fvalue=self.fvalue_bool)

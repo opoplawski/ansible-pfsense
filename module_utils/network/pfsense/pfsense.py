@@ -612,16 +612,46 @@ class PFSenseModule(object):
         vfile.close()
         return version
 
-    def is_version(self, version, or_more=True):
+    def is_version(self, version, or_more=True, exact=True):
         """ check target pfSense version """
         if self.pfsense_version is None:
             self.pfsense_version = self.get_version()
 
-        if self.pfsense_version.startswith(version):
-            return True
+        if exact:
+            if self.pfsense_version == version:
+                return True
+        else:
+            if self.pfsense_version.startswith(version):
+                return True
 
         if not or_more:
             return False
 
         # TODO: add some hardcoded checks to support new versions here
         return False
+
+    def is_at_least_2_5_0(self):
+        """ check target pfSense version """
+        # TODO: add pfSense+ support
+        return self.is_version("2.5.0") or self.is_version("2.5.0.", exact=False)
+
+    def apply_ipsec_changes(self):
+        """ execute pfSense code to appy ipsec changes """
+        if self.is_at_least_2_5_0():
+            return self.phpshell(
+                "require_once('vpn.inc');"
+                "$ipsec_dynamic_hosts = ipsec_configure();"
+                "ipsec_reload_package_hook();"
+                "$retval = 0;"
+                "$retval |= filter_configure();"
+                "if ($ipsec_dynamic_hosts >= 0 && is_subsystem_dirty('ipsec'))"
+                "    clear_subsystem_dirty('ipsec');"
+            )
+        return self.phpshell(
+            "require_once('vpn.inc');"
+            "$ipsec_dynamic_hosts = vpn_ipsec_configure();"
+            "$retval = 0;"
+            "$retval |= filter_configure();"
+            "if ($ipsec_dynamic_hosts >= 0 && is_subsystem_dirty('ipsec'))"
+            "   clear_subsystem_dirty('ipsec');"
+        )

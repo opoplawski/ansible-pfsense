@@ -52,7 +52,7 @@ class PFSenseVlanModule(PFSenseModuleBase):
             '            unset($portlist[$lagm]);'
             '}')
 
-        if self.pfsense.is_version("2.5.0"):
+        if self.pfsense.is_at_least_2_5_0():
             get_interface_cmd += (
                 '$list = array();'
                 'foreach ($portlist as $ifn => $ifinfo) {'

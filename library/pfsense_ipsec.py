@@ -86,11 +86,11 @@ options:
     default: 28800
     type: int
   disable_rekey:
-    description: Disables renegotiation when a connection is about to expire.
-    default: false
+    description: Disables renegotiation when a connection is about to expire (deprecated with pfSense 2.5.0)
+    required: false
     type: bool
   margintime:
-    description: How long before connection expiry or keying-channel expiry should attempt to negotiate a replacement begin.
+    description: How long before connection expiry or keying-channel expiry should attempt to negotiate a replacement begin (deprecated with pfSense 2.5.0)
     required: false
     type: int
   responderonly:

@@ -92,11 +92,11 @@ options:
         default: 28800
         type: int
       disable_rekey:
-        description: Disables renegotiation when a connection is about to expire.
-        default: false
+        description: Disables renegotiation when a connection is about to expire (deprecated with pfSense 2.5.0)
+        required: false
         type: bool
       margintime:
-        description: How long before connection expiry or keying-channel expiry should attempt to negotiate a replacement begin.
+        description: How long before connection expiry or keying-channel expiry should attempt to negotiate a replacement begin (deprecated with pfSense 2.5.0)
         required: false
         type: int
       responderonly:
@@ -169,6 +169,11 @@ options:
       hash:
         description: Hash algorithm. MD5 and SHA1 provide weak security and should be avoided.
         required: True
+        choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc' ]
+        type: str
+      prf:
+        description: PRF algorithm. Manual PRF selection is not required, but can be useful in combination with AEAD Encryption Algorithms such as AES-GCM
+        required: False
         choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc' ]
         type: str
       dhgroup:
@@ -413,14 +418,7 @@ class PFSenseModuleIpsecAggregate(object):
 
     def _update(self):
         if self.pfsense_ipsec.result['changed'] or self.pfsense_ipsec_proposal.result['changed'] or self.pfsense_ipsec_p2.result['changed']:
-            return self.pfsense.phpshell(
-                "require_once('vpn.inc');"
-                "$ipsec_dynamic_hosts = vpn_ipsec_configure();"
-                "$retval = 0;"
-                "$retval |= filter_configure();"
-                "if ($ipsec_dynamic_hosts >= 0 && is_subsystem_dirty('ipsec'))"
-                "   clear_subsystem_dirty('ipsec');"
-            )
+            return self.pfsense.apply_ipsec_changes()
 
         return ('', '', '')
 
@@ -458,6 +456,9 @@ class PFSenseModuleIpsecAggregate(object):
         else:
             params['descr'] = descr_elt.text
 
+        if self.pfsense.is_at_least_2_5_0():
+            params['prf'] = proposal['prf-algorithm']
+
         return params
 
     def want_ipsec_proposal(self, ipsec_elt, proposal_elt, proposals):
@@ -469,6 +470,12 @@ class PFSenseModuleIpsecAggregate(object):
             for proposal in proposals:
                 _proposal = deepcopy(proposal)
                 _proposal.pop('apply', None)
+                if not self.pfsense.is_at_least_2_5_0():
+                    _proposal.pop('prf', None)
+                elif _proposal.get('prf') is None:
+                    _proposal.pop('prf', None)
+                    params_from_elt.pop('prf', None)
+
                 if params_from_elt == _proposal:
                     return True
 

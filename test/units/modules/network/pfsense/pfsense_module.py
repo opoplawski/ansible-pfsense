@@ -156,6 +156,11 @@ class TestPFSenseModule(ModuleTestCase):
 
     def do_module_test(self, obj, command=None, changed=True, failed=False, msg=None, delete=False, state='present', **kwargs):
         """ run test """
+        if command is not None:
+            command = self.strip_commands(command)
+
+        obj = self.strip_params(obj)
+
         if delete:
             set_module_args(self.args_from_var(obj, state='absent'))
         else:
@@ -199,9 +204,21 @@ class TestPFSenseModule(ModuleTestCase):
         self.assertEqual(result['changed'], changed, result)
         return result
 
+    def strip_commands(self, commands):
+        """ remove old or new parameters """
+        return commands
+
+    def strip_params(self, params):
+        """ remove old or new parameters """
+        return params
+
+    def get_config_file(self):
+        """ get config file """
+        return self.config_file
+
     def load_fixtures(self):
         """ loading data """
-        self.parse.return_value = ElementTree(fromstring(load_fixture(self.config_file)))
+        self.parse.return_value = ElementTree(fromstring(load_fixture(self.get_config_file())))
 
     def load_xml_result(self):
         """ load the resulting xml if not already loaded """
