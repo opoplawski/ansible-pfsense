@@ -226,8 +226,12 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
             if params['protocol'] == 'esp' and not has_one_of(encs):
                 self.module.fail_json(msg='At least one encryption algorithm must be selected.')
 
-            hashes = ['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc']
-            if not has_one_of(hashes):
+            if self.pfsense.is_at_least_2_5_0():
+                need_one_hash = has_one_of(['aes', 'blowfish', 'des', 'cast128'])
+            else:
+                need_one_hash = True
+
+            if need_one_hash and not has_one_of(['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc']):
                 self.module.fail_json(msg='At least one hashing algorithm needs to be selected.')
 
     ##############################
@@ -425,14 +429,7 @@ class PFSenseIpsecP2Module(PFSenseModuleBase):
     # run
     #
     def _update(self):
-        return self.pfsense.phpshell(
-            "require_once('vpn.inc');"
-            "$ipsec_dynamic_hosts = vpn_ipsec_configure();"
-            "$retval = 0;"
-            "$retval |= filter_configure();"
-            "if ($ipsec_dynamic_hosts >= 0 && is_subsystem_dirty('ipsec'))"
-            "   clear_subsystem_dirty('ipsec');"
-        )
+        return self.pfsense.apply_ipsec_changes()
 
     ##############################
     # Logging

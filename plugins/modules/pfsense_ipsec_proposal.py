@@ -38,6 +38,11 @@ options:
     required: True
     choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc' ]
     type: str
+  prf:
+    description: PRF algorithm. Manual PRF selection is typically not required, but can be useful in combination with AEAD Encryption Algorithms such as AES-GCM
+    required: False
+    choices: [ 'md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc' ]
+    type: str
   dhgroup:
     description: DH group. DH groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.
     required: True

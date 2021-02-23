@@ -76,6 +76,10 @@ class TestPFSenseModule(ModuleTestCase):
         self.mock_chmod = patch('ansible_collections.pfsensible.core.plugins.module_utils.pfsense.os.chmod')
         self.chmod = self.mock_chmod.start()
 
+        self.mock_get_version = patch('ansible.module_utils.network.pfsense.pfsense.PFSenseModule.get_version')
+        self.get_version = self.mock_get_version.start()
+        self.get_version.return_value = "2.5.0"
+
         self.maxDiff = None
 
     def tearDown(self):
@@ -88,6 +92,7 @@ class TestPFSenseModule(ModuleTestCase):
         self.mock_phpshell.stop()
         self.mock_mkstemp.stop()
         self.mock_chmod.stop()
+        self.mock_get_version.stop()
 
         try:
             if self.tmp_file is not None:
@@ -151,6 +156,11 @@ class TestPFSenseModule(ModuleTestCase):
 
     def do_module_test(self, obj, command=None, changed=True, failed=False, msg=None, delete=False, state='present', **kwargs):
         """ run test """
+        if command is not None:
+            command = self.strip_commands(command)
+
+        obj = self.strip_params(obj)
+
         if delete:
             set_module_args(self.args_from_var(obj, state='absent'))
         else:
@@ -194,9 +204,21 @@ class TestPFSenseModule(ModuleTestCase):
         self.assertEqual(result['changed'], changed, result)
         return result
 
+    def strip_commands(self, commands):
+        """ remove old or new parameters """
+        return commands
+
+    def strip_params(self, params):
+        """ remove old or new parameters """
+        return params
+
+    def get_config_file(self):
+        """ get config file """
+        return self.config_file
+
     def load_fixtures(self):
         """ loading data """
-        self.parse.return_value = ElementTree(fromstring(load_fixture(self.config_file)))
+        self.parse.return_value = ElementTree(fromstring(load_fixture(self.get_config_file())))
 
     def load_xml_result(self):
         """ load the resulting xml if not already loaded """
@@ -279,11 +301,17 @@ class TestPFSenseModule(ModuleTestCase):
         elt = tag.find(elt_name)
         if elt is None:
             self.fail('Element not found: ' + elt_name)
-        if elt.text != elt_value:
+
+        if isinstance(elt_value, int):
+            value = str(elt_value)
+        else:
+            value = elt_value
+
+        if elt.text != value:
             if elt.text is None:
-                self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: None')
+                self.fail('Element <' + elt_name + '> differs. Expected: \'' + value + '\' result: None')
             else:
-                self.fail('Element <' + elt_name + '> differs. Expected: \'' + elt_value + '\' result: \'' + elt.text + '\'')
+                self.fail('Element <' + elt_name + '> differs. Expected: \'' + value + '\' result: \'' + elt.text + '\'')
         return elt
 
     def assert_xml_elt_is_none_or_empty(self, tag, elt_name):
@@ -348,6 +376,19 @@ class TestPFSenseModule(ModuleTestCase):
                 self.assert_xml_elt_equal(target_elt, xml_field, value)
         else:
             self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+
+    def check_param_bool(self, params, target_elt, param, default=None, xml_field=None):
+        """ if param is defined, check the elt exist, otherwise that it does not exist in XML """
+        if xml_field is None:
+            xml_field = param
+
+        if params.get(param):
+            if default is None:
+                self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
+            else:
+                self.assert_xml_elt_equal(target_elt, xml_field, default)
+        else:
+            self.assert_not_find_xml_elt(target_elt, xml_field)
 
     def check_value_equal(self, target_elt, xml_field, value, empty=True):
         """ if value is defined, check if target_elt has the right value, otherwise that it does not exist in XML """

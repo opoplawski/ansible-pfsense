@@ -13,6 +13,7 @@ if sys.version_info < (2, 7):
 from ansible_collections.pfsensible.core.plugins.modules import pfsense_ipsec_proposal
 from ansible_collections.pfsensible.core.plugins.module_utils.ipsec_proposal import PFSenseIpsecProposalModule
 from .pfsense_module import TestPFSenseModule
+from parameterized import parameterized
 
 
 class TestPFSenseIpsecProposalModule(TestPFSenseModule):
@@ -21,8 +22,14 @@ class TestPFSenseIpsecProposalModule(TestPFSenseModule):
 
     def __init__(self, *args, **kwargs):
         super(TestPFSenseIpsecProposalModule, self).__init__(*args, **kwargs)
-        self.config_file = 'pfsense_ipsec_proposal_config.xml'
         self.pfmodule = PFSenseIpsecProposalModule
+
+    def get_config_file(self):
+        """ get config file """
+        if self.get_version.return_value.startswith("2.4."):
+            return '2.4/pfsense_ipsec_proposal_config.xml'
+
+        return 'pfsense_ipsec_proposal_config.xml'
 
     ##############
     # tests utils
@@ -49,6 +56,11 @@ class TestPFSenseIpsecProposalModule(TestPFSenseModule):
             if elt is None or elt.text != proposal['hash']:
                 continue
 
+            if not self.get_version.return_value.startswith("2.4."):
+                elt = item_elt.find('prf-algorithm')
+                if elt is None or 'prf' not in proposal and elt.text != 'sha256' and elt.text != proposal['prf']:
+                    continue
+
             encalg_elt = item_elt.find('encryption-algorithm')
             if encalg_elt is None:
                 continue
@@ -69,29 +81,43 @@ class TestPFSenseIpsecProposalModule(TestPFSenseModule):
         if proposal_elt is None:
             self.fail('Unable to find proposal on ' + proposal['descr'])
 
+    def strip_commands(self, commands):
+        """ remove old or new parameters """
+        if self.get_version.return_value.startswith("2.4."):
+            commands = commands.replace(", prf='sha256'", "")
+        return commands
+
     ##############
     # tests
     #
-    def test_ipsec_proposal_create(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_proposal_create(self, pfsense_version):
         """ test creation of a new proposal """
+        self.get_version.return_value = pfsense_version
         proposal = dict(descr='test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup=21)
-        command = "create ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='21'"
+        command = "create ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='21', prf='sha256'"
         self.do_module_test(proposal, command=command)
 
-    def test_ipsec_proposal_create_nokeylen(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_proposal_create_nokeylen(self, pfsense_version):
         """ test creation of a new proposal """
+        self.get_version.return_value = pfsense_version
         proposal = dict(descr='test_tunnel2', encryption='cast128', hash='sha256', dhgroup=21)
-        command = "create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha256', dhgroup='21'"
+        command = "create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha256', dhgroup='21', prf='sha256'"
         self.do_module_test(proposal, command=command)
 
-    def test_ipsec_proposal_delete(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_proposal_delete(self, pfsense_version):
         """ test deletion of an ipsec proposal """
+        self.get_version.return_value = pfsense_version
         proposal = dict(descr='test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup=14, state='absent')
-        command = "delete ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'"
+        command = "delete ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14', prf='sha256'"
         self.do_module_test(proposal, delete=True, command=command)
 
-    def test_ipsec_proposal_update_noop(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_proposal_update_noop(self, pfsense_version):
         """ test not updating a ipsec proposal """
+        self.get_version.return_value = pfsense_version
         proposal = dict(descr='test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup=14)
         self.do_module_test(proposal, changed=False)
 

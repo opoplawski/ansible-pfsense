@@ -13,6 +13,7 @@ if sys.version_info < (2, 7):
 from ansible_collections.pfsensible.core.plugins.modules import pfsense_ipsec
 from ansible_collections.pfsensible.core.plugins.module_utils.ipsec import PFSenseIpsecModule
 from .pfsense_module import TestPFSenseModule
+from parameterized import parameterized
 
 
 class TestPFSenseIpsecModule(TestPFSenseModule):
@@ -21,8 +22,14 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
 
     def __init__(self, *args, **kwargs):
         super(TestPFSenseIpsecModule, self).__init__(*args, **kwargs)
-        self.config_file = 'pfsense_ipsec_config.xml'
         self.pfmodule = PFSenseIpsecModule
+
+    def get_config_file(self):
+        """ get config file """
+        if self.get_version.return_value.startswith("2.4."):
+            return '2.4/pfsense_ipsec_config.xml'
+
+        return 'pfsense_ipsec_config.xml'
 
     ##############
     # tests utils
@@ -61,15 +68,22 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         else:
             self.assert_not_find_xml_elt(ipsec_elt, 'disabled')
 
-        if ipsec.get('disable_rekey'):
-            self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'disable_rekey')
-            self.assert_not_find_xml_elt(ipsec_elt, 'margintime')
-        else:
-            self.assert_not_find_xml_elt(ipsec_elt, 'disable_rekey')
-            if ipsec.get('margintime'):
-                self.assert_xml_elt_equal(ipsec_elt, 'margintime', ipsec['margintime'])
+        if self.get_version.return_value == "2.4.4":
+            if ipsec.get('disable_rekey'):
+                self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'disable_rekey')
+                self.assert_not_find_xml_elt(ipsec_elt, 'margintime')
             else:
-                self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'margintime')
+                self.assert_not_find_xml_elt(ipsec_elt, 'disable_rekey')
+                if ipsec.get('margintime'):
+                    self.assert_xml_elt_equal(ipsec_elt, 'margintime', ipsec['margintime'])
+                else:
+                    self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'margintime')
+        else:
+            self.check_param_bool(ipsec, ipsec_elt, 'gw_duplicates')
+            self.check_param_equal_or_not_find(ipsec, ipsec_elt, 'nattport')
+            self.check_param_equal(ipsec, ipsec_elt, 'rekey_time')
+            self.check_param_equal(ipsec, ipsec_elt, 'reauth_time')
+            self.check_param_equal(ipsec, ipsec_elt, 'rand_time')
 
         if ipsec.get('responderonly'):
             self.assert_xml_elt_is_none_or_empty(ipsec_elt, 'responderonly')
@@ -153,73 +167,121 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
         else:
             self.assert_xml_elt_equal(ipsec_elt, 'lifetime', '28800')
 
+    def strip_commands(self, commands):
+        if self.get_version.return_value.startswith("2.4."):
+            commands = commands.replace("nattport='4501', ", "")
+            commands = commands.replace("rekey_time='', ", "")
+            commands = commands.replace("reauth_time='', ", "")
+            commands = commands.replace("rand_time='', ", "")
+        else:
+            commands = commands.replace("margintime='', ", "")
+            commands = commands.replace("disable_rekey=False, ", "")
+
+        return commands
+
+    def strip_params(self, params):
+        if self.get_version.return_value.startswith("2.4."):
+            params.pop('nattport', None)
+            params.pop('gw_duplicates', None)
+        return params
+
     ##############
     # tests
     #
-    def test_ipsec_create_ikev2(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_ikev2(self, pfsense_version):
         """ test creation of a new ipsec tunnel """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
-            descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='ikev2',
+            descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', nattport=4501, iketype='ikev2',
             authentication_method='pre_shared_key', preshared_key='1234')
         command = (
-            "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
+            "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', nattport='4501', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', "
             "disable_rekey=False, margintime='', mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_ikev1(self):
+    def test_ipsec_create_ikev2_2_5_0(self):
+        """ test creation of a new ipsec tunnel with 2.5.0 params """
+        ipsec = dict(
+            descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', nattport=4501, iketype='ikev2',
+            authentication_method='pre_shared_key', preshared_key='1234', gw_duplicates=True, rekey_time=2500, reauth_time=2600, rand_time=2700)
+        command = (
+            "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', nattport='4501', "
+            "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='2500', reauth_time='2600', rand_time='2700', "
+            "mobike='off', gw_duplicates=True, responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
+        self.do_module_test(ipsec, command=command)
+
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_ikev1(self, pfsense_version):
         """ test creation of a new ipsec tunnel """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
         command = (
             "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', "
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_vip_descr(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_vip_descr(self, pfsense_version):
         """ test creation of a new ipsec tunnel with vip: interface name """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='vip:WAN CARP', remote_gateway='1.2.3.4', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
         command = (
             "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='vip:WAN CARP', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', "
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_vip_subnet(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_vip_subnet(self, pfsense_version):
         """ test creation of a new ipsec tunnel with vip: interface address """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='vip:151.25.19.11', remote_gateway='1.2.3.4', iketype='ikev1',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
         command = (
             "create ipsec 'new_tunnel', iketype='ikev1', mode='main', protocol='inet', interface='vip:151.25.19.11', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', "
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_auto(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_auto(self, pfsense_version):
         """ test creation of a new ipsec tunnel """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='auto',
             authentication_method='pre_shared_key', preshared_key='1234', mode='main')
         command = (
             "create ipsec 'new_tunnel', iketype='auto', mode='main', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='pre_shared_key', preshared_key='1234', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', "
             "disable_rekey=False, margintime='', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
-    def test_ipsec_create_auto_rsasig(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_create_auto_rsasig(self, pfsense_version):
         """ test creation of a new ipsec tunnel with certificate """
+        self.get_version.return_value = pfsense_version
         ipsec = dict(
             descr='new_tunnel', interface='lan_100', remote_gateway='1.2.3.4', iketype='ikev2',
             authentication_method='rsasig', certificate='webConfigurator default (5c00e5f9029df)', certificate_authority='test ca')
         command = (
             "create ipsec 'new_tunnel', iketype='ikev2', protocol='inet', interface='lan_100', remote_gateway='1.2.3.4', "
             "authentication_method='rsasig', certificate='webConfigurator default (5c00e5f9029df)', certificate_authority='test ca', "
-            "myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', mobike='off', responderonly=False, "
+            "myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', rekey_time='', reauth_time='', rand_time='', "
+            "disable_rekey=False, margintime='', mobike='off', responderonly=False, "
             "nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'")
         self.do_module_test(ipsec, command=command)
 
@@ -235,6 +297,23 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
             descr='test_tunnel', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev2',
             authentication_method='pre_shared_key', preshared_key='1234')
         self.do_module_test(ipsec, changed=False)
+
+    def test_ipsec_update_2_5_0(self):
+        """ test updating 2_5_0 fields ipsec """
+        ipsec = dict(
+            descr='test_tunnel', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev2',
+            nattport=4501, gw_duplicates=True, rekey_time=2500, reauth_time=2600, rand_time=2700,
+            authentication_method='pre_shared_key', preshared_key='1234')
+        command = "update ipsec 'test_tunnel' set nattport='4501', rekey_time='2500', reauth_time='2600', rand_time='2700', gw_duplicates=True"
+        self.do_module_test(ipsec, command=command)
+
+    def test_ipsec_update_remove_2_5_0(self):
+        """ test updating 2_5_0 fields ipsec """
+        ipsec = dict(
+            descr='test_tunnel_2_5_0', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev2',
+            authentication_method='pre_shared_key', preshared_key='1234')
+        command = "update ipsec 'test_tunnel_2_5_0' set nattport=none, rekey_time='', reauth_time='', rand_time='', gw_duplicates=False"
+        self.do_module_test(ipsec, command=command)
 
     def test_ipsec_update_ike(self):
         """ test updating ike """

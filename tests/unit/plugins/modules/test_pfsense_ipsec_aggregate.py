@@ -12,6 +12,7 @@ if sys.version_info < (2, 7):
 
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import set_module_args
 from ansible_collections.pfsensible.core.plugins.modules import pfsense_ipsec_aggregate
+from parameterized import parameterized
 
 from .pfsense_module import TestPFSenseModule
 
@@ -22,7 +23,13 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
 
     def __init__(self, *args, **kwargs):
         super(TestPFSenseIpsecAggregateModule, self).__init__(*args, **kwargs)
-        self.config_file = 'pfsense_ipsec_aggregate_config.xml'
+
+    def get_config_file(self):
+        """ get config file """
+        if self.get_version.return_value.startswith("2.4."):
+            return '2.4/pfsense_ipsec_aggregate_config.xml'
+
+        return 'pfsense_ipsec_aggregate_config.xml'
 
     def assert_find_ipsec(self, ipsec):
         """ test if an ipsec tunnel exist """
@@ -62,12 +69,36 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         if found:
             self.fail('Ipsec tunnel found: ' + ipsec)
 
+    def strip_commands(self, commands):
+        """ remove old or new parameters """
+        def strip_command(command):
+            if self.get_version.return_value.startswith("2.4."):
+                command = command.replace(", prf='sha256'", "")
+                command = command.replace("rekey_time='', ", "")
+                command = command.replace("reauth_time='', ", "")
+                command = command.replace("rand_time='', ", "")
+            else:
+                command = command.replace("margintime='', ", "")
+                command = command.replace("disable_rekey=False, ", "")
+            return command
+
+        if isinstance(commands, str):
+            return strip_command(commands)
+
+        cmds = []
+        for cmd in commands:
+            cmd = strip_command(cmd)
+            cmds.append(cmd)
+        return cmds
+
     ############
     # as we rely on sub modules for modifying the xml
     # we dont perform checks on the xml modifications
     # we just test the output
-    def test_ipsec_aggregate_ipsecs(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_aggregate_ipsecs(self, pfsense_version):
         """ test creation of a some tunnels """
+        self.get_version.return_value = pfsense_version
         args = dict(
             purge_ipsecs=False,
             aggregated_ipsecs=[
@@ -85,16 +116,19 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         result_ipsecs = []
         result_ipsecs.append(
             "create ipsec 't1', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.1', authentication_method='pre_shared_key', "
-            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append(
             "create ipsec 't2', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.2', authentication_method='pre_shared_key', "
-            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append("delete ipsec 'test_tunnel2'")
         result_ipsecs.append("update ipsec 'test_tunnel' set preshared_key='0123456789'")
+        result_ipsecs = self.strip_commands(result_ipsecs)
 
         self.assertEqual(result['result_ipsecs'], result_ipsecs)
         self.assert_find_ipsec('t1')
@@ -102,8 +136,10 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         self.assert_not_find_ipsec('test_tunnel2')
         self.assert_find_ipsec('test_tunnel')
 
-    def test_ipsec_aggregate_ipsecs_purge(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_aggregate_ipsecs_purge(self, pfsense_version):
         """ test creation of a some tunnels with purge """
+        self.get_version.return_value = pfsense_version
         args = dict(
             purge_ipsecs=True,
             aggregated_ipsecs=[
@@ -116,16 +152,19 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         result_ipsecs = []
         result_ipsecs.append(
             "create ipsec 't1', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.1', authentication_method='pre_shared_key', "
-            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='azerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append(
             "create ipsec 't2', iketype='ikev2', protocol='inet', interface='wan', remote_gateway='1.3.3.2', authentication_method='pre_shared_key', "
-            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', disable_rekey=False, margintime='', "
+            "preshared_key='qwerty123', myid_type='myaddress', peerid_type='peeraddress', lifetime='28800', "
+            "rekey_time='', reauth_time='', rand_time='', disable_rekey=False, margintime='', "
             "mobike='off', responderonly=False, nat_traversal='on', enable_dpd=True, dpd_delay='10', dpd_maxfail='5'"
         )
         result_ipsecs.append("delete ipsec 'test_tunnel'")
         result_ipsecs.append("delete ipsec 'test_tunnel2'")
+        result_ipsecs = self.strip_commands(result_ipsecs)
 
         self.assertEqual(result['result_ipsecs'], result_ipsecs)
         self.assert_find_ipsec('t1')
@@ -133,8 +172,10 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         self.assert_not_find_ipsec('test_tunnel')
         self.assert_not_find_ipsec('test_tunnel2')
 
-    def test_ipsec_aggregate_proposals(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_aggregate_proposals(self, pfsense_version):
         """ test creation of a some proposals """
+        self.get_version.return_value = pfsense_version
         args = dict(
             purge_ipsec_proposals=False,
             aggregated_ipsec_proposals=[
@@ -148,15 +189,18 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         self.execute_module(changed=True)
         result = self.execute_module(changed=True)
         result_ipsec_proposals = []
-        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14'")
-        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals = self.strip_commands(result_ipsec_proposals)
 
         self.assertEqual(result['result_ipsec_proposals'], result_ipsec_proposals)
 
-    def test_ipsec_aggregate_proposals_purge(self):
+    @parameterized.expand([["2.4.4"], ["2.5.0"]])
+    def test_ipsec_aggregate_proposals_purge(self, pfsense_version):
         """ test creation of a some proposals with purge """
+        self.get_version.return_value = pfsense_version
         args = dict(
             purge_ipsec_proposals=True,
             aggregated_ipsec_proposals=[
@@ -168,17 +212,18 @@ class TestPFSenseIpsecAggregateModule(TestPFSenseModule):
         self.execute_module(changed=True)
         result = self.execute_module(changed=True)
         result_ipsec_proposals = []
-        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14'")
-        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=256, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='md5', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("create ipsec_proposal 'test_tunnel2', encryption='cast128', hash='sha512', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=128, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes', key_length=256, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14', prf='sha256'")
 
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes', key_length=256, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14'")
-        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes', key_length=128, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes', key_length=256, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='aes128gcm', key_length=128, hash='sha256', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals.append("delete ipsec_proposal 'test_tunnel2', encryption='blowfish', key_length=256, hash='aesxcbc', dhgroup='14', prf='sha256'")
+        result_ipsec_proposals = self.strip_commands(result_ipsec_proposals)
 
         self.assertEqual(result['result_ipsec_proposals'], result_ipsec_proposals)
 

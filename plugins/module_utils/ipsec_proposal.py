@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible_collections.pfsensible.core.plugins.module_utils.pfsense import PFSenseModule
 from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
+from copy import deepcopy
 
 
 IPSEC_PROPOSAL_ARGUMENT_SPEC = dict(
@@ -15,6 +16,7 @@ IPSEC_PROPOSAL_ARGUMENT_SPEC = dict(
     encryption=dict(required=True, choices=['aes', 'aes128gcm', 'aes192gcm', 'aes256gcm', 'blowfish', '3des', 'cast128'], type='str'),
     key_length=dict(required=False, choices=[64, 96, 128, 192, 256], type='int'),
     hash=dict(required=True, choices=['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc'], type='str'),
+    prf=dict(required=False, choices=['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc'], type='str'),
     dhgroup=dict(required=True, choices=[1, 2, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 30], type='int'),
     apply=dict(default=True, type='bool'),
 )
@@ -52,6 +54,11 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
     ##############################
     # params processing
     #
+    def _onward_params(self):
+        return [
+            ['prf', self.pfsense.is_at_least_2_5_0],
+        ]
+
     def _params_to_obj(self):
         """ return a dict from module params """
         params = self.params
@@ -65,6 +72,12 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
             obj['encryption-algorithm']['keylen'] = ''
         obj['hash-algorithm'] = params['hash']
         obj['dhgroup'] = str(params['dhgroup'])
+
+        if self.pfsense.is_at_least_2_5_0():
+            if params.get('prf') is not None:
+                obj['prf-algorithm'] = params['prf']
+            else:
+                obj['prf-algorithm'] = 'sha256'
 
         self.apply = params['apply']
 
@@ -118,10 +131,19 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
 
     def _find_target(self):
         """ find the XML target_elt """
+        # 2.5.0: when deleting, if prf is not specified we're taking the first matching proposal without taking prf into account
+        if self.params['state'] == 'absent' and self.params.get('prf') is None and self.pfsense.is_at_least_2_5_0():
+            obj = deepcopy(self.obj)
+            obj.pop('prf-algorithm', None)
+        else:
+            obj = self.obj
+
         items_elt = self.root_elt.findall('item')
         for item in items_elt:
             existing = self.pfsense.element_to_dict(item)
-            if existing == self.obj:
+            if self.params['state'] == 'absent' and self.params.get('prf') is None and self.pfsense.is_at_least_2_5_0():
+                existing.pop('prf-algorithm', None)
+            if existing == obj:
                 return item
         return None
 
@@ -129,14 +151,8 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
     # run
     #
     def _update(self):
-        return self.pfsense.phpshell(
-            "require_once('vpn.inc');"
-            "$ipsec_dynamic_hosts = vpn_ipsec_configure();"
-            "$retval = 0;"
-            "$retval |= filter_configure();"
-            "if ($ipsec_dynamic_hosts >= 0 && is_subsystem_dirty('ipsec'))"
-            "   clear_subsystem_dirty('ipsec');"
-        )
+        """ make the target pfsense reload """
+        return self.pfsense.apply_ipsec_changes()
 
     ##############################
     # Logging
@@ -152,6 +168,8 @@ class PFSenseIpsecProposalModule(PFSenseModuleBase):
         values += self.format_cli_field(self.params, 'key_length')
         values += self.format_cli_field(self.obj, 'hash-algorithm', fname='hash')
         values += self.format_cli_field(self.obj, 'dhgroup')
+        if self.pfsense.is_at_least_2_5_0():
+            values += self.format_cli_field(self.obj, 'prf-algorithm', fname='prf')
         return values
 
     def _log_fields_delete(self):
