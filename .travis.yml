@@ -16,7 +16,7 @@ before_install:
 
 install:
   - pip install 'urllib3<1.27,>=1.25.4'
-  - pip install jinja2 MarkupSafe pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
+  - pip install jinja2 MarkupSafe parameterized pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
 
 # Build against 2.9 for now.  2.10 fails due to removal of ipaddress to ansible.network
 script:
