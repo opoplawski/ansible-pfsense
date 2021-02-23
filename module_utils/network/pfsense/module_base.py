@@ -97,7 +97,7 @@ class PFSenseModuleBase(object):
 
         for deprecated in deprecated_params:
             if self.params.get(deprecated[0]) is not None and deprecated[1]():
-                self.module.fail_json(msg='{} is deprecated on pfSense {}.'.format(deprecated[0], self.pfsense.get_version()))
+                self.module.fail_json(msg='{0} is deprecated on pfSense {1}.'.format(deprecated[0], self.pfsense.get_version()))
 
     def _check_onward_params(self):
         """ check if input parameters are too recents """
@@ -107,7 +107,7 @@ class PFSenseModuleBase(object):
 
         for onward in onwards_params:
             if self.params.get(onward[0]) is not None and not onward[1]():
-                self.module.fail_json(msg='{} is not supported on pfSense {}.'.format(onward[0], self.pfsense.get_version()))
+                self.module.fail_json(msg='{0} is not supported on pfSense {1}.'.format(onward[0], self.pfsense.get_version()))
 
     ##############################
     # XML processing
