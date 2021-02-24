@@ -633,7 +633,7 @@ class PFSenseModule(object):
     def is_at_least_2_5_0(self):
         """ check target pfSense version """
         # TODO: add pfSense+ support
-        return self.is_version("2.5.0") or self.is_version("2.5.0.", exact=False)
+        return self.is_version("2.5.0") or self.is_version("2.5.0.", exact=False) or self.is_version("21.", exact=False)
 
     def apply_ipsec_changes(self):
         """ execute pfSense code to appy ipsec changes """
