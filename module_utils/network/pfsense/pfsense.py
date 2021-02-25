@@ -14,6 +14,7 @@ import shutil
 import os
 import pwd
 import random
+import re
 import time
 import xml.etree.ElementTree as ET
 from tempfile import mkstemp
@@ -70,6 +71,7 @@ class PFSenseModule(object):
         self.debug = open('/tmp/pfsense.debug', 'w')
         if sys.version_info >= (3, 4):
             self._scrub()
+
         self.pfsense_version = None
 
     # Work around pfSense CDATA xml formatting issue
@@ -612,28 +614,40 @@ class PFSenseModule(object):
         vfile.close()
         return version
 
-    def is_version(self, version, or_more=True, exact=True):
+    @staticmethod
+    def is_ce_version(version):
+        """ return True if version is a CE version (for now, we only have 2.x patterns) """
+        return version[0] == 2
+
+    def is_version(self, version, or_more=True):
         """ check target pfSense version """
         if self.pfsense_version is None:
-            self.pfsense_version = self.get_version()
+            pfsense_version = self.get_version()
+            self.pfsense_version = []
+            match = re.match(r'(\d+)\.(\d+)\.?(\d+)?', pfsense_version)
+            if match is None:
+                self.module.fail_json(msg="Unable to get version from pfSense (got '{}')".format(pfsense_version))
+            for idx in range(0, match.lastindex):
+                self.pfsense_version.append(int(match.group(idx + 1)))
 
-        if exact:
-            if self.pfsense_version == version:
-                return True
-        else:
-            if self.pfsense_version.startswith(version):
-                return True
-
-        if not or_more:
+        # we must compare a CE with a CE or pfSense+ with pfSense+
+        is_ce_in = self.is_ce_version(version)
+        is_ce = self.is_ce_version(self.pfsense_version)
+        if is_ce != is_ce_in:
             return False
 
-        # TODO: add some hardcoded checks to support new versions here
-        return False
+        for idx, ver in enumerate(version):
+            if idx == len(self.pfsense_version):
+                return True
+
+            if ver < self.pfsense_version[idx] and not or_more or ver > self.pfsense_version[idx]:
+                return False
+
+        return True
 
     def is_at_least_2_5_0(self):
         """ check target pfSense version """
-        # TODO: add pfSense+ support
-        return self.is_version("2.5.0") or self.is_version("2.5.0.", exact=False) or self.is_version("21.", exact=False)
+        return self.is_version([2, 5, 0]) or self.is_version([21, 2])
 
     def apply_ipsec_changes(self):
         """ execute pfSense code to appy ipsec changes """
