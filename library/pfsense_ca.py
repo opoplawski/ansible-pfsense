@@ -246,7 +246,7 @@ class PFSenseCAModule(PFSenseModuleBase):
                 print_r($ca);
                 print_r($config['ca']);
                 write_config('Update CA reference');""".format(refid=self.target_elt.find('refid').text,
-                    cert=base64.b64decode(self.target_elt.find('crt').text.encode()).decode()))
+                                                               cert=base64.b64decode(self.target_elt.find('crt').text.encode()).decode()))
 
             crl_stdout = ''
             crl_stderr = ''
