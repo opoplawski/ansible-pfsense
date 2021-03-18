@@ -1,0 +1,2 @@
+plugins/module_utils/compat/ipaddress.py no-assert
+plugins/module_utils/compat/ipaddress.py no-unicode-literals
