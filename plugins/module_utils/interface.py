@@ -8,7 +8,7 @@ __metaclass__ = type
 import re
 from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 from ansible_collections.pfsensible.core.plugins.module_utils.rule import PFSenseRuleModule
-from ansible_collections.ansible.netcommon.plugins.module_utils.compat.ipaddress import ip_network
+from ipaddress import ip_network
 
 INTERFACE_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -101,7 +101,8 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         self.obj = obj
         obj['descr'] = params['descr']
         if params['state'] == 'present':
-            obj['if'] = params['interface']
+            if params.get('interface') is not None:
+                obj['if'] = params['interface']
 
             for param in ['enable', 'blockpriv', 'blockbogons']:
                 self._get_ansible_param_bool(obj, param, value='')
@@ -124,7 +125,10 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 self._get_ansible_param(obj, 'ipv6_gateway', fname='gatewayv6')
 
             # get target interface
-            self.target_elt = self._find_matching_interface()
+            self.target_elt = self._find_matching_interface('if' in obj)
+            if self.target_elt is None and 'if' not in obj:
+                self.module.fail_json(msg='No interface found with description equals to "{0}"'.format(obj['descr']))
+
             self._check_overlaps('ipaddrv6', 'subnetv6')
             self._check_overlaps('ipaddr', 'subnet')
 
@@ -167,14 +171,15 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             if params.get('mss') is not None and params['mtu'] < 1:
                 self.module.fail_json(msg='mtu must be above 0')
 
-            interfaces = self._get_interface_list()
-            if params['interface'] not in interfaces:
-                self.module.fail_json(msg='{0} can\'t be assigned. Interface may only be one the following: {1}'.format(params['interface'], interfaces))
+            if params.get('interface') is not None:
+                interfaces = self._get_interface_list()
+                if params['interface'] not in interfaces:
+                    self.module.fail_json(msg='{0} can\'t be assigned. Interface may only be one the following: {1}'.format(params['interface'], interfaces))
 
-            media_modes = set(self._get_media_mode(params['interface']))
-            media_modes.add('autoselect')
-            if params.get('speed_duplex') and params['speed_duplex'] not in media_modes:
-                self.module.fail_json(msg='For this interface, media mode may only be one the following: {0}'.format(media_modes))
+                media_modes = set(self._get_media_mode(params['interface']))
+                media_modes.add('autoselect')
+                if params.get('speed_duplex') and params['speed_duplex'] not in media_modes:
+                    self.module.fail_json(msg='For this interface, media mode may only be one the following: {0}'.format(media_modes))
 
             if params['ipv4_type'] == 'static':
                 if params.get('ipv4_address') and not self.pfsense.is_ipv4_address(params['ipv4_address']):
@@ -265,25 +270,31 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 return iface
         return None
 
-    def _find_matching_interface(self):
+    def _find_matching_interface(self, have_if):
         """ return target interface """
 
         # we first try to find an interface having same port and display name
-        interface_elt = self._get_interface_elt_by_port_and_display_name(self.obj['if'], self.obj['descr'])
-        if interface_elt is not None:
-            return interface_elt
+        if have_if:
+            interface_elt = self._get_interface_elt_by_port_and_display_name(self.obj['if'], self.obj['descr'])
+            if interface_elt is not None:
+                return interface_elt
 
         # we then try to find an existing interface with the same display name
         interface_elt = self._get_interface_elt_by_display_name(self.obj['descr'])
         if interface_elt is not None:
-            # we check the target port can be used
-            used_by = self._get_interface_display_name_by_port(self.obj['if'])
-            if used_by is not None:
-                self.module.fail_json(msg='Port {0} is already in use on interface {1}'.format(self.obj['if'], used_by))
+            if have_if:
+                # we check the target port can be used
+                used_by = self._get_interface_display_name_by_port(self.obj['if'])
+                if used_by is not None:
+                    self.module.fail_json(msg='Port {0} is already in use on interface {1}'.format(self.obj['if'], used_by))
+            else:
+                self.obj['if'] = interface_elt.find('if').text.strip()
             return interface_elt
 
         # last, we  try to find an existing interface with the port (interface will be renamed)
-        return self._get_interface_elt_by_port(self.obj['if'])
+        if have_if:
+            return self._get_interface_elt_by_port(self.obj['if'])
+        return None
 
     def _find_target(self):
         """ find the XML target_elt """

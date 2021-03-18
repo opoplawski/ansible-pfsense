@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
-from ansible_collections.ansible.netcommon.plugins.module_utils.compat.ipaddress import ip_address, ip_network
+from ipaddress import ip_address, ip_network
 
 GATEWAY_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
@@ -158,7 +158,7 @@ class PFSenseGatewayModule(PFSenseModuleBase):
         """ do some extra checks on input parameters """
         params = self.params
 
-        self.target_elt = self.pfsense.find_gateway_elt(params['name'])
+        self.target_elt = self.pfsense.find_gateway_elt(params['name'], dhcp=True, vti=True)
         if self.target_elt is not None and self.target_elt.find('gateway').text == 'dynamic':
             self.dynamic = True
 

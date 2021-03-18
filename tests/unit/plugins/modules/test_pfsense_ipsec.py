@@ -310,7 +310,7 @@ class TestPFSenseIpsecModule(TestPFSenseModule):
     def test_ipsec_update_remove_2_5_0(self):
         """ test updating 2_5_0 fields ipsec """
         ipsec = dict(
-            descr='test_tunnel_2_5_0', interface='lan_100', remote_gateway='1.2.4.8', iketype='ikev2',
+            descr='test_tunnel_2_5_0', interface='lan_100', remote_gateway='1.2.4.16', iketype='ikev2',
             authentication_method='pre_shared_key', preshared_key='1234')
         command = "update ipsec 'test_tunnel_2_5_0' set nattport=none, rekey_time='', reauth_time='', rand_time='', gw_duplicates=False"
         self.do_module_test(ipsec, command=command)
