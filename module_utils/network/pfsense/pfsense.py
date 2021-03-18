@@ -637,7 +637,7 @@ class PFSenseModule(object):
             self.pfsense_version = []
             match = re.match(r'(\d+)\.(\d+)\.?(\d+)?', pfsense_version)
             if match is None:
-                self.module.fail_json(msg="Unable to get version from pfSense (got '{}')".format(pfsense_version))
+                self.module.fail_json(msg="Unable to get version from pfSense (got '{0}')".format(pfsense_version))
             for idx in range(0, match.lastindex):
                 self.pfsense_version.append(int(match.group(idx + 1)))
 
