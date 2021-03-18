@@ -8,7 +8,7 @@ __metaclass__ = type
 import re
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule
-from ipaddress import ip_network
+from ansible.module_utils.compat.ipaddress import ip_network
 
 INTERFACE_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
