@@ -17,7 +17,6 @@ sed -i -e 's/\(pfsense_.*:\)/pfsensible.core.\1/g' $(find examples -name \*.yml)
 #sed -i -e '/import\|module:\|^ *pfsense_[a-z_0-9]*:$\|descr *= *.ansible pfsense_/s/pfsense_/pfsensible.core./' $(find pfsensible/core/plugins/modules -name \*.py)
 sed -i -e '/self.name = /s/pfsense_/pfsensible.core.pfsense_/' \
        -e s/ansible.module_utils.network.pfsense/ansible_collections.pfsensible.core.plugins.module_utils/ \
-       -e s/ansible.module_utils.compat.ipaddress/ansible_collections.ansible.netcommon.plugins.module_utils.compat.ipaddress/ \
        -e 's/ansible.modules.network.pfsense import /ansible_collections.pfsensible.core import /' $(find tests -name \*.py)
 
 rm -f pfsensible-core-*.tar.gz
