@@ -13,7 +13,7 @@ if sys.version_info < (2, 7):
 from ansible_collections.pfsensible.core.plugins.modules import pfsense_nat_outbound
 from ansible_collections.pfsensible.core.plugins.module_utils.nat_outbound import PFSenseNatOutboundModule
 from .pfsense_module import TestPFSenseModule
-from ipaddress import ip_address, IPv4Address
+from ansible_collections.pfsensible.core.plugins.module_utils.compat.ipaddress import ip_address, IPv4Address
 
 
 class TestPFSenseNatOutboundModule(TestPFSenseModule):

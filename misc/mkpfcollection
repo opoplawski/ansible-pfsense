@@ -22,6 +22,7 @@ sed -i -e s/ansible.modules.network.pfsense/ansible_collections.pfsensible.core.
        -e s/ansible.module_utils.network.pfsense/ansible_collections.pfsensible.core.plugins.module_utils/ \
        -e s/ansible.module_utils.compat/ansible_collections.ansible.netcommon.plugins.module_utils.compat/ \
        -e s/units.compat.mock/ansible_collections.community.internal_test_tools.tests.unit.compat.mock/ \
+       -e s/ansible.module_utils.compat.ipaddress/ansible_collections.pfsensible.core.plugins.module_utils.compat.ipaddress/ \
        -e s/units.modules.utils/ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils/ \
        -e '/version_added/s/"2.10"/0.1.0/' \
        $(find -name \*.py)

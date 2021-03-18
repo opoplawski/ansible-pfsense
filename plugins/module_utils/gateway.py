@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
-from ipaddress import ip_address, ip_network
+from ansible_collections.pfsensible.core.plugins.module_utils.compat.ipaddress import ip_address, ip_network
 
 GATEWAY_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),

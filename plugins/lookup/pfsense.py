@@ -197,7 +197,6 @@ from ansible.utils.display import Display
 from dns import resolver, exception
 
 import argparse
-import ipaddress
 import json
 import re
 import socket
@@ -208,6 +207,7 @@ import os
 
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
+from ansible_collections.pfsensible.core.plugins.module_utils.compat import ipaddress
 
 OPTION_FIELDS = [
     'gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'efilter', 'ifilter', 'sched', 'quick', 'direction',
