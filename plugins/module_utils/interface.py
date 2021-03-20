@@ -14,6 +14,7 @@ INTERFACE_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
     descr=dict(required=True, type='str'),
     interface=dict(required=False, type='str'),
+    interface_descr=dict(required=False, type='str'),
     enable=dict(required=False, type='bool'),
     ipv4_type=dict(default='none', choices=['none', 'static', 'dhcp']),
     ipv6_type=dict(default='none', choices=['none', 'static', 'slaac']),
@@ -32,10 +33,12 @@ INTERFACE_ARGUMENT_SPEC = dict(
 )
 
 INTERFACE_REQUIRED_IF = [
-    ["state", "present", ["interface", "ipv4_type", "ipv6_type"]],
+    ["state", "present", ["ipv4_type", "ipv6_type"]],
     ["ipv4_type", "static", ["ipv4_address", "ipv4_prefixlen"]],
     ["ipv6_type", "static", ["ipv6_address", "ipv6_prefixlen"]],
 ]
+
+INTERFACE_MUTUALLY_EXCLUSIVE = [['interface', 'interface_descr']]
 
 
 class PFSenseInterfaceModule(PFSenseModuleBase):
@@ -101,8 +104,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         self.obj = obj
         obj['descr'] = params['descr']
         if params['state'] == 'present':
-            if params.get('interface') is not None:
-                obj['if'] = params['interface']
+            obj['if'] = params['interface']
 
             for param in ['enable', 'blockpriv', 'blockbogons']:
                 self._get_ansible_param_bool(obj, param, value='')
@@ -125,10 +127,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 self._get_ansible_param(obj, 'ipv6_gateway', fname='gatewayv6')
 
             # get target interface
-            self.target_elt = self._find_matching_interface('if' in obj)
-            if self.target_elt is None and 'if' not in obj:
-                self.module.fail_json(msg='No interface found with description equals to "{0}"'.format(obj['descr']))
-
+            self.target_elt = self._find_matching_interface()
             self._check_overlaps('ipaddrv6', 'subnetv6')
             self._check_overlaps('ipaddr', 'subnet')
 
@@ -171,15 +170,25 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             if params.get('mss') is not None and params['mtu'] < 1:
                 self.module.fail_json(msg='mtu must be above 0')
 
+            interfaces = self._get_interface_list()
             if params.get('interface') is not None:
-                interfaces = self._get_interface_list()
-                if params['interface'] not in interfaces:
-                    self.module.fail_json(msg='{0} can\'t be assigned. Interface may only be one the following: {1}'.format(params['interface'], interfaces))
+                if params['interface'] not in interfaces.keys():
+                    self.module.fail_json(
+                        msg='{0} can\'t be assigned. Interface may only be one the following: {1}'.format(params['interface'], list(interfaces.keys())))
+            elif params.get('interface_descr') is not None:
+                for interface, attributes in interfaces.items():
+                    if 'descr' in attributes and attributes['descr'] == params['interface_descr']:
+                        if params.get('interface') is not None:
+                            self.module.fail_json(msg='Multiple interfaces found for "{0}"'.format(params['interface_descr']))
+                        else:
+                            params['interface'] = interface
+            else:
+                self.module.fail_json(msg='one of the following is required: interface, interface_descr')
 
-                media_modes = set(self._get_media_mode(params['interface']))
-                media_modes.add('autoselect')
-                if params.get('speed_duplex') and params['speed_duplex'] not in media_modes:
-                    self.module.fail_json(msg='For this interface, media mode may only be one the following: {0}'.format(media_modes))
+            media_modes = set(self._get_media_mode(params['interface']))
+            media_modes.add('autoselect')
+            if params.get('speed_duplex') and params['speed_duplex'] not in media_modes:
+                self.module.fail_json(msg='For this interface, media mode may only be one the following: {0}'.format(media_modes))
 
             if params['ipv4_type'] == 'static':
                 if params.get('ipv4_address') and not self.pfsense.is_ipv4_address(params['ipv4_address']):
@@ -270,31 +279,25 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 return iface
         return None
 
-    def _find_matching_interface(self, have_if):
+    def _find_matching_interface(self):
         """ return target interface """
 
         # we first try to find an interface having same port and display name
-        if have_if:
-            interface_elt = self._get_interface_elt_by_port_and_display_name(self.obj['if'], self.obj['descr'])
-            if interface_elt is not None:
-                return interface_elt
+        interface_elt = self._get_interface_elt_by_port_and_display_name(self.obj['if'], self.obj['descr'])
+        if interface_elt is not None:
+            return interface_elt
 
         # we then try to find an existing interface with the same display name
         interface_elt = self._get_interface_elt_by_display_name(self.obj['descr'])
         if interface_elt is not None:
-            if have_if:
-                # we check the target port can be used
-                used_by = self._get_interface_display_name_by_port(self.obj['if'])
-                if used_by is not None:
-                    self.module.fail_json(msg='Port {0} is already in use on interface {1}'.format(self.obj['if'], used_by))
-            else:
-                self.obj['if'] = interface_elt.find('if').text.strip()
+            # we check the target port can be used
+            used_by = self._get_interface_display_name_by_port(self.obj['if'])
+            if used_by is not None:
+                self.module.fail_json(msg='Port {0} is already in use on interface {1}'.format(self.obj['if'], used_by))
             return interface_elt
 
         # last, we  try to find an existing interface with the port (interface will be renamed)
-        if have_if:
-            return self._get_interface_elt_by_port(self.obj['if'])
-        return None
+        return self._get_interface_elt_by_port(self.obj['if'])
 
     def _find_target(self):
         """ find the XML target_elt """
@@ -432,7 +435,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             "$ipsec_descrs = interface_ipsec_vti_list_all();"
             "foreach ($ipsec_descrs as $ifname => $ifdescr) $portlist[$ifname] = array('descr' => $ifdescr);"
             ""
-            "echo json_encode(array_keys($portlist), JSON_PRETTY_PRINT);")
+            "echo json_encode($portlist, JSON_PRETTY_PRINT);")
 
     def _get_media_mode(self, interface):
         """ Find all possible media options for the interface """

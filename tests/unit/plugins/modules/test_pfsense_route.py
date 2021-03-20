@@ -34,6 +34,12 @@ class TestPFSenseRouteModule(TestPFSenseModule):
         self.run_command = self.mock_run_command.start()
         self.run_command.return_value = (0, '', '')
 
+    def tearDown(self):
+        """ mocking down """
+        super(TestPFSenseRouteModule, self).tearDown()
+
+        self.run_command.stop()
+
     def check_target_elt(self, params, target_elt):
         """ test the xml definition """
 

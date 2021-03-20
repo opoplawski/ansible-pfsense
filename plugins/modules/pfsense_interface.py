@@ -33,6 +33,9 @@ options:
   interface:
     description: Network port to which assign the interface.
     type: str
+  interface_descr:
+    description: Network port descr to which assign the interface.
+    type: str
   enable:
     description: Enable interface.
     type: bool
@@ -125,13 +128,14 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.pfsensible.core.plugins.module_utils.interface import PFSenseInterfaceModule, INTERFACE_ARGUMENT_SPEC, INTERFACE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.interface import PFSenseInterfaceModule, INTERFACE_ARGUMENT_SPEC, INTERFACE_REQUIRED_IF, INTERFACE_MUTUALLY_EXCLUSIVE
 
 
 def main():
     module = AnsibleModule(
         argument_spec=INTERFACE_ARGUMENT_SPEC,
         required_if=INTERFACE_REQUIRED_IF,
+        mutually_exclusive=INTERFACE_MUTUALLY_EXCLUSIVE,
         supports_check_mode=True)
 
     pfmodule = PFSenseInterfaceModule(module)

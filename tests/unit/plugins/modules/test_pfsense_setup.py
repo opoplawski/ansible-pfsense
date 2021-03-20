@@ -32,6 +32,17 @@ class TestPFSenseSetupModule(TestPFSenseModule):
         self.mock_validate_webguicss = patch('ansible_collections.pfsensible.core.plugins.modules.pfsense_setup.PFSenseSetupModule._validate_webguicss')
         self.validate_webguicss = self.mock_validate_webguicss.start()
 
+        self.mock_run_command = patch('ansible.module_utils.basic.AnsibleModule.run_command')
+        self.run_command = self.mock_run_command.start()
+        self.run_command.return_value = (0, '', '')
+
+    def tearDown(self):
+        """ mocking down """
+        super(TestPFSenseSetupModule, self).tearDown()
+
+        self.validate_webguicss.stop()
+        self.run_command.stop()
+
     ##############
     # tests utils
     #
