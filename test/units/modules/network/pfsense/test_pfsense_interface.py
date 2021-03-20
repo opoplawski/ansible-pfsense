@@ -37,6 +37,12 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         self.php.return_value = None
         self.php.side_effect = php_mock
 
+    def tearDown(self):
+        """ mocking down """
+        super(TestPFSenseInterfaceModule, self).tearDown()
+
+        self.php.stop()
+
     ##############
     # tests utils
     #
@@ -49,8 +55,7 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
 
     def check_target_elt(self, interface, interface_elt):
         """ test the xml definition of interface """
-        if interface.get('interface') is not None:
-            self.assert_xml_elt_equal(interface_elt, 'if', self.unalias_interface(interface['interface'], physical=True))
+        self.assert_xml_elt_equal(interface_elt, 'if', self.unalias_interface(interface['interface'], physical=True))
 
         # bools
         if interface.get('enable'):
@@ -186,12 +191,6 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         command = "update interface 'vt1' set enable=True"
         self.do_module_test(interface, changed=True, command=command)
 
-    def test_interface_update_without_interface(self):
-        """ test enabling interface """
-        interface = dict(descr='vt1', interface=None, enable=True)
-        command = "update interface 'vt1' set enable=True"
-        self.do_module_test(interface, changed=True, command=command)
-
     def test_interface_update_mac(self):
         """ test updating mac """
         interface = dict(descr='lan_1100', interface='vmx1.1100', enable=True, ipv4_type='static',
@@ -260,10 +259,4 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         """ test error same ipv6 address """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv6_type='static', ipv6_address='2001::2001', ipv6_prefixlen=56)
         msg = "IP address 2001::2001/56 is being used by or overlaps with: lan (2001::2001:22/64)"
-        self.do_module_test(interface, failed=True, msg=msg)
-
-    def test_interface_create_no_interface(self):
-        """ test creation of a new interface with no address """
-        interface = dict(descr='VOICE', interface=None)
-        msg = 'No interface found with description equals to "VOICE"'
         self.do_module_test(interface, failed=True, msg=msg)
