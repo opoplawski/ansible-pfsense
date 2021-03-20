@@ -14,6 +14,7 @@ INTERFACE_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
     descr=dict(required=True, type='str'),
     interface=dict(required=False, type='str'),
+    interface_descr=dict(required=False, type='str'),
     enable=dict(required=False, type='bool'),
     ipv4_type=dict(default='none', choices=['none', 'static', 'dhcp']),
     ipv6_type=dict(default='none', choices=['none', 'static', 'slaac']),
@@ -32,10 +33,12 @@ INTERFACE_ARGUMENT_SPEC = dict(
 )
 
 INTERFACE_REQUIRED_IF = [
-    ["state", "present", ["interface", "ipv4_type", "ipv6_type"]],
+    ["state", "present", ["ipv4_type", "ipv6_type"]],
     ["ipv4_type", "static", ["ipv4_address", "ipv4_prefixlen"]],
     ["ipv6_type", "static", ["ipv6_address", "ipv6_prefixlen"]],
 ]
+
+INTERFACE_MUTUALLY_EXCLUSIVE = [['interface', 'interface_descr']]
 
 
 class PFSenseInterfaceModule(PFSenseModuleBase):
@@ -168,8 +171,19 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
                 self.module.fail_json(msg='mtu must be above 0')
 
             interfaces = self._get_interface_list()
-            if params['interface'] not in interfaces:
-                self.module.fail_json(msg='{0} can\'t be assigned. Interface may only be one the following: {1}'.format(params['interface'], interfaces))
+            if params.get('interface') is not None:
+                if params['interface'] not in interfaces.keys():
+                    self.module.fail_json(
+                        msg='{0} can\'t be assigned. Interface may only be one the following: {1}'.format(params['interface'], list(interfaces.keys())))
+            elif params.get('interface_descr') is not None:
+                for interface, attributes in interfaces.items():
+                    if 'descr' in attributes and attributes['descr'] == params['interface_descr']:
+                        if params.get('interface') is not None:
+                            self.module.fail_json(msg='Multiple interfaces found for "{0}"'.format(params['interface_descr']))
+                        else:
+                            params['interface'] = interface
+            else:
+                self.module.fail_json(msg='one of the following is required: interface, interface_descr')
 
             media_modes = set(self._get_media_mode(params['interface']))
             media_modes.add('autoselect')
@@ -421,7 +435,7 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
             "$ipsec_descrs = interface_ipsec_vti_list_all();"
             "foreach ($ipsec_descrs as $ifname => $ifdescr) $portlist[$ifname] = array('descr' => $ifdescr);"
             ""
-            "echo json_encode(array_keys($portlist), JSON_PRETTY_PRINT);")
+            "echo json_encode($portlist, JSON_PRETTY_PRINT);")
 
     def _get_media_mode(self, interface):
         """ Find all possible media options for the interface """
