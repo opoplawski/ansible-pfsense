@@ -70,6 +70,7 @@ The following modules are currently available:
 * [pfsense_ipsec](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec) for ipsec tunnels and phase 1 options
 * [pfsense_ipsec_proposal](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_proposal) for ipsec proposals
 * [pfsense_ipsec_p2](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_p2) for ipsec tunnels phase 2 options
+* [pfsense_log_settings](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_log_settings) for logging settings
 * [pfsense_nat_outbound](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_nat_outbound) for outbound NAT rules
 * [pfsense_nat_port_forward](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_nat_port_forward) for port forward NAT rules
 * [pfsense_route](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_route) for routes
