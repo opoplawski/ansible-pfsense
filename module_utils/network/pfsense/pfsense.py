@@ -423,7 +423,7 @@ class PFSenseModule(object):
                     continue
 
             # iterate each queue
-            for queue_elt in shaper_elt.findall('queue'):
+            for queue_elt in shaper_elt.findall('.//queue'):
                 name_elt = queue_elt.find('name')
                 if name_elt is None or name_elt.text != name:
                     continue
@@ -468,7 +468,17 @@ class PFSenseModule(object):
 
         return None
 
-    def find_gateway_elt(self, name, interface=None, protocol=None, dhcp=False):
+    def _create_gw_elt(self, name, interface_id, protocol):
+        gw_elt = ET.Element('gateway_item')
+        gw_elt.append(self.new_element('interface', interface_id))
+        gw_elt.append(self.new_element('gateway', 'dynamic'))
+        gw_elt.append(self.new_element('name', name))
+        gw_elt.append(self.new_element('weight', '1'))
+        gw_elt.append(self.new_element('ipprotocol', protocol))
+        gw_elt.append(self.new_element('descr', 'Interface ' + name + ' Gateway'))
+        return gw_elt
+
+    def find_gateway_elt(self, name, interface=None, protocol=None, dhcp=False, vti=False):
         """ return gateway elt if found """
         for gw_elt in self.gateways:
             if gw_elt.tag != 'gateway_item':
@@ -483,31 +493,32 @@ class PFSenseModule(object):
             if gw_elt.find('name').text == name:
                 return gw_elt
 
-        if dhcp:
-            for interface_elt in self.interfaces:
-                descr_elt = interface_elt.find('descr')
-                if descr_elt is None:
-                    continue
+        for interface_elt in self.interfaces:
+            descr_elt = interface_elt.find('descr')
+            if descr_elt is None or descr_elt.text is None:
+                continue
 
+            if_elt = interface_elt.find('if')
+            if if_elt is None or if_elt.text is None:
+                continue
+
+            descr_text = descr_elt.text.strip().upper()
+
+            # todo: implement interface match with ipsec tunnels threw vtimaps
+            if vti and (protocol is None or protocol == 'inet') and if_elt.text.startswith('ipsec') and descr_text + '_VTIV4' == name:
+                return self._create_gw_elt(name, interface_elt.tag, 'inet')
+
+            if vti and (protocol is None or protocol == 'inet6') and if_elt.text.startswith('ipsec') and descr_text + '_VTIV6' == name:
+                return self._create_gw_elt(name, interface_elt.tag, 'inet6')
+
+            if dhcp:
                 ipaddr_elt = interface_elt.find('ipaddr')
-                if ipaddr_elt is not None and ipaddr_elt.text == 'dhcp':
-                    gw_name = descr_elt.text.strip().upper() + "_DHCP"
-                    if name == gw_name and (protocol is None or protocol == 'inet'):
-                        gw_elt = ET.Element('gateway_item')
-                        protocol_elt = ET.Element('ipprotocol')
-                        protocol_elt.text = 'inet'
-                        gw_elt.append(protocol_elt)
-                        return gw_elt
+                if (protocol is None or protocol == 'inet') and ipaddr_elt is not None and ipaddr_elt.text == 'dhcp' and descr_text + "_DHCP" == name:
+                    return self._create_gw_elt(name, interface_elt.tag, 'inet')
 
                 ipaddr_elt = interface_elt.find('ipaddrv6')
-                if ipaddr_elt is not None and ipaddr_elt.text == 'dhcp6':
-                    gw_name = descr_elt.text.strip().upper() + "_DHCP6"
-                    if name == gw_name and (protocol is None or protocol == 'inet6'):
-                        gw_elt = ET.Element('gateway_item')
-                        protocol_elt = ET.Element('ipprotocol')
-                        protocol_elt.text = 'inet6'
-                        gw_elt.append(protocol_elt)
-                        return gw_elt
+                if (protocol is None or protocol == 'inet6') and ipaddr_elt is not None and ipaddr_elt.text == 'dhcp6' and descr_text + "_DHCP6" == name:
+                    return self._create_gw_elt(name, interface_elt.tag, 'inet6')
 
         return None
 
@@ -626,7 +637,7 @@ class PFSenseModule(object):
             self.pfsense_version = []
             match = re.match(r'(\d+)\.(\d+)\.?(\d+)?', pfsense_version)
             if match is None:
-                self.module.fail_json(msg="Unable to get version from pfSense (got '{}')".format(pfsense_version))
+                self.module.fail_json(msg="Unable to get version from pfSense (got '{0}')".format(pfsense_version))
             for idx in range(0, match.lastindex):
                 self.pfsense_version.append(int(match.group(idx + 1)))
 

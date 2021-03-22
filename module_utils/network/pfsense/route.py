@@ -101,7 +101,7 @@ class PFSenseRouteModule(PFSenseModuleBase):
         params = self.params
 
         if params['state'] == 'present':
-            gw_elt = self.pfsense.find_gateway_elt(params['gateway'], dhcp=True)
+            gw_elt = self.pfsense.find_gateway_elt(params['gateway'], dhcp=True, vti=True)
             if gw_elt is None:
                 self.module.fail_json(msg='The gateway {0} does not exist'.format(params['gateway']))
 

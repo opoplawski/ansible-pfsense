@@ -158,7 +158,7 @@ class PFSenseGatewayModule(PFSenseModuleBase):
         """ do some extra checks on input parameters """
         params = self.params
 
-        self.target_elt = self.pfsense.find_gateway_elt(params['name'])
+        self.target_elt = self.pfsense.find_gateway_elt(params['name'], dhcp=True, vti=True)
         if self.target_elt is not None and self.target_elt.find('gateway').text == 'dynamic':
             self.dynamic = True
 
