@@ -128,7 +128,12 @@ commands:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.pfsensible.core.plugins.module_utils.interface import PFSenseInterfaceModule, INTERFACE_ARGUMENT_SPEC, INTERFACE_REQUIRED_IF, INTERFACE_MUTUALLY_EXCLUSIVE
+from ansible_collections.pfsensible.core.plugins.module_utils.interface import (
+    PFSenseInterfaceModule,
+    INTERFACE_ARGUMENT_SPEC,
+    INTERFACE_REQUIRED_IF,
+    INTERFACE_MUTUALLY_EXCLUSIVE
+)
 
 
 def main():

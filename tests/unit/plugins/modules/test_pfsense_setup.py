@@ -22,7 +22,15 @@ class TestPFSenseSetupModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseSetupModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_setup_config.xml'
-        self.pfmodule = pfsense_setup.PFSenseSetupModule
+
+    @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['hostname', 'domain', 'dns_addresses', 'dns_hostnames', 'dns_gateways', 'dnsallowoverride', 'dnslocalhost', 'timezone']
+        fields += ['timeservers', 'language', 'webguicss', 'webguifixedmenu', 'webguihostnamemenu', 'dashboardcolumns', 'interfacessort']
+        fields += ['dashboardavailablewidgetspanel', 'systemlogsfilterpanel', 'systemlogsmanagelogpanel', 'statusmonitoringsettingspanel']
+        fields += ['requirestatefilter', 'webguileftcolumnhyper', 'disablealiaspopupdetail', 'roworderdragging', 'logincss', 'loginshowhost']
+        return fields
 
     def setUp(self):
         """ mocking up """

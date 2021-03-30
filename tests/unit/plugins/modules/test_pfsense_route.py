@@ -11,7 +11,6 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible_collections.pfsensible.core.plugins.modules import pfsense_route
-from ansible_collections.pfsensible.core.plugins.module_utils.route import PFSenseRouteModule
 from .pfsense_module import TestPFSenseModule
 from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import patch
 
@@ -23,7 +22,6 @@ class TestPFSenseRouteModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseRouteModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_route_config.xml'
-        self.pfmodule = PFSenseRouteModule
 
     def setUp(self):
         """ mocking up """

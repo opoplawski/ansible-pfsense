@@ -422,7 +422,7 @@ class PFSenseModule(object):
                     continue
 
             # iterate each queue
-            for queue_elt in shaper_elt.findall('queue'):
+            for queue_elt in shaper_elt.findall('.//queue'):
                 name_elt = queue_elt.find('name')
                 if name_elt is None or name_elt.text != name:
                     continue

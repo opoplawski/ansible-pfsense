@@ -66,6 +66,7 @@ The following modules are currently available:
 * [pfsensible.core.pfsense_ipsec](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec) for ipsec tunnels and phase 1 options
 * [pfsensible.core.pfsense_ipsec_proposal](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec_proposal) for ipsec proposals
 * [pfsensible.core.pfsense_ipsec_p2](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec_p2) for ipsec tunnels phase 2 options
+* [pfsensible.core.pfsense_log_settings](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_log_settings) for logging settings
 * [pfsensible.core.pfsense_nat_outbound](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_nat_outbound) for outbound NAT rules
 * [pfsensible.core.pfsense_nat_port_forward](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_nat_port_forward) for port forward NAT rules
 * [pfsensible.core.pfsense_route](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_route) for routes
