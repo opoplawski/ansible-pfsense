@@ -11,7 +11,6 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible_collections.pfsensible.core.plugins.modules import pfsense_route
-from ansible_collections.pfsensible.core.plugins.module_utils.route import PFSenseRouteModule
 from .pfsense_module import TestPFSenseModule
 from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import patch
 
@@ -23,7 +22,6 @@ class TestPFSenseRouteModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseRouteModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_route_config.xml'
-        self.pfmodule = PFSenseRouteModule
 
     def setUp(self):
         """ mocking up """
@@ -33,6 +31,18 @@ class TestPFSenseRouteModule(TestPFSenseModule):
         self.mock_run_command = patch('ansible.module_utils.basic.AnsibleModule.run_command')
         self.run_command = self.mock_run_command.start()
         self.run_command.return_value = (0, '', '')
+
+    def tearDown(self):
+        """ mocking down """
+        super(TestPFSenseRouteModule, self).tearDown()
+
+        self.run_command.stop()
+
+    @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['descr', 'network', 'disabled', 'gateway']
+        return fields
 
     def check_target_elt(self, params, target_elt):
         """ test the xml definition """

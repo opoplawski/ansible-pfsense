@@ -76,6 +76,9 @@ options:
       interface:
         description: Network port to which assign the interface.
         type: str
+      interface_descr:
+        description: Network port descr to which assign the interface.
+        type: str
       enable:
         description: Enable interface.
         type: bool
@@ -583,7 +586,8 @@ from ansible_collections.pfsensible.core.plugins.module_utils.alias import PFSen
 from ansible_collections.pfsensible.core.plugins.module_utils.interface import (
     PFSenseInterfaceModule,
     INTERFACE_ARGUMENT_SPEC,
-    INTERFACE_REQUIRED_IF
+    INTERFACE_REQUIRED_IF,
+    INTERFACE_MUTUALLY_EXCLUSIVE,
 )
 from ansible_collections.pfsensible.core.plugins.module_utils.nat_outbound import PFSenseNatOutboundModule, NAT_OUTBOUND_ARGUMENT_SPEC, NAT_OUTBOUD_REQUIRED_IF
 from ansible_collections.pfsensible.core.plugins.module_utils.nat_port_forward import (
@@ -1044,7 +1048,9 @@ class PFSenseModuleAggregate(object):
 def main():
     argument_spec = dict(
         aggregated_aliases=dict(type='list', elements='dict', options=ALIAS_ARGUMENT_SPEC, required_if=ALIAS_REQUIRED_IF),
-        aggregated_interfaces=dict(type='list', elements='dict', options=INTERFACE_ARGUMENT_SPEC, required_if=INTERFACE_REQUIRED_IF),
+        aggregated_interfaces=dict(
+            type='list', elements='dict',
+            options=INTERFACE_ARGUMENT_SPEC, required_if=INTERFACE_REQUIRED_IF, mutually_exclusive=INTERFACE_MUTUALLY_EXCLUSIVE),
         aggregated_rules=dict(type='list', elements='dict', options=RULE_ARGUMENT_SPEC, required_if=RULE_REQUIRED_IF),
         aggregated_nat_outbounds=dict(type='list', elements='dict', options=NAT_OUTBOUND_ARGUMENT_SPEC, required_if=NAT_OUTBOUD_REQUIRED_IF),
         aggregated_nat_port_forwards=dict(type='list', elements='dict', options=NAT_PORT_FORWARD_ARGUMENT_SPEC, required_if=NAT_PORT_FORWARD_REQUIRED_IF),

@@ -22,7 +22,15 @@ class TestPFSenseSetupModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseSetupModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_setup_config.xml'
-        self.pfmodule = pfsense_setup.PFSenseSetupModule
+
+    @staticmethod
+    def get_args_fields():
+        """ return params fields """
+        fields = ['hostname', 'domain', 'dns_addresses', 'dns_hostnames', 'dns_gateways', 'dnsallowoverride', 'dnslocalhost', 'timezone']
+        fields += ['timeservers', 'language', 'webguicss', 'webguifixedmenu', 'webguihostnamemenu', 'dashboardcolumns', 'interfacessort']
+        fields += ['dashboardavailablewidgetspanel', 'systemlogsfilterpanel', 'systemlogsmanagelogpanel', 'statusmonitoringsettingspanel']
+        fields += ['requirestatefilter', 'webguileftcolumnhyper', 'disablealiaspopupdetail', 'roworderdragging', 'logincss', 'loginshowhost']
+        return fields
 
     def setUp(self):
         """ mocking up """
@@ -31,6 +39,17 @@ class TestPFSenseSetupModule(TestPFSenseModule):
 
         self.mock_validate_webguicss = patch('ansible_collections.pfsensible.core.plugins.modules.pfsense_setup.PFSenseSetupModule._validate_webguicss')
         self.validate_webguicss = self.mock_validate_webguicss.start()
+
+        self.mock_run_command = patch('ansible.module_utils.basic.AnsibleModule.run_command')
+        self.run_command = self.mock_run_command.start()
+        self.run_command.return_value = (0, '', '')
+
+    def tearDown(self):
+        """ mocking down """
+        super(TestPFSenseSetupModule, self).tearDown()
+
+        self.validate_webguicss.stop()
+        self.run_command.stop()
 
     ##############
     # tests utils

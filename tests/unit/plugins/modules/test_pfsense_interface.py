@@ -29,13 +29,26 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
 
         def php_mock(command):
             if 'get_interface_list' in command:
-                return ['vmx0', 'vmx1', 'vmx2', 'vmx3', 'vmx0.100', 'vmx1.1100']
+                interfaces = dict()
+                interfaces['vmx0'] = dict()
+                interfaces['vmx1'] = dict(descr='notuniq')
+                interfaces['vmx2'] = dict(descr='notuniq')
+                interfaces['vmx3'] = dict()
+                interfaces['vmx0.100'] = dict(descr='uniq')
+                interfaces['vmx1.1100'] = dict()
+                return interfaces
             return ['autoselect']
 
         super(TestPFSenseInterfaceModule, self).setUp()
 
         self.php.return_value = None
         self.php.side_effect = php_mock
+
+    def tearDown(self):
+        """ mocking down """
+        super(TestPFSenseInterfaceModule, self).tearDown()
+
+        self.php.stop()
 
     ##############
     # tests utils
@@ -49,8 +62,9 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
 
     def check_target_elt(self, interface, interface_elt):
         """ test the xml definition of interface """
-        if interface.get('interface') is not None:
-            self.assert_xml_elt_equal(interface_elt, 'if', self.unalias_interface(interface['interface'], physical=True))
+        if 'interface_descr' in interface and interface['interface_descr'] == 'uniq':
+            interface['interface'] = 'vmx0.100'
+        self.assert_xml_elt_equal(interface_elt, 'if', self.unalias_interface(interface['interface'], physical=True))
 
         # bools
         if interface.get('enable'):
@@ -119,6 +133,12 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         command = "create interface 'VOICE', port='vmx0.100'"
         self.do_module_test(interface, command=command)
 
+    def test_interface_create_by_descr(self):
+        """ test creation of a new interface with interface_descr """
+        interface = dict(descr='VOICE', interface_descr='uniq')
+        command = "create interface 'VOICE', port='vmx0.100'"
+        self.do_module_test(interface, command=command)
+
     def test_interface_create_static(self):
         """ test creation of a new interface with a static ip """
         interface = dict(descr='VOICE', interface='vmx0.100', ipv4_type='static', ipv4_address='10.20.30.40', ipv4_prefixlen=24)
@@ -183,12 +203,6 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
     def test_interface_update_enable2(self):
         """ test enabling interface """
         interface = dict(descr='vt1', interface='vmx3', enable=True)
-        command = "update interface 'vt1' set enable=True"
-        self.do_module_test(interface, changed=True, command=command)
-
-    def test_interface_update_without_interface(self):
-        """ test enabling interface """
-        interface = dict(descr='vt1', interface=None, enable=True)
         command = "update interface 'vt1' set enable=True"
         self.do_module_test(interface, changed=True, command=command)
 
@@ -262,8 +276,8 @@ class TestPFSenseInterfaceModule(TestPFSenseModule):
         msg = "IP address 2001::2001/56 is being used by or overlaps with: lan (2001::2001:22/64)"
         self.do_module_test(interface, failed=True, msg=msg)
 
-    def test_interface_create_no_interface(self):
-        """ test creation of a new interface with no address """
-        interface = dict(descr='VOICE', interface=None)
-        msg = 'No interface found with description equals to "VOICE"'
+    def test_interface_error_not_uniq(self):
+        """ test creation of a new interface with interface_descr """
+        interface = dict(descr='VOICE', interface_descr='notuniq')
+        msg = 'Multiple interfaces found for "notuniq"'
         self.do_module_test(interface, failed=True, msg=msg)
