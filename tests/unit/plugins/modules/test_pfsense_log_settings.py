@@ -16,6 +16,7 @@ from ansible_collections.pfsensible.core.plugins.modules import pfsense_log_sett
 
 from .pfsense_module import TestPFSenseModule
 
+
 class TestPFSenseLogSettingsModule(TestPFSenseModule):
 
     module = pfsense_log_settings
@@ -305,7 +306,7 @@ class TestPFSenseLogSettingsModule(TestPFSenseModule):
 
     def test_syslog_logfilesize_valid3(self):
         """ test log_settings logfilesize """
-        syslog = dict(logfilesize=int((2**32)/2)-1)
+        syslog = dict(logfilesize=int((2**32) / 2) - 1)
         command = "update log_settings syslog set logfilesize='2147483647'"
         self.do_module_test(syslog, command=command, state=None)
 
@@ -329,7 +330,7 @@ class TestPFSenseLogSettingsModule(TestPFSenseModule):
 
     def test_syslog_logfilesize_invalid4(self):
         """ test log_settings logfilesize """
-        syslog = dict(logfilesize=int(((2**32)/2)+1))
+        syslog = dict(logfilesize=int(((2**32) / 2) + 1))
         msg = 'logfilesize is too large: 2147483649'
         self.do_module_test(syslog, msg=msg, state=None, failed=True)
 
