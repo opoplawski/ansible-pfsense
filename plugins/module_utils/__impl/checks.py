@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright: (c) 2019, Orion Poplawski <orion@nwra.com>
+# Copyright: (c) 2019-2021, Orion Poplawski <orion@nwra.com>
 # Copyright: (c) 2019, Frederic Bor <frederic.bor@wanadoo.fr>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -11,7 +11,7 @@ import socket
 
 
 def check_name(self, name, objtype):
-    """ check name validy """
+    """ check name validity """
 
     msg = None
     if len(name) >= 32 or len(re.findall(r'(^_*$|^\d*$|[^a-zA-Z0-9_])', name)) > 0:
@@ -56,3 +56,11 @@ def check_ip_address(self, address, ipprotocol, objtype, allow_networks=False, f
     elif ipprotocol == 'inet46':
         if ipv4 or ipv6:
             self.module.fail_json(msg='IPv4 and IPv6 addresses can not be used in objects that apply to both IPv4 and IPv6 (except within an alias).')
+
+
+def validate_string(self, name, objtype):
+    """ check string validity - similar to pfSense's do_input_validate() """
+
+    msg = None
+    if len(re.findall(r'[\000-\010\013\014\016-\037]', name)) > 0:
+        self.module.fail_json("The {0} name contains invalid characters.".format(objtype))
