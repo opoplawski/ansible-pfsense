@@ -118,7 +118,7 @@ options:
     type: str
     default: default
   tracker:
-    description: Rule tracking ID. Defaults to timestamp of rule creation.
+    description: Rule tracking ID. Defaults to timestamp of rule creation and not modified if not set or set to 0.
     type: int
   icmptype:
     description:
