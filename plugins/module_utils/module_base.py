@@ -52,12 +52,11 @@ class PFSenseModuleBase(object):
             fname = name
 
         if self.params.get(name) is not None:
-            if isinstance(self.params[name], int):
-                obj[fname] = str(self.params[name])
-            elif exclude is None:
-                obj[fname] = self.params[name]
-            elif exclude != self.params[name]:
-                obj[fname] = self.params[name]
+            if not (exclude is not None and exclude == self.params[name]):
+                if isinstance(self.params[name], int):
+                    obj[fname] = str(self.params[name])
+                else:
+                    obj[fname] = self.params[name]
         elif force:
             obj[fname] = force_value
 
