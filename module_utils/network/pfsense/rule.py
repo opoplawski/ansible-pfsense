@@ -134,7 +134,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
             self._get_ansible_param(obj, 'in_queue', fname='dnpipe')
             self._get_ansible_param(obj, 'out_queue', fname='pdnpipe')
             self._get_ansible_param(obj, 'associated-rule-id')
-            self._get_ansible_param(obj, 'tracker')
+            self._get_ansible_param(obj, 'tracker', exclude=0)
             self._get_ansible_param(obj, 'gateway', exclude='default')
             self._get_ansible_param(obj, 'sched')
 
@@ -210,7 +210,7 @@ class PFSenseRuleModule(PFSenseModuleBase):
                 self.module.fail_json(msg='Gateways can not be used in Floating rules without choosing a direction')
 
         # tracker
-        if params.get('tracker') is not None and params['tracker'] <= 0:
+        if params.get('tracker') is not None and params['tracker'] < 0:
             self.module.fail_json(msg='tracker {0} must be a positive integer'.format(params['tracker']))
 
         # sched
