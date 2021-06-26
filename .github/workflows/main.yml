@@ -1,0 +1,71 @@
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events
+  push:
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # ansible 2.9 does not support python 3.9 for testing
+        python-version: [3.6, 3.7, 3.8]
+        # Build against 2.9 for now.  2.10 fails due to removal of ipaddress to ansible.network
+        # ansible 2.11 requires collection format
+        ansible-version: ['2.9']
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout project
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pip
+        with:
+          path: |
+             ~/.cache
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-python-${{ matrix.python-version }}
+
+      - name: Cache ansible setup
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-ansible
+        with:
+          path: |
+             ~/work/ansible-pfsense/ansible-pfsense/ansible
+          key: build-${{ env.cache-name }}-ansible-${{ matrix.ansible-version }}
+
+      # Runs a set of commands using the runners shell
+      - name: Install ansible and deps
+        run: |
+          pip install -U pip 
+          pip install -U pytest 
+          pip install 'urllib3<1.27,>=1.25.4'
+          pip install jinja2 MarkupSafe parameterized pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
+          [ ! -d ansible ] && git clone --branch stable-${{ matrix.ansible-version }} --single-branch https://github.com/ansible/ansible.git || :
+
+      - name: Run ansible tests
+        run: |
+          . ansible/hacking/env-setup
+          ./misc/local2ansible
+          cd ansible
+          ansible-test sanity --requirements --python ${{ matrix.python-version }} pfsense_.*
+          ansible-test units --requirements --python ${{ matrix.python-version }} pfsense_.*
