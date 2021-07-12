@@ -1,0 +1,16 @@
+---
+- hosts: all
+  vars:
+    method: "internal"
+    name: "test"
+    ca: "internal-ca"
+    keytype: "RSA"
+    keylen: 2048
+    lifetime: 3650
+    dn_country: "PT"
+    dn_organization: "Dummy"
+    certtype: "user"
+  roles:
+    - pfsense_newcert
+
+
