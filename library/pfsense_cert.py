@@ -102,14 +102,36 @@ options:
 """
 
 EXAMPLES = """
-- name: New certificate
+- name: Generate new internal certificate
   pfsense_cert:
-    name: newcert
-    ca: internal-ca
+    method: "internal"
+    name: "test"
+    ca: "internal-ca"
+    keytype: "RSA"
+    keylen: 2048
+    lifetime: 3650
+    dn_country: "PT"
+    dn_organization: "Dummy"
+    certtype: "user"
+    state: present
+
+- name: Import certificate
+  pfsense_cert:
+    method: "import"
+    name: "test"
+    certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUUxVENDQXIyZ0F3...
+    key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4yY0SI8lWNN2B
+      ...
+      i0LiJ+QOek6Qy+51kMK3rXNsQQ==
+      -----END PRIVATE KEY-----
+    certtype: "user"
+    state: present
 
 - name: Remove certificate
   pfsense_cert:
-    name: newcert
+    name: "test"
     state: absent
 """
 
