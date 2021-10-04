@@ -76,7 +76,7 @@ class TestPFSenseSetupModule(TestPFSenseModule):
         check_param('hostname', setup_elt)
         check_param('domain', setup_elt)
         check_bool_param('dnsallowoverride', setup_elt)
-        check_bool_param('dnslocalhost', setup_elt)
+        check_param('dnslocalhost', setup_elt)
         check_param('timezone', setup_elt)
         check_param('timeservers', setup_elt)
         check_param('language', setup_elt)
@@ -148,8 +148,8 @@ class TestPFSenseSetupModule(TestPFSenseModule):
 
     def test_setup_webguifixedmenu(self):
         """ test setup webguifixedmenu """
-        setup = dict(webguifixedmenu=True)
-        command = "update setup general set webguifixedmenu=True"
+        setup = dict(webguifixedmenu=False)
+        command = "update setup general set webguifixedmenu=False"
         self.do_module_test(setup, command=command, state=None)
 
     def test_setup_interfacessort(self):
