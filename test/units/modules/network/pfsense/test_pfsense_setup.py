@@ -84,7 +84,7 @@ class TestPFSenseSetupModule(TestPFSenseModule):
         if setup.get('webguicss') is not None:
             self.assert_xml_elt_equal(webgui_elt, 'webguicss', setup['webguicss'] + '.css')
 
-        check_bool_param('webguifixedmenu', webgui_elt)
+        check_param('webguifixedmenu', webgui_elt)
         check_param('webguihostnamemenu', webgui_elt)
         check_param('dashboardcolumns', webgui_elt)
         check_bool_param('interfacessort', webgui_elt)
@@ -142,14 +142,14 @@ class TestPFSenseSetupModule(TestPFSenseModule):
 
     def test_setup_dnslocalhost(self):
         """ test setup dnslocalhost """
-        setup = dict(dnslocalhost=True)
-        command = "update setup general set dnslocalhost=True"
+        setup = dict(dnslocalhost='remote')
+        command = "update setup general set dnslocalhost='remote'"
         self.do_module_test(setup, command=command, state=None)
 
     def test_setup_webguifixedmenu(self):
         """ test setup webguifixedmenu """
-        setup = dict(webguifixedmenu=False)
-        command = "update setup general set webguifixedmenu=False"
+        setup = dict(webguifixedmenu='fixed')
+        command = "update setup general set webguifixedmenu='fixed'"
         self.do_module_test(setup, command=command, state=None)
 
     def test_setup_interfacessort(self):
