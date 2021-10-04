@@ -48,7 +48,7 @@ options:
     type: bool
   dnslocalhost:
     required: false
-    description: > 
+    description: >
         Do not use the DNS Forwarder/DNS Resolver as a DNS server for the firewall.
         "" Use local DNS, fall back to remote DNS server
         "local" Use local DNS, ignore remote DNS server
@@ -56,7 +56,7 @@ options:
         true/yes will be mapped to "remote"
         false/no will be mapped to ""
     type: str
-    choices: ["", "local", "remote"]
+    choices: ["", "local", "remote", "True", "False"]
     default: ""
   timezone:
     description: Select a geographic region name (Continent/Location) to determine the timezone for the firewall.
@@ -146,6 +146,19 @@ options:
     description: Show hostname on login banner
     required: false
     type: bool
+  protocol:
+    description: Protocol for webconfigurator
+    choices: ['http', 'https']
+    required: false
+    type: str
+  sslcertref:
+    description: >
+        refid from installed server certificate
+        Can be obtained after loading certificate with pfsense_cert.
+        Register a variable to capture the output ie. webcert
+        Then use webcert.diff.after.refid to place this value in the general setup
+    required: false
+    type: str
 """
 
 EXAMPLES = """
@@ -201,9 +214,9 @@ SETUP_ARGUMENT_SPEC = dict(
         type='str',
         choices=['bs', 'de_DE', 'en_US', 'es', 'es_AR', 'fr', 'ko', 'nb', 'nl', 'pl', 'pt_PT', 'pt_BR', 'ru', 'zh_CN', 'zh_Hans_CN', 'zh_HK', 'zh_TW']
     ),
-    session_timeout=dict(required=False, type='int'),
-    authmode=dict(required=False, type='str'),
-    protocol=dict(required=False, type='str', choice=['http', 'https']),
+    session_timeout=dict(required=False, type='int', default=240),
+    authmode=dict(required=False, type='str', default='Local Database'),
+    protocol=dict(required=False, type='str', choices=['http', 'https']),
     sslcertref=dict(required=False, type='str'),
     shellauth=dict(required=False, type='bool'),
     webguicss=dict(required=False, type='str'),
@@ -445,21 +458,21 @@ class PFSenseSetupModule(PFSenseModuleBase):
         if params.get('timeservers') is not None:
             for timeserver in params['timeservers'].split(' '):
                 self._validate_hostname(timeserver, 'timeserver')
-        
+
         if params.get('authmode') is not None:
             value = params.get('authmode')
             if value != 'Local Database':
                 authserver_elt = self.pfsense.find_elt('authserver', value, search_field='name', root_elt=self.root_elt)
                 if authserver_elt is None:
                     self.module.fail_json(msg="Given authserver '{0}' could not be found.".format(value))
-                
+
                 if self.pfsense.is_at_least_2_5_0():
                     if params.get('shellauth') is not None and params.get('shellauth') is True:
                         if authserver_elt.find('type').text == 'ldap':
                             # check if ldap_pam_groupdn is set
                             if authserver_elt.find('ldap_pam_groupdn') is None or \
-                            authserver_elt.find('ldap_pam_groupdn').text is None or \
-                            authserver_elt.find('ldap_pam_groupdn').text is '':
+                                    authserver_elt.find('ldap_pam_groupdn').text is None or \
+                                    authserver_elt.find('ldap_pam_groupdn').text == '':
                                 self.module.fail_json(msg="ldap_pam_groupdn not set for authserver '{0}'.".format(value))
 
         # DNS
