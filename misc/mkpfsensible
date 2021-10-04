@@ -11,6 +11,7 @@ cp -a ansible-pfsense/lookup_plugins pfsensible/core/plugins/lookup
 cp -a ansible-pfsense/module_utils/network/pfsense pfsensible/core/plugins/module_utils
 cp -a ansible-pfsense/test/units/modules/network/pfsense/* pfsensible/core/tests/units/modules/
 cp -a ansible-pfsense/library/*.py pfsensible/core/plugins/modules/
+cp -a ansible-pfsense/galaxy.yml pfsensible/core/
 
 # for path in ansible-pfsense/library/*.py
 # do
