@@ -67,5 +67,5 @@ jobs:
           . ansible/hacking/env-setup
           ./misc/local2ansible
           cd ansible
-          ansible-test sanity --requirements --python ${{ matrix.python-version }} pfsense_.*
-          ansible-test units --requirements --python ${{ matrix.python-version }} pfsense_.*
+          ansible-test sanity --requirements --python ${{ matrix.python-version }} "pfsense_.*"
+          ansible-test units --requirements --python ${{ matrix.python-version }} "pfsense_.*"
