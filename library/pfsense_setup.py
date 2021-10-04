@@ -203,6 +203,8 @@ SETUP_ARGUMENT_SPEC = dict(
     ),
     session_timeout=dict(required=False, type='int'),
     authmode=dict(required=False, type='str'),
+    protocol=dict(required=False, type='str', choice=['http', 'https']),
+    sslcertref=dict(required=False, type='str'),
     shellauth=dict(required=False, type='bool'),
     webguicss=dict(required=False, type='str'),
     webguifixedmenu=dict(required=False, type='bool'),
@@ -314,7 +316,9 @@ class PFSenseSetupModule(PFSenseModuleBase):
 
         def _set_param(target, param, strip=False):
             if params.get(param) is not None:
-                if param == 'dnslocalhost':
+                if param == 'sslcertref' and isinstance(params[param], str):
+                    target['ssl-certref'] = params[param]
+                elif param == 'dnslocalhost':
                     if str(params.get(param)).lower() in ['', 'false']:
                         if self.pfsense.is_at_least_2_5_0():
                             target[param] = ''
@@ -365,6 +369,8 @@ class PFSenseSetupModule(PFSenseModuleBase):
         _set_param_bool(webgui, 'statusmonitoringsettingspanel')
         _set_param(webgui, 'session_timeout')
         _set_param(webgui, 'authmode')
+        _set_param(webgui, 'protocol')
+        _set_param(webgui, 'sslcertref')
         if self.pfsense.is_at_least_2_5_0():
             _set_param_bool(webgui, 'shellauth')
 
@@ -509,6 +515,9 @@ class PFSenseSetupModule(PFSenseModuleBase):
         themes = map(lambda x: x.replace('.css', ''), themes)
         if webguicss not in themes:
             self.module.fail_json(msg='The submitted Theme could not be found. Pick a different theme.')
+
+    def _validate_protocol(self, webguicss):
+        pass
 
     ##############################
     # XML processing
