@@ -17,9 +17,9 @@ DOCUMENTATION = """
 module: pfsense_rule
 version_added: "2.10"
 author: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
-short_description: Manage pfSense rules
+short_description: Manage pfSense firewall rules
 description:
-  - Manage pfSense rules
+  - Manage pfSense firewall rules
 notes:
 options:
   name:

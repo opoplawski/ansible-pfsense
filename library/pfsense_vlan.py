@@ -17,17 +17,17 @@ DOCUMENTATION = """
 module: pfsense_vlan
 version_added: "2.10"
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense vlans
+short_description: Manage pfSense VLANs
 description:
-  - Manage pfSense vlans
+  - Manage pfSense VLANs
 notes:
 options:
   vlan_id:
-    description: The vlan tag. Must be between 1 and 4094.
+    description: The VLAN tag. Must be between 1 and 4094.
     required: true
     type: int
   interface:
-    description: The interface on which to declare the vlan. Friendly name (assignments) can be used.
+    description: The interface on which to declare the VLAN. Friendly name (assignments) can be used.
     required: true
     type: str
   priority:
@@ -35,18 +35,18 @@ options:
     required: false
     type: int
   descr:
-    description: The description of the vlan
+    description: The description of the VLAN
     default: null
     type: str
   state:
-    description: State in which to leave the vlan
+    description: State in which to leave the VLAN
     choices: [ "present", "absent" ]
     default: present
     type: str
 """
 
 EXAMPLES = """
-- name: Add voice vlan
+- name: Add voice VLAN
   pfsense_vlan:
     interface: mvneta0
     vlan_id: 100
@@ -54,7 +54,7 @@ EXAMPLES = """
     priority: 5
     state: present
 
-- name: Remove voice vlan
+- name: Remove voice VLAN
   pfsense_vlan:
     interface: mvneta0
     vlan_id: 100
