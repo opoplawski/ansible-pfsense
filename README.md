@@ -57,36 +57,36 @@ and then configure sudo so that your user has permission to use sudo.
 ## Modules
 The following modules are currently available:
 
-* [pfsensible.core.pfsense_alias](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_alias) for aliases
-* [pfsensible.core.pfsense_authserver_ldap](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_authserver_ldap) for LDAP authentication servers
-* [pfsensible.core.pfsense_ca](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ca) for Certificate Authorities
-* [pfsensible.core.pfsense_gateway](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_gateway) for routing gateways
-* [pfsensible.core.pfsense_group](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_group) for user groups
-* [pfsensible.core.pfsense_interface](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_interface) for interfaces
-* [pfsensible.core.pfsense_ipsec](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec) for IPsec tunnels and phase 1 options
-* [pfsensible.core.pfsense_ipsec_proposal](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec_proposal) for IPsec proposals
-* [pfsensible.core.pfsense_ipsec_p2](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec_p2) for IPsec tunnels phase 2 options
-* [pfsensible.core.pfsense_log_settings](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_log_settings) for logging settings
-* [pfsensible.core.pfsense_nat_outbound](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_nat_outbound) for outbound NAT (SNAT) rules
-* [pfsensible.core.pfsense_nat_port_forward](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_nat_port_forward) for port forwarding NAT (DNAT) rules
-* [pfsensible.core.pfsense_route](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_route) for routes
-* [pfsensible.core.pfsense_rule](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_rule) for firewall rules
-* [pfsensible.core.pfsense_rule_separator](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_rule_separator) for firewall rule separators
-* [pfsensible.core.pfsense_setup](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_setup) for general setup
-* [pfsensible.core.pfsense_user](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_user) for users
-* [pfsensible.core.pfsense_vlan](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_vlan) for VLANs
+* [pfsense_alias](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_alias) for aliases
+* [pfsense_authserver_ldap](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_authserver_ldap) for LDAP authentication servers
+* [pfsense_ca](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ca) for Certificate Authorities
+* [pfsense_gateway](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_gateway) for routing gateways
+* [pfsense_group](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_group) for user groups
+* [pfsense_interface](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_interface) for interfaces
+* [pfsense_ipsec](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec) for IPsec tunnels and phase 1 options
+* [pfsense_ipsec_proposal](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_proposal) for IPsec proposals
+* [pfsense_ipsec_p2](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_p2) for IPsec tunnels phase 2 options
+* [pfsense_log_settings](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_log_settings) for logging settings
+* [pfsense_nat_outbound](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_nat_outbound) for outbound NAT (SNAT) rules
+* [pfsense_nat_port_forward](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_nat_port_forward) for port forwarding NAT (DNAT) rules
+* [pfsense_route](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_route) for routes
+* [pfsense_rule](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule) for firewall rules
+* [pfsense_rule_separator](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_rule_separator) for firewall rule separators
+* [pfsense_setup](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_setup) for general setup
+* [pfsense_user](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_user) for users
+* [pfsense_vlan](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_vlan) for VLANs
 
 ## Bulk modules
 These modules allow you to make important changes at once and, using the purge parameters, to keep the targets configuration strictly synchronized with your playbooks:
 
-* [pfsensible.core.pfsense_aggregate](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_aggregate) for firewalll aliases, rules, and rule separators, plus interfaces and VLANs
-* [pfsensible.core.pfsense_ipsec_aggregate](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_ipsec_aggregate) for IPsec tunnels, phases 1, phases 2 and proposals
+* [pfsense_aggregate](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_aggregate) for firewall aliases, rules, and rule separators, plus interfaces and VLANs
+* [pfsense_ipsec_aggregate](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_ipsec_aggregate) for IPsec tunnels, phases 1, phases 2 and proposals
 
 ## Third party modules
 These modules allow you to manage installed packages:
 
-* [pfsensible.core.pfsense_haproxy_backend](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_haproxy_backend) for HAProxy backends
-* [pfsensible.core.pfsense_haproxy_backend_server](https://github.com/pfsensible/core/wiki/pfsensible.core.pfsense_haproxy_backend_server) for HAProxy backends servers
+* [pfsense_haproxy_backend](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_haproxy_backend) for HAProxy backends
+* [pfsense_haproxy_backend_server](https://github.com/opoplawski/ansible-pfsense/wiki/pfsense_haproxy_backend_server) for HAProxy backends servers
 
 ## Operation
 

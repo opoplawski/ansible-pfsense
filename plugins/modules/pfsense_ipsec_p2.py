@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_ipsec_p2
 version_added: 0.1.0
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense ipsec tunnels phase 2 options
+short_description: Manage pfSense IPsec tunnels phase 2 options
 description:
-  - Manage pfSense ipsec tunnels phase 2 options
+  - Manage pfSense IPsec tunnels phase 2 options
 notes:
 options:
   disabled:
@@ -27,7 +27,7 @@ options:
     type: bool
     default: false
   mode:
-    description: Method for managing ipsec traffic
+    description: Method for managing IPsec traffic
     required: False
     choices: [ 'tunnel', 'tunnel6', 'transport', 'vti' ]
     type: str
@@ -139,15 +139,15 @@ options:
     required: False
     type: str
   descr:
-    description: The description of the ipsec tunnel phase2
+    description: The description of the IPsec tunnel phase2
     required: true
     type: str
   p1_descr:
-    description: The description of the ipsec tunnel
+    description: The description of the IPsec tunnel
     required: true
     type: str
   state:
-    description: State in which to leave the ipsec tunnel phase2
+    description: State in which to leave the IPsec tunnel phase2
     choices: [ "present", "absent" ]
     default: present
     type: str

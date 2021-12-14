@@ -16,7 +16,7 @@ DOCUMENTATION = """
 module: pfsense_nat_outbound
 version_added: 0.1.0
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense Outbound NAT Entries
+short_description: Manage pfSense Outbound NAT (SNAT) rules
 description:
   - Manage pfSense Outbound NAT Entries
 notes:
