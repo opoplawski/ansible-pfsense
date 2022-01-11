@@ -2070,6 +2070,14 @@
 		<gateway_item>
 			<interface>wan</interface>
 			<gateway>192.168.1.220</gateway>
+			<name>GW_BROKE</name>
+			<weight>1</weight>
+			<interval></interval>
+			<descr>Broken Gateway</descr>
+		</gateway_item>
+		<gateway_item>
+			<interface>wan</interface>
+			<gateway>192.168.1.220</gateway>
 			<name>GW_WAN</name>
 			<weight>1</weight>
 			<ipprotocol>inet</ipprotocol>
