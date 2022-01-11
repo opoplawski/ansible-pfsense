@@ -20,6 +20,14 @@ import xml.etree.ElementTree as ET
 from tempfile import mkstemp
 
 
+def xml_find(node, elt):
+    res = node.find(elt)
+    if res is None:
+        res = ET.Element('')
+        res.text = ''
+    return res
+
+
 class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
@@ -329,8 +337,8 @@ class PFSenseModule(object):
         # Otherwise search for added CAs
         cas = self.get_elements('ca')
         for elt in cas:
-            if elt.find('descr').text == name:
-                return elt.find('refid').text
+            if xml_find(elt, 'descr').text == name:
+                return xml_find(elt, 'refid').text
         return None
 
     @staticmethod
@@ -348,7 +356,7 @@ class PFSenseModule(object):
     def find_alias(self, name, aliastype=None):
         """ return alias named name, having type aliastype if specified """
         for alias in self.aliases:
-            if alias.find('name').text == name and (aliastype is None or alias.find('type').text == aliastype):
+            if xml_find(alias, 'name').text == name and (aliastype is None or xml_find(alias, 'type').text == aliastype):
                 return alias
         return None
 
@@ -405,7 +413,7 @@ class PFSenseModule(object):
         if uniqid_elt is None:
             return None
 
-        return "_vip" + vip_elt.find('uniqid').text
+        return "_vip" + xml_find(vip_elt, 'uniqid').text
 
     def find_queue(self, name, interface=None, enabled=False):
         """ return QOS queue if found """
@@ -463,7 +471,7 @@ class PFSenseModule(object):
 
         if self.vlans is not None:
             for vlan in self.vlans:
-                if vlan.find('if').text == interface and vlan.find('tag').text == tag:
+                if xml_find(vlan, 'if').text == interface and xml_find(vlan, 'tag').text == tag:
                     return vlan
 
         return None
@@ -484,13 +492,13 @@ class PFSenseModule(object):
             if gw_elt.tag != 'gateway_item':
                 continue
 
-            if protocol is not None and gw_elt.find('ipprotocol').text != protocol:
+            if protocol is not None and xml_find(gw_elt, 'ipprotocol').text != protocol:
                 continue
 
-            if interface is not None and gw_elt.find('interface').text != interface:
+            if interface is not None and xml_find(gw_elt, 'interface').text != interface:
                 continue
 
-            if gw_elt.find('name').text == name:
+            if xml_find(gw_elt, 'name').text == name:
                 return gw_elt
 
         for interface_elt in self.interfaces:
@@ -527,7 +535,7 @@ class PFSenseModule(object):
         for gw_grp_elt in self.gateways:
             if gw_grp_elt.tag != 'gateway_group':
                 continue
-            if gw_grp_elt.find('name').text != name:
+            if xml_find(gw_grp_elt, 'name').text != name:
                 continue
 
             # check if protocol match
@@ -590,14 +598,14 @@ class PFSenseModule(object):
     def write_config(self, descr='Updated by ansible pfsense module'):
         """ Generate config file """
         revision = self.get_element('revision')
-        revision.find('time').text = '%d' % time.time()
+        xml_find(revision, 'time').text = '%d' % time.time()
         revdescr = revision.find('description')
         if revdescr is None:
             revdescr = ET.Element('description')
             revision.append(revdescr)
         revdescr.text = descr
         username = self.get_username()
-        revision.find('username').text = username
+        xml_find(revision, 'username').text = username
         (tmp_handle, tmp_name) = mkstemp()
         os.close(tmp_handle)
         if sys.version_info >= (3, 4):
