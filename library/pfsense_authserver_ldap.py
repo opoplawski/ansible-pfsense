@@ -115,7 +115,7 @@ options:
   ldap_pam_groupdn:
     description: Shell Authentication Group DN (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
     type: str
-  ldap_allow_unathenticated:
+  ldap_allow_unauthenticated:
     description: Allow unauthenticated bind (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
     default: false
     type: bool
