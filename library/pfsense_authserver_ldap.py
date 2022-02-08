@@ -216,6 +216,8 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
                 obj['ldap_pam_groupdn'] = params['ldap_pam_groupdn']
                 if params['ldap_rfc2307_userdn']:
                     obj['ldap_rfc2307_userdn'] = ''
+                if params['ldap_allow_unauthenticated']:
+                    obj['ldap_allow_unauthenticated'] = ''
 
             # Find the caref id for the named CA
             obj['ldap_caref'] = self.pfsense.get_caref(params['ca'])
@@ -320,6 +322,7 @@ def main():
             'ldap_nostrip_at': {'required': False, 'type': 'bool'},
             'ldap_rfc2307': {'required': False, 'type': 'bool'},
             'ldap_rfc2307_userdn': {'required': False, 'type': 'bool'},
+            'ldap_allow_unauthenticated': {'required': False, 'type': 'bool'},
         },
         required_if=[
             ["state", "present", ["host", "port", "transport", "scope", "authcn"]],
