@@ -453,7 +453,7 @@ class PFSenseSetupModule(PFSenseModuleBase):
                             # check if ldap_pam_groupdn is set
                             if authserver_elt.find('ldap_pam_groupdn') is None or \
                                authserver_elt.find('ldap_pam_groupdn').text is None or \
-                               authserver_elt.find('ldap_pam_groupdn').text is '':
+                               authserver_elt.find('ldap_pam_groupdn').text == '':
                                 self.module.fail_json(msg="ldap_pam_groupdn not set for authserver '{0}'.".format(value))
 
         # DNS
