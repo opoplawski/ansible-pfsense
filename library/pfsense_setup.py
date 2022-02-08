@@ -56,7 +56,7 @@ options:
         true/yes will be mapped to "remote"
         false/no will be mapped to ""
     type: str
-    choices: ["", "local", "remote"]
+    choices: ["", "local", "remote", True, False]
     default: ""
   timezone:
     description: Select a geographic region name (Continent/Location) to determine the timezone for the firewall.
@@ -201,8 +201,8 @@ SETUP_ARGUMENT_SPEC = dict(
         type='str',
         choices=['bs', 'de_DE', 'en_US', 'es', 'es_AR', 'fr', 'ko', 'nb', 'nl', 'pl', 'pt_PT', 'pt_BR', 'ru', 'zh_CN', 'zh_Hans_CN', 'zh_HK', 'zh_TW']
     ),
-    session_timeout=dict(required=False, type='int'),
-    authmode=dict(required=False, type='str'),
+    session_timeout=dict(required=False, type='int', default=240),
+    authmode=dict(required=False, type='str', default='Local Database'),
     shellauth=dict(required=False, type='bool'),
     webguicss=dict(required=False, type='str'),
     webguifixedmenu=dict(required=False, type='bool'),
