@@ -47,17 +47,9 @@ options:
     required: false
     type: bool
   dnslocalhost:
+    description: Do not use the DNS Forwarder/DNS Resolver as a DNS server for the firewall
     required: false
-    description: > 
-        Do not use the DNS Forwarder/DNS Resolver as a DNS server for the firewall.
-        "" Use local DNS, fall back to remote DNS server
-        "local" Use local DNS, ignore remote DNS server
-        "remote" Use remote DNS server, ignore local DNS
-        true/yes will be mapped to "remote"
-        false/no will be mapped to ""
-    type: str
-    choices: ["", "local", "remote"]
-    default: ""
+    type: bool
   timezone:
     description: Select a geographic region name (Continent/Location) to determine the timezone for the firewall.
     required: false
@@ -84,20 +76,6 @@ options:
     required: false
     choices: ['nohost', 'hostonly', 'fqdn']
     type: str
-  session_timeout:
-    description: Time in minutes to expire idle management sessions (0 means no expiration)
-    required: false
-    default: 240
-    type: int
-  authmode:
-    description: Authentication Server ('Local Database' means local), use name of configured ldap or radius server
-    required: false
-    default: 'Local Database'
-    type: str
-  shellauth:
-    description: Use Authentication Server for Shell Authentication (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
-    default: false
-    type: bool
   dashboardcolumns:
     description: Dashboard columns
     required: false
@@ -187,13 +165,7 @@ SETUP_ARGUMENT_SPEC = dict(
     dns_hostnames=dict(required=False, type='str'),
     dns_gateways=dict(required=False, type='str'),
     dnsallowoverride=dict(required=False, type='bool'),
-    dnslocalhost=dict(required=False, type='str', choices=[
-        '',
-        'local',
-        'remote',
-        True,
-        False,
-    ]),
+    dnslocalhost=dict(required=False, type='bool'),
     timezone=dict(required=False, type='str'),
     timeservers=dict(required=False, type='str'),
     language=dict(
@@ -201,9 +173,6 @@ SETUP_ARGUMENT_SPEC = dict(
         type='str',
         choices=['bs', 'de_DE', 'en_US', 'es', 'es_AR', 'fr', 'ko', 'nb', 'nl', 'pl', 'pt_PT', 'pt_BR', 'ru', 'zh_CN', 'zh_Hans_CN', 'zh_HK', 'zh_TW']
     ),
-    session_timeout=dict(required=False, type='int'),
-    authmode=dict(required=False, type='str'),
-    shellauth=dict(required=False, type='bool'),
     webguicss=dict(required=False, type='str'),
     webguifixedmenu=dict(required=False, type='bool'),
     webguihostnamemenu=dict(required=False, type='str', choices=['nohost', 'hostonly', 'fqdn']),
@@ -314,40 +283,19 @@ class PFSenseSetupModule(PFSenseModuleBase):
 
         def _set_param(target, param, strip=False):
             if params.get(param) is not None:
-                if param == 'dnslocalhost':
-                    if str(params.get(param)).lower() in ['', 'false']:
-                        if self.pfsense.is_at_least_2_5_0():
-                            target[param] = ''
-                        else:
-                            del target[param]
-                    elif str(params.get(param)).lower() in ['remote', 'true']:
-                        if self.pfsense.is_at_least_2_5_0():
-                            target[param] = 'remote'
-                        else:
-                            target[param] = ''
-                    elif params.get(param).lower() == 'local':
-                        target[param] = 'local'
-
+                if strip:
+                    target[param] = ' '.join(params[param].split())
+                elif isinstance(params[param], str):
+                    target[param] = params[param]
                 else:
-                    if strip:
-                        target[param] = ' '.join(params[param].split())
-                    elif isinstance(params[param], str):
-                        target[param] = params[param]
-                    else:
-                        target[param] = str(params[param])
+                    target[param] = str(params[param])
 
         def _set_param_bool(target, param):
             if params.get(param) is not None:
-                if param == 'webguifixedmenu':
-                    if params[param] and (param not in target or target[param] != 'fixed'):
-                        target[param] = 'fixed'
-                    elif not params[param] and param in target:
-                        del target[param]
-                else:
-                    if params[param] and param not in target:
-                        target[param] = ''
-                    elif not params[param] and param in target:
-                        del target[param]
+                if params[param] and param not in target:
+                    target[param] = ''
+                elif not params[param] and param in target:
+                    del target[param]
 
         _set_param(obj, 'hostname')
         _set_param(obj, 'domain')
@@ -363,10 +311,6 @@ class PFSenseSetupModule(PFSenseModuleBase):
         _set_param_bool(webgui, 'systemlogsfilterpanel')
         _set_param_bool(webgui, 'systemlogsmanagelogpanel')
         _set_param_bool(webgui, 'statusmonitoringsettingspanel')
-        _set_param(webgui, 'session_timeout')
-        _set_param(webgui, 'authmode')
-        if self.pfsense.is_at_least_2_5_0():
-            _set_param_bool(webgui, 'shellauth')
 
         if params.get('webguicss') is not None:
             webgui['webguicss'] = params['webguicss'] + '.css'
@@ -381,7 +325,7 @@ class PFSenseSetupModule(PFSenseModuleBase):
         _set_param_bool(webgui, 'requirestatefilter')
 
         _set_param_bool(obj, 'dnsallowoverride')
-        _set_param(obj, 'dnslocalhost')
+        _set_param_bool(obj, 'dnslocalhost')
 
         self._dns_params_to_obj(params, obj)
 
@@ -415,12 +359,6 @@ class PFSenseSetupModule(PFSenseModuleBase):
         if params.get('hostname') is not None:
             self._validate_hostname(params['hostname'], 'hostname', True)
 
-        if params.get('dnslocalhost') is not None:
-            if not self.pfsense.is_at_least_2_5_0():
-                value = params.get('dnslocalhost')
-                if not (isinstance(value, bool) or str(value).lower() == '' or str(value).lower() == 'remote'):
-                    self.module.fail_json(msg="unsupported value '{0}' for parameter '{1}'".format(params.get('dnslocalhost'), 'dnslocalhost'))
-
         if params.get('logincss') is not None:
             error = False
             try:
@@ -439,22 +377,6 @@ class PFSenseSetupModule(PFSenseModuleBase):
         if params.get('timeservers') is not None:
             for timeserver in params['timeservers'].split(' '):
                 self._validate_hostname(timeserver, 'timeserver')
-        
-        if params.get('authmode') is not None:
-            value = params.get('authmode')
-            if value != 'Local Database':
-                authserver_elt = self.pfsense.find_elt('authserver', value, search_field='name', root_elt=self.root_elt)
-                if authserver_elt is None:
-                    self.module.fail_json(msg="Given authserver '{0}' could not be found.".format(value))
-                
-                if self.pfsense.is_at_least_2_5_0():
-                    if params.get('shellauth') is not None and params.get('shellauth') is True:
-                        if authserver_elt.find('type').text == 'ldap':
-                            # check if ldap_pam_groupdn is set
-                            if authserver_elt.find('ldap_pam_groupdn') is None or \
-                            authserver_elt.find('ldap_pam_groupdn').text is None or \
-                            authserver_elt.find('ldap_pam_groupdn').text is '':
-                                self.module.fail_json(msg="ldap_pam_groupdn not set for authserver '{0}'.".format(value))
 
         # DNS
         ip_types = []
@@ -516,9 +438,7 @@ class PFSenseSetupModule(PFSenseModuleBase):
     def _remove_deleted_params(self):
         """ Remove from target_elt a few deleted params """
         changed = False
-        params = ['dnsallowoverride']
-        if not self.pfsense.is_at_least_2_5_0():
-            params += ['dnslocalhost']
+        params = ['dnsallowoverride', 'dnslocalhost']
         params += self.params_to_delete
         for param in params:
             if self.pfsense.remove_deleted_param_from_elt(self.target_elt, param, self.obj):
@@ -555,7 +475,6 @@ class PFSenseSetupModule(PFSenseModuleBase):
             self.module.run_command(cmd)
 
         cmd = '''
-require_once("auth.inc");
 require_once("filter.inc");
 $retval = 0;
 $retval |= system_hostname_configure();
@@ -573,9 +492,6 @@ $retval |= system_ntp_configure();'''
             if (self.params['dnsallowoverride'] and 'dnsallowoverride' not in self.before or
                     not self.params['dnsallowoverride'] and 'dnsallowoverride' in self.before):
                 cmd += '$retval |= send_event("service reload dns");\n'
-
-        if self.params.get('shellauth') is not None:
-            cmd += '$retval |= set_pam_auth();'
 
         cmd += '$retval |= filter_configure();\n'
 
@@ -610,10 +526,7 @@ $retval |= system_ntp_configure();'''
         values += self.format_updated_cli_field(self.obj, self.before, 'language', add_comma=(values), log_none=False)
 
         values += self.format_updated_cli_field(self.obj, self.before, 'dnsallowoverride', fvalue=self.fvalue_bool, add_comma=(values), log_none=False)
-        if self.pfsense.is_at_least_2_5_0:
-            values += self.format_updated_cli_field(self.obj, self.before, 'dnslocalhost', add_comma=(values), log_none=False)
-        else:
-            values += self.format_updated_cli_field(self.obj, self.before, 'dnslocalhost', fvalue=self.fvalue_bool, add_comma=(values), log_none=False)
+        values += self.format_updated_cli_field(self.obj, self.before, 'dnslocalhost', fvalue=self.fvalue_bool, add_comma=(values), log_none=False)
 
         values += self.format_updated_cli_field(obj_after, obj_before, 'webguicss', add_comma=(values), log_none=False)
         values += self.format_updated_cli_field(webgui, bwebgui, 'webguifixedmenu', fvalue=self.fvalue_bool, add_comma=(values), log_none=False)
