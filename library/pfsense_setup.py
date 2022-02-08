@@ -48,7 +48,7 @@ options:
     type: bool
   dnslocalhost:
     required: false
-    description: > 
+    description: >
         Do not use the DNS Forwarder/DNS Resolver as a DNS server for the firewall.
         "" Use local DNS, fall back to remote DNS server
         "local" Use local DNS, ignore remote DNS server
@@ -439,22 +439,22 @@ class PFSenseSetupModule(PFSenseModuleBase):
         if params.get('timeservers') is not None:
             for timeserver in params['timeservers'].split(' '):
                 self._validate_hostname(timeserver, 'timeserver')
-        
+
         if params.get('authmode') is not None:
             value = params.get('authmode')
             if value != 'Local Database':
                 authserver_elt = self.pfsense.find_elt('authserver', value, search_field='name', root_elt=self.root_elt)
                 if authserver_elt is None:
                     self.module.fail_json(msg="Given authserver '{0}' could not be found.".format(value))
-                
+
                 if self.pfsense.is_at_least_2_5_0():
                     if params.get('shellauth') is not None and params.get('shellauth') is True:
                         if authserver_elt.find('type').text == 'ldap':
                             # check if ldap_pam_groupdn is set
                             if authserver_elt.find('ldap_pam_groupdn') is None or \
-                            authserver_elt.find('ldap_pam_groupdn').text is None or \
-                            authserver_elt.find('ldap_pam_groupdn').text is '':
-                                self.module.fail_json(msg="ldap_pam_groupdn not set for authserver '{0}'.".format(value))
+                                authserver_elt.find('ldap_pam_groupdn').text is None or \
+                                authserver_elt.find('ldap_pam_groupdn').text is '':
+                                    self.module.fail_json(msg="ldap_pam_groupdn not set for authserver '{0}'.".format(value))
 
         # DNS
         ip_types = []
