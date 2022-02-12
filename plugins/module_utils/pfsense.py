@@ -31,7 +31,7 @@ def xml_find(node, elt):
 class PFSenseModule(object):
     """ class managing pfsense base configuration """
 
-    # pylint: disable=bad-option-value, import-outside-toplevel
+    # pylint: disable=import-outside-toplevel
     from ansible_collections.pfsensible.core.plugins.module_utils.__impl.interfaces import (
         get_interface_display_name,
         get_interface_elt,
