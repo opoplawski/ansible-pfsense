@@ -59,13 +59,15 @@ jobs:
           pip install -U pip 
           pip install -U pytest 
           pip install 'urllib3<1.27,>=1.25.4'
-          pip install jinja2 MarkupSafe parameterized pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
-          [ ! -d ansible ] && git clone --branch stable-${{ matrix.ansible-version }} --single-branch https://github.com/ansible/ansible.git || :
+          pip install ansible-base dnspython jinja2 MarkupSafe parameterized pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
 
       - name: Run ansible tests
         run: |
-          . ansible/hacking/env-setup
-          ./misc/local2ansible
-          cd ansible
-          ansible-test sanity --requirements --python ${{ matrix.python-version }} pfsense_.*
-          ansible-test units --requirements --python ${{ matrix.python-version }} pfsense_.*
+          pwd
+          dir=$(pwd)
+          mkdir -p ~/.ansible/collections/ansible_collections/pfsensible
+          cd ~/.ansible/collections/ansible_collections/pfsensible
+          mv $dir core
+          cd core
+          ansible-test sanity --requirements --python ${{ matrix.python-version }}
+          ansible-test units --requirements --python ${{ matrix.python-version }}
