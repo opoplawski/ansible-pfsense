@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_ipsec
 version_added: 0.1.0
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense ipsec tunnels and phase 1 options
+short_description: Manage pfSense IPsec tunnels and phase 1 options
 description:
-  - Manage pfSense ipsec tunnels and phase 1 options
+  - Manage pfSense IPsec tunnels and phase 1 options
 notes:
 options:
   iketype:
@@ -150,12 +150,12 @@ options:
     default: 5
     type: int
   descr:
-    description: The description of the ipsec tunnel
+    description: The description of the IPsec tunnel
     required: true
     default: null
     type: str
   state:
-    description: State in which to leave the ipsec tunnel
+    description: State in which to leave the IPsec tunnel
     choices: [ "present", "absent" ]
     default: present
     type: str

@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_haproxy_backend
 version_added: 0.1.0
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense haproxy backends
+short_description: Manage pfSense HAProxy backends
 description:
-  - Manage pfSense haproxy backends
+  - Manage pfSense HAProxy backends
 notes:
 options:
   name:

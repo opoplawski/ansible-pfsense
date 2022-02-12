@@ -59,7 +59,7 @@ options:
     required: false
     type: str
   language:
-    description: Time servers, separated by space
+    description: Language for the webConfigurator.
     required: false
     type: str
     choices: ['bs', 'de_DE', 'en_US', 'es', 'es_AR', 'fr', 'ko', 'nb', 'nl', 'pl', 'pt_PT', 'pt_BR', 'ru', 'zh_CN', 'zh_Hans_CN', 'zh_HK', 'zh_TW']

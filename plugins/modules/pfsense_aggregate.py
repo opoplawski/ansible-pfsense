@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_aggregate
 version_added: 0.1.0
 author: Frederic Bor (@f-bor)
-short_description: Manage multiple pfSense aliases, rules, rule separators, interfaces and vlans
+short_description: Manage multiple pfSense firewall aliases, rules, and rule separators, plus interfaces and VLANs
 description:
-  - Manage multiple pfSense aliases, rules, rule separators, interfaces and vlans
+  - Manage multiple pfSense firewall aliases, rules, and rule separators, plus interfaces and VLANs
 notes:
   - aggregated_* use the same options definitions than pfsense corresponding module
 options:
@@ -453,17 +453,17 @@ options:
         choices: [ 'info', 'warning', 'danger', 'success' ]
         type: str
   aggregated_vlans:
-    description: Dict of vlans to apply on the target
+    description: Dict of VLANs to apply on the target
     required: False
     type: list
     elements: dict
     suboptions:
       vlan_id:
-        description: The vlan tag. Must be between 1 and 4094.
+        description: The VLAN tag. Must be between 1 and 4094.
         required: true
         type: int
       interface:
-        description: The interface on which to declare the vlan. Friendly name (assignments) can be used.
+        description: The interface on which to declare the VLAN. Friendly name (assignments) can be used.
         required: true
         type: str
       priority:
@@ -471,11 +471,11 @@ options:
         required: false
         type: int
       descr:
-        description: The description of the vlan
+        description: The description of the VLAN
         default: null
         type: str
       state:
-        description: State in which to leave the vlan
+        description: State in which to leave the VLAN
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -515,7 +515,7 @@ options:
     default: False
     type: bool
   purge_vlans:
-    description: delete all the vlans that are not defined into aggregated_vlans
+    description: delete all the VLANs that are not defined into aggregated_vlans
     required: False
     default: False
     type: bool
@@ -526,7 +526,7 @@ options:
 """
 
 EXAMPLES = """
-- name: "Setup two vlans, three aliases, six rules, four separators, and delete everything else"
+- name: "Setup two VLANs, three aliases, six rules, four separators, and delete everything else"
   pfsense_aggregate:
     purge_aliases: true
     purge_rules: true
@@ -608,7 +608,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 
 class PFSenseModuleAggregate(object):
-    """ module managing pfsense aggregated aliases, rules, rule separators, interfaces and vlans """
+    """ module managing pfsense aggregated aliases, rules, rule separators, interfaces and VLANs """
 
     def __init__(self, module):
         self.module = module
@@ -993,7 +993,7 @@ class PFSenseModuleAggregate(object):
                 self.pfsense_rule_separators.run(params)
 
     def run_vlans(self):
-        """ process input params to add/update/delete all vlans """
+        """ process input params to add/update/delete all VLANs """
         want = self.module.params['aggregated_vlans']
 
         if want is None:

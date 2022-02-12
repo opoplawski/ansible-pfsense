@@ -17,9 +17,9 @@ DOCUMENTATION = """
 module: pfsense_rule
 version_added: 0.1.0
 author: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
-short_description: Manage pfSense rules
+short_description: Manage pfSense firewall rules
 description:
-  - Manage pfSense rules
+  - Manage pfSense firewall rules
 notes:
 options:
   name:
@@ -118,7 +118,7 @@ options:
     type: str
     default: default
   tracker:
-    description: Rule tracking ID. Defaults to timestamp of rule creation.
+    description: Rule tracking ID. Defaults to timestamp of rule creation and not modified if not set or set to 0.
     type: int
   icmptype:
     description:
