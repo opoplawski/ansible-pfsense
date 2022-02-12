@@ -56,10 +56,8 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Install ansible and deps
         run: |
-          pip install -U pip 
-          pip install -U pytest 
-          pip install 'urllib3<1.27,>=1.25.4'
-          pip install ansible-base dnspython jinja2 MarkupSafe parameterized pyparsing pycodestyle pytest-xdist pyyaml 'six>=1.12'
+          pip install ansible-base dnspython parameterized pyyaml
+          ansible-galaxy collection install community.internal_test_tools
 
       - name: Run ansible tests
         run: |
@@ -67,7 +65,7 @@ jobs:
           dir=$(pwd)
           mkdir -p ~/.ansible/collections/ansible_collections/pfsensible
           cd ~/.ansible/collections/ansible_collections/pfsensible
-          mv $dir core
+          cp -al $dir core
           cd core
           ansible-test sanity --requirements --python ${{ matrix.python-version }}
           ansible-test units --requirements --python ${{ matrix.python-version }}
