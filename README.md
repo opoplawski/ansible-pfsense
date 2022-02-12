@@ -1,4 +1,4 @@
-# Ansible-pfsense / pfsensible.core
+# ansible-pfsense / pfsensible.core
 
 This is a set of modules to allow you to configure pfSense firewalls with ansible.
 
