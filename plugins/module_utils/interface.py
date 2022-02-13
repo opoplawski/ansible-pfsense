@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2018, Frederic Bor <frederic.bor@wanadoo.fr>
+# Copyright: (c) 2021-2022, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -15,7 +16,7 @@ INTERFACE_ARGUMENT_SPEC = dict(
     descr=dict(required=True, type='str'),
     interface=dict(required=False, type='str'),
     interface_descr=dict(required=False, type='str'),
-    enable=dict(required=False, type='bool'),
+    enable=dict(default=False, type='bool'),
     ipv4_type=dict(default='none', choices=['none', 'static', 'dhcp']),
     ipv6_type=dict(default='none', choices=['none', 'static', 'slaac']),
     mac=dict(required=False, type='str'),

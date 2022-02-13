@@ -96,7 +96,29 @@ options:
     description: LDAP Group objectClass naming attribute
     default: posixGroup
     type: str
-
+  ldap_rfc2307:
+    description: LDAP Server uses RFC 2307 style group membership (RFC 2307bis when False)
+    default: false
+    type: bool
+  ldap_rfc2307_userdn:
+    description: Use DN for username search (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
+    default: false
+    type: bool
+  ldap_utf8:
+    description: UTF8 encode LDAP parameters before sending them to the server.
+    default: false
+    type: bool
+  ldap_nostrip_at:
+    description: Do not strip away parts of the username after the @ symbol
+    default: false
+    type: bool
+  ldap_pam_groupdn:
+    description: Shell Authentication Group DN (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
+    type: str
+  ldap_allow_unauthenticated:
+    description: Allow unauthenticated bind (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
+    default: false
+    type: bool
 """
 
 EXAMPLES = """
@@ -183,6 +205,19 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
             obj['ldap_attr_group'] = params['attr_group']
             obj['ldap_attr_member'] = params['attr_member']
             obj['ldap_attr_groupobj'] = params['attr_groupobj']
+            if params['ldap_utf8']:
+                obj['ldap_utf8'] = ''
+            if params['ldap_nostrip_at']:
+                obj['ldap_nostrip_at'] = ''
+            if params['ldap_rfc2307']:
+                obj['ldap_rfc2307'] = ''
+
+            if self.pfsense.is_at_least_2_5_0():
+                obj['ldap_pam_groupdn'] = params['ldap_pam_groupdn']
+                if params['ldap_rfc2307_userdn']:
+                    obj['ldap_rfc2307_userdn'] = ''
+                if params['ldap_allow_unauthenticated']:
+                    obj['ldap_allow_unauthenticated'] = ''
 
             # Find the caref id for the named CA
             obj['ldap_caref'] = self.pfsense.get_caref(params['ca'])
@@ -212,17 +247,18 @@ class PFSenseAuthserverLDAPModule(PFSenseModuleBase):
         return self.authservers.index(self.target_elt)
 
     def _find_last_index(self):
-        return list(self.root_elt).index(self.authservers[len(self.authservers) - 1])
+        if self.authservers:
+            return list(self.root_elt).index(self.authservers[len(self.authservers) - 1])
+        else:
+            return 0
 
     def _create_target(self):
         """ create the XML target_elt """
-        return self.pfsense.new_element('user')
+        return self.pfsense.new_element('authserver')
 
     def _copy_and_add_target(self):
         """ populate the XML target_elt """
         obj = self.obj
-
-        self.target_elt = self.pfsense.new_element('authserver')
         obj['refid'] = self.pfsense.uniqid()
         self.pfsense.copy_dict_to_element(obj, self.target_elt)
         self.diff['after'] = obj
@@ -281,6 +317,12 @@ def main():
             'attr_group': {'default': 'cn', 'type': 'str'},
             'attr_member': {'default': 'member', 'type': 'str'},
             'attr_groupobj': {'default': 'posixGroup', 'type': 'str'},
+            'ldap_pam_groupdn': {'required': False, 'type': 'str'},
+            'ldap_utf8': {'required': False, 'type': 'bool'},
+            'ldap_nostrip_at': {'required': False, 'type': 'bool'},
+            'ldap_rfc2307': {'required': False, 'type': 'bool'},
+            'ldap_rfc2307_userdn': {'required': False, 'type': 'bool'},
+            'ldap_allow_unauthenticated': {'required': False, 'type': 'bool'},
         },
         required_if=[
             ["state", "present", ["host", "port", "transport", "scope", "authcn"]],

@@ -307,6 +307,7 @@ class PFSenseModule(object):
                     self.debug.write('changed=%s removed tag=%s\n' % (changed, child_elt.tag))
                     top_elt.remove(child_elt)
 
+        self.debug.flush()
         return changed
 
     @staticmethod

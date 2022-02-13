@@ -60,15 +60,18 @@ class PFSenseModuleBase(object):
         elif force:
             obj[fname] = force_value
 
-    def _get_ansible_param_bool(self, obj, name, fname=None, force=False, value='yes'):
+    def _get_ansible_param_bool(self, obj, name, fname=None, force=False, value='yes', value_false=None):
         """ get bool parameter from params and set it into obj """
         if fname is None:
             fname = name
 
-        if self.params.get(name):
-            obj[fname] = value
+        if self.params.get(name) is not None:
+            if self.params.get(name):
+                obj[fname] = value
+            elif force:
+                obj[fname] = value_false
         elif force:
-            obj[fname] = None
+            obj[fname] = value_false
 
     @staticmethod
     def _params_to_obj():
