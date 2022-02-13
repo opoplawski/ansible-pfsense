@@ -38,9 +38,13 @@ Just checkout the [repository](https://github.com/opoplawski/ansible-pfsense) an
 
 ## Configuration
 
-Current ansible (2.9) Python discovery should detect the installed Python.  If not, you can set in your playbook or hosts vars:
+Python discovery in ansible 2.9 and 2.10 will only detect Python up to version 3.7, ansible 2.11 will detect 3.8.  If Python discovery fails, you can set ansible_python_interpreter in your playbook or hosts vars:
 
-pfSense >= 2.4.5:
+pfSense >= 2.5.2:
+```
+ansible_python_interpreter: /usr/local/bin/python3.8
+```
+pfSense >= 2.4.5, < 2.5.2:
 ```
 ansible_python_interpreter: /usr/local/bin/python3.7
 ```
