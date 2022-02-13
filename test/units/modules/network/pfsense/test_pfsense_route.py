@@ -22,6 +22,7 @@ class TestPFSenseRouteModule(TestPFSenseModule):
     def __init__(self, *args, **kwargs):
         super(TestPFSenseRouteModule, self).__init__(*args, **kwargs)
         self.config_file = 'pfsense_route_config.xml'
+        self.pfmodule = PFSenseRouteModule
 
     def setUp(self):
         """ mocking up """
