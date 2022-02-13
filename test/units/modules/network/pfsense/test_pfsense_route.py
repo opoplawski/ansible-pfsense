@@ -11,6 +11,7 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from ansible.modules.network.pfsense import pfsense_route
+from ansible.module_utils.network.pfsense.route import PFSenseRouteModule
 from .pfsense_module import TestPFSenseModule
 from units.compat.mock import patch
 
