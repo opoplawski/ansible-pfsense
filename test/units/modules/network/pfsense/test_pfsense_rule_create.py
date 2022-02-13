@@ -591,7 +591,13 @@ class TestPFSenseRuleCreateModule(TestPFSenseRuleModule):
     def test_rule_create_tracker(self):
         """ test creation of a new rule with tracker """
         obj = dict(name='one_rule', source='any', destination='any', interface='lan', tracker='1234')
-        command = "create rule 'one_rule' on 'lan', source='any', destination='any', tracker=1234"
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', tracker='1234'"
+        self.do_module_test(obj, command=command)
+
+    def test_rule_create_tracker_leading0(self):
+        """ test creation of a new rule with tracker with a leading 0 """
+        obj = dict(name='one_rule', source='any', destination='any', interface='lan', tracker='0100000101')
+        command = "create rule 'one_rule' on 'lan', source='any', destination='any', tracker='0100000101'"
         self.do_module_test(obj, command=command)
 
     def test_rule_create_tracker_invalid(self):

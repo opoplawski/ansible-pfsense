@@ -396,7 +396,7 @@ options:
         default: default
       tracker:
         description: Rule tracking ID. Defaults to timestamp of rule creation.
-        type: int
+        type: str
       icmptype:
         description:
           - One or more of these ICMP subtypes may be specified, separated by comma, or C(any) for all of them.
