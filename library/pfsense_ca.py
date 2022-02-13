@@ -45,8 +45,7 @@ options:
     required: false
     type: str
   crlname:
-    description: The name of the CRL
-    default: name + ' CRL'
+    description: The name of the CRL.  This will default to name + ' CRL'.
     required: false
     type: str
     version_added: "0.5.0"
