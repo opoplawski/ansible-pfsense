@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright: (c) 2018-2020, Orion Poplawski <orion@nwra.com>
+# Copyright: (c) 2018-2021, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -14,7 +14,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_ca
-version_added: "2.10"
+version_added: "0.1.0"
 short_description: Manage pfSense Certificate Authorities
 description:
   >
@@ -44,6 +44,11 @@ options:
         form or Base64 encoded PEM as a single string (which is how pfSense stores it).
     required: false
     type: str
+  crlname:
+    description: The name of the CRL.  This will default to name + ' CRL'.
+    required: false
+    type: str
+    version_added: "0.5.0"
 """
 
 EXAMPLES = """
@@ -177,7 +182,10 @@ class PFSenseCAModule(PFSenseModuleBase):
         if 'text' in crl:
             crl_elt = self.pfsense.new_element('crl')
             crl['refid'] = self.pfsense.uniqid()
-            crl['descr'] = obj['descr'] + ' CRL'
+            if 'crlname' in self.params:
+                crl['descr'] = self.params['crlname']
+            else:
+                crl['descr'] = obj['descr'] + ' CRL'
             crl['caref'] = obj['refid']
             self.pfsense.copy_dict_to_element(crl, crl_elt)
             self.diff['after']['crl'] = crl['text']
@@ -204,7 +212,10 @@ class PFSenseCAModule(PFSenseModuleBase):
                 changed = True
                 crl_elt = self.pfsense.new_element('crl')
                 crl['refid'] = self.pfsense.uniqid()
-                crl['descr'] = obj['descr'] + ' CRL'
+                if 'crlname' in self.params:
+                    crl['descr'] = self.params['crlname']
+                else:
+                    crl['descr'] = obj['descr'] + ' CRL'
                 crl['caref'] = self.target_elt.find('refid').text
                 self.pfsense.copy_dict_to_element(crl, crl_elt)
                 # Add after the existing ca entry
@@ -286,6 +297,7 @@ def main():
             },
             'certificate': {'type': 'str'},
             'crl': {'default': None, 'type': 'str'},
+            'crlname': {'type': 'str'},
         },
         required_if=[
             ["state", "present", ["certificate"]],
