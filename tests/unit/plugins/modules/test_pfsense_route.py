@@ -38,12 +38,6 @@ class TestPFSenseRouteModule(TestPFSenseModule):
 
         self.run_command.stop()
 
-    @staticmethod
-    def get_args_fields():
-        """ return params fields """
-        fields = ['descr', 'network', 'disabled', 'gateway']
-        return fields
-
     def check_target_elt(self, params, target_elt):
         """ test the xml definition """
 
