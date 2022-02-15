@@ -414,6 +414,15 @@ class TestPFSenseModule(ModuleTestCase):
         else:
             self.assert_not_find_xml_elt(target_elt, xml_field)
 
+    def check_param_equal_or_present(self, params, target_elt, param, xml_field=None):
+        """ if param is defined, check if target_elt has the right value, otherwise that it is present in XML """
+        if xml_field is None:
+            xml_field = param
+        if param in params:
+            self.assert_xml_elt_equal(target_elt, xml_field, params[param])
+        else:
+            self.assert_find_xml_elt(target_elt, xml_field)
+
     def check_list_param_equal(self, params, target_elt, param, default=None, xml_field=None, not_find_val=None):
         """ if param is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
         if xml_field is None:
