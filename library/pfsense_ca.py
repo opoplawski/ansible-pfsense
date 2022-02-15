@@ -31,6 +31,14 @@ options:
     default: present
     choices: [ "present", "absent" ]
     type: str
+  trust:
+    description: Add this Certificate Authority to the Operating System Trust Store.
+    type: bool
+    version_added: 0.5.0
+  randomserial:
+    description:  Use random serial numbers when signing certifices.
+    type: bool
+    version_added: 0.5.0
   certificate:
     description:
       >
@@ -48,7 +56,11 @@ options:
     description: The name of the CRL.  This will default to name + ' CRL'.
     required: false
     type: str
-    version_added: "0.5.0"
+    version_added: 0.5.0
+  serial:
+    description: Number to be used as a sequential serial number for the next certificate to be signed by this CA.
+    type: int
+    version_added: 0.5.0
 """
 
 EXAMPLES = """
@@ -80,9 +92,25 @@ import re
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
 
+PFSENSE_CA_ARGUMENT_SPEC = dict(
+    name=dict(required=True, type='str'),
+    state=dict(type='str', default='present', choices=['present', 'absent']),
+    trust=dict(type='bool'),
+    randomserial=dict(type='bool'),
+    certificate=dict(type='str'),
+    crl=dict(default=None, type='str'),
+    crlname=dict(type='str'),
+    serial=dict(type='int'),
+)
+
 
 class PFSenseCAModule(PFSenseModuleBase):
     """ module managing pfsense certificate authorities """
+
+    @staticmethod
+    def get_argument_spec():
+        """ return argument spec """
+        return PFSENSE_CA_ARGUMENT_SPEC
 
     def __init__(self, module, pfsense=None):
         super(PFSenseCAModule, self).__init__(module, pfsense)
@@ -117,6 +145,10 @@ class PFSenseCAModule(PFSenseModuleBase):
             elif not re.match('LS0tLS1CRUdJTiBYNTA5IENSTC0tLS0t', crl):
                 self.module.fail_json(msg='Could not recognize CRL format: %s' % (crl))
 
+        if params['serial'] is not None:
+            if int(params['serial']) < 1:
+                self.module.fail_json(msg='serial must be greater than 0')
+
     def _params_to_obj(self):
         """ return a dict from module params """
         params = self.params
@@ -130,6 +162,10 @@ class PFSenseCAModule(PFSenseModuleBase):
                 obj['crt'] = params['certificate']
             if 'crl' in params and params['crl'] is not None:
                 obj['crl'] = params['crl']
+
+        self._get_ansible_param_bool(obj, 'trust', value='enabled', value_false='disabled')
+        self._get_ansible_param_bool(obj, 'randomserial', value='enabled', value_false='disabled')
+        self._get_ansible_param(obj, 'serial')
 
         return obj
 
@@ -165,7 +201,10 @@ class PFSenseCAModule(PFSenseModuleBase):
 
     def _create_target(self):
         """ create the XML target_elt """
-        return self.pfsense.new_element('ca')
+        elt = self.pfsense.new_element('ca')
+        obj = dict(trust='disabled', randomserial='disabled', serial='0')
+        self.pfsense.copy_dict_to_element(obj, elt)
+        return elt
 
     def _copy_and_add_target(self):
         """ populate the XML target_elt """
@@ -288,17 +327,7 @@ class PFSenseCAModule(PFSenseModuleBase):
 
 def main():
     module = AnsibleModule(
-        argument_spec={
-            'name': {'required': True, 'type': 'str'},
-            'state': {
-                'type': 'str',
-                'default': 'present',
-                'choices': ['present', 'absent']
-            },
-            'certificate': {'type': 'str'},
-            'crl': {'default': None, 'type': 'str'},
-            'crlname': {'type': 'str'},
-        },
+        argument_spec=PFSENSE_CA_ARGUMENT_SPEC,
         required_if=[
             ["state", "present", ["certificate"]],
         ],
