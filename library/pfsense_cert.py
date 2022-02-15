@@ -39,7 +39,7 @@ options:
     default: sha256
     choices: ["sha1", "sha224", "sha256", "sha384", "sha512"]
     type: str
-  encname:
+  ecname:
     description: The Elliptic Curve Name to use when generating a new ECDSA key
     default: prime256v1
     type: str
