@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'community'}
@@ -15,11 +16,10 @@ DOCUMENTATION = """
 ---
 module: pfsense_cert
 version_added: "0.1"
+author: Carlos Rodrigues (@cmarodrigues)
 short_description: Manage pfSense certificates
 description:
-  >
-    Manage pfSense certificates 
-author: Carlos Rodrigues (@cmarodrigues)
+  - Manage pfSense certificates
 notes:
 options:
   name:
@@ -31,17 +31,18 @@ options:
     type: str
   keytype:
     description: The type of key to generate
-    default: RSA
-    choices: [ "RSA", "ECDSA" ]
+    default: 'RSA'
+    choices: [ 'RSA', 'ECDSA' ]
     type: str
   digestalg:
     description: The digest method used when the certificate is signed
-    default: sha256
-    choices: ["sha1", "sha224", "sha256", "sha384", "sha512"]
+    default: 'sha256'
+    choices: ['sha1', 'sha224', 'sha256', 'sha384', 'sha512']
     type: str
   ecname:
     description: The Elliptic Curve Name to use when generating a new ECDSA key
-    default: prime256v1
+    default: 'prime256v1'
+    choices: ['prime256v1']
     type: str
   keylen:
     description: The length to use when generating a new RSA key, in bits
@@ -86,18 +87,18 @@ options:
     type: str
   state:
     description: State in which to leave the certificate
-    default: present
-    choices: [ "present", "absent" ]
+    default: 'present'
+    choices: [ 'present', 'absent' ]
     type: str
   method:
     description: Method of the certificate created
-    default: internal
-    choices: [ "internal", "import" ]
+    default: 'internal'
+    choices: [ 'internal', 'import' ]
     type: str
   certtype:
     description: Type of the certificate ('user' is a certificate for the user)
-    default: user
-    choices: [ "user", "server" ]
+    default: 'user'
+    choices: [ 'user', 'server' ]
     type: str
 """
 
@@ -171,6 +172,7 @@ require_once('certs.inc');
 init_config_arr(array('system', 'cert'));
 """
 
+
 class PFSenseCertModule(PFSenseModuleBase):
     """ module managing pfsense certificates """
 
@@ -179,12 +181,14 @@ class PFSenseCertModule(PFSenseModuleBase):
         """ return argument spec """
         return CERT_ARGUMENT_SPEC
 
+    ##############################
+    # init
+    #
     def __init__(self, module, pfsense=None):
         super(PFSenseCertModule, self).__init__(module, pfsense)
         self.name = "pfsense_cert"
         self.root_elt = self.pfsense.root
         self.certs = self.pfsense.get_elements('cert')
-
 
     ##############################
     # params processing
@@ -326,7 +330,7 @@ class PFSenseCertModule(PFSenseModuleBase):
     #
     def _update(self):
         if self.params['state'] == 'present':
-            if self.params['method'] == 'import': 
+            if self.params['method'] == 'import':
                 # import certificate
                 return self.pfsense.phpshell("""
                     require_once('certs.inc');
@@ -334,9 +338,9 @@ class PFSenseCertModule(PFSenseModuleBase):
                     $cert =& lookup_cert('{refid}');
                     cert_import($cert, '{cert}', '{key}');
                     $savemsg = sprintf(gettext("Imported certificate %s"), $cert['descr']);
-                    write_config($savemsg);""".format( refid = self.target_elt.find('refid').text,
-                                                       cert  = base64.b64decode(self.target_elt.find('crt').text.encode()).decode(),
-                                                       key   = base64.b64decode(self.target_elt.find('prv').text.encode()).decode()))
+                    write_config($savemsg);""".format(refid=self.target_elt.find('refid').text,
+                                                      cert=base64.b64decode(self.target_elt.find('crt').text.encode()).decode(),
+                                                      key=base64.b64decode(self.target_elt.find('prv').text.encode()).decode()))
             else:
                 # generate internal certificate
                 return self.pfsense.phpshell("""
@@ -391,21 +395,21 @@ class PFSenseCertModule(PFSenseModuleBase):
                         print_r($input_errors);
                     }}
                     $savemsg = sprintf(gettext("Created internal certificate %s"), $cert['descr']);
-                    write_config($savemsg);""".format( refid                 = self.target_elt.find('refid').text,
-                                                       dn_commonname         = self.params['name'], 
-                                                       dn_country            = self.params['dn_country'],
-                                                       dn_state              = self.params['dn_state'],
-                                                       dn_city               = self.params['dn_city'],
-                                                       dn_organization       = self.params['dn_organization'],
-                                                       dn_organizationalunit = self.params['dn_organizationalunit'],
-                                                       altnames              = self.params['altnames'],
-                                                       caref                 = self.target_elt.find('caref').text,
-                                                       keylen                = self.params['keylen'],
-                                                       lifetime              = self.params['lifetime'],
-                                                       certtype              = self.params['certtype'],
-                                                       keytype               = self.params['keytype'],
-                                                       digest_alg            = self.params['digestalg'],
-                                                       ecname                = self.params['ecname']))
+                    write_config($savemsg);""".format(refid=self.target_elt.find('refid').text,
+                                                      dn_commonname=self.params['name'],
+                                                      dn_country=self.params['dn_country'],
+                                                      dn_state=self.params['dn_state'],
+                                                      dn_city=self.params['dn_city'],
+                                                      dn_organization=self.params['dn_organization'],
+                                                      dn_organizationalunit=self.params['dn_organizationalunit'],
+                                                      altnames=self.params['altnames'],
+                                                      caref=self.target_elt.find('caref').text,
+                                                      keylen=self.params['keylen'],
+                                                      lifetime=self.params['lifetime'],
+                                                      certtype=self.params['certtype'],
+                                                      keytype=self.params['keytype'],
+                                                      digest_alg=self.params['digestalg'],
+                                                      ecname=self.params['ecname']))
         else:
             return (None, '', '')
 
@@ -416,6 +420,7 @@ class PFSenseCertModule(PFSenseModuleBase):
             self.certs.remove(self.target_elt)
         else:
             self.diff['before'] = {}
+
 
 def main():
     module = AnsibleModule(
