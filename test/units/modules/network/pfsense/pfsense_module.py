@@ -1,5 +1,6 @@
 # Copyright: (c) 2018 Red Hat Inc.
 # Copyright: (c) 2018, Frederic Bor <frederic.bor@wanadoo.fr>
+# Copyright: (c) 2022, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import (absolute_import, division, print_function)
@@ -8,6 +9,7 @@ __metaclass__ = type
 import os
 import errno
 import json
+import re
 
 from units.compat.mock import patch
 from units.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase
@@ -314,6 +316,18 @@ class TestPFSenseModule(ModuleTestCase):
                 self.fail('Element <' + elt_name + '> differs. Expected: \'' + value + '\' result: \'' + elt.text + '\'')
         return elt
 
+    def assert_xml_elt_match(self, tag, elt_name, elt_regex):
+        elt = tag.find(elt_name)
+        if elt is None:
+            self.fail('Element not found: ' + elt_name)
+
+        if re.fullmatch(elt_regex, elt.text) is None:
+            if elt.text is None:
+                self.fail('Element <' + elt_name + '> does not match \'' + elt_regex + '\' result: None')
+            else:
+                self.fail('Element <' + elt_name + '> does not match \'' + elt_regex + '\' result: \'' + elt.text + '\'')
+        return elt
+
     def assert_xml_elt_is_none_or_empty(self, tag, elt_name):
         elt = tag.find(elt_name)
         if elt is None:
@@ -377,18 +391,22 @@ class TestPFSenseModule(ModuleTestCase):
         else:
             self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
 
-    def check_param_bool(self, params, target_elt, param, default=None, xml_field=None):
-        """ if param is defined, check the elt exist, otherwise that it does not exist in XML """
+    def check_param_bool(self, params, target_elt, param, default=False, value_true=None, xml_field=None):
+        """ if param is defined, check the elt exist and text equals value_true, otherwise that it does not exist in XML or
+            is empty if value_true is not None """
         if xml_field is None:
             xml_field = param
 
-        if params.get(param):
-            if default is None:
+        if (param in params and params[param]) or default:
+            if value_true is None:
                 self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
             else:
-                self.assert_xml_elt_equal(target_elt, xml_field, default)
+                self.assert_xml_elt_equal(target_elt, xml_field, value_true)
         else:
-            self.assert_not_find_xml_elt(target_elt, xml_field)
+            if value_true is None:
+                self.assert_not_find_xml_elt(target_elt, xml_field)
+            else:
+                self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
 
     def check_value_equal(self, target_elt, xml_field, value, empty=True):
         """ if value is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
