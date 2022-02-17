@@ -16,14 +16,14 @@ DOCUMENTATION = """
 module: pfsense_ipsec_aggregate
 version_added: "2.10"
 author: Frederic Bor (@f-bor)
-short_description: Manage multiple pfSense ipsec tunnels, phases 1, phases 2 and proposals
+short_description: Manage multiple pfSense IPsec tunnels, phases 1, phases 2 and proposals
 description:
-  - Manage multiple pfSense ipsec tunnels, phases 1, phases 2 and proposals
+  - Manage multiple pfSense IPsec tunnels, phases 1, phases 2 and proposals
 notes:
   - aggregated_* use the same options definitions than pfsense corresponding module
 options:
   aggregated_ipsecs:
-    description: Dict of ipsec tunnels and phase 1 options to apply on the target
+    description: Dict of IPsec tunnels and phase 1 options to apply on the target
     required: False
     type: list
     suboptions:
@@ -156,12 +156,12 @@ options:
         default: 5
         type: int
       descr:
-        description: The description of the ipsec tunnel
+        description: The description of the IPsec tunnel
         default: null
         required: True
         type: str
       state:
-        description: State in which to leave the ipsec tunnel
+        description: State in which to leave the IPsec tunnel
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -170,7 +170,7 @@ options:
         default: True
         type: bool
   aggregated_ipsec_proposals:
-    description: Dict of ipsec proposals to apply on the target
+    description: Dict of IPsec proposals to apply on the target
     required: False
     type: list
     suboptions:
@@ -202,11 +202,11 @@ options:
         choices: [ 1, 2, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 30 ]
         type: int
       descr:
-        description: The description of the ipsec tunnel on which to create/delete the proposal.
+        description: The description of the IPsec tunnel on which to create/delete the proposal.
         default: null
         type: str
       state:
-        description: State in which to leave the ipsec proposal.
+        description: State in which to leave the IPsec proposal.
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -215,7 +215,7 @@ options:
         default: True
         type: bool
   aggregated_ipsec_p2s:
-    description: Dict of ipsec tunnels phase 2 options to apply on the target
+    description: Dict of IPsec tunnels phase 2 options to apply on the target
     required: False
     type: list
     suboptions:
@@ -224,7 +224,7 @@ options:
         required: false
         type: bool
       mode:
-        description: Method for managing ipsec traffic
+        description: Method for managing IPsec traffic
         required: False
         choices: [ 'tunnel', 'tunnel6', 'transport', 'vti' ]
         type: str
@@ -336,15 +336,15 @@ options:
         required: False
         type: str
       descr:
-        description: The description of the ipsec tunnel phase2
+        description: The description of the IPsec tunnel phase2
         required: True
         type: str
       p1_descr:
-        description: The description of the ipsec tunnel
+        description: The description of the IPsec tunnel
         required: true
         type: str
       state:
-        description: State in which to leave the ipsec tunnel phase2
+        description: State in which to leave the IPsec tunnel phase2
         choices: [ "present", "absent" ]
         default: present
         type: str
@@ -353,7 +353,7 @@ options:
         default: True
         type: bool
   purge_ipsecs:
-    description: delete all the ipsec tunnels that are not defined into aggregated_ipsecs
+    description: delete all the IPsec tunnels that are not defined into aggregated_ipsecs
     required: False
     default: False
     type: bool
@@ -427,7 +427,7 @@ from copy import deepcopy
 
 
 class PFSenseModuleIpsecAggregate(object):
-    """ module managing pfsense aggregated ipsec tunnels, phases 1, phases 2 and proposals """
+    """ module managing pfsense aggregated IPsec tunnels, phases 1, phases 2 and proposals """
 
     def __init__(self, module):
         self.module = module
@@ -526,7 +526,7 @@ class PFSenseModuleIpsecAggregate(object):
         return False
 
     def run_ipsecs(self):
-        """ process input params to add/update/delete all ipsecs tunnels """
+        """ process input params to add/update/delete all IPsec tunnels """
         want = self.module.params['aggregated_ipsecs']
 
         # processing aggregated parameter
@@ -552,7 +552,7 @@ class PFSenseModuleIpsecAggregate(object):
                 self.pfsense_ipsec.run(params)
 
     def run_ipsec_proposals(self):
-        """ process input params to add/update/delete all ipsecs tunnels """
+        """ process input params to add/update/delete all IPsec tunnels """
         want = self.module.params['aggregated_ipsec_proposals']
 
         # processing aggregated parameter
@@ -585,7 +585,7 @@ class PFSenseModuleIpsecAggregate(object):
                 self.pfsense_ipsec_proposal.run(params)
 
     def run_ipsec_p2s(self):
-        """ process input params to add/update/delete all ipsecs tunnels """
+        """ process input params to add/update/delete all IPsec tunnels """
         want = self.module.params['aggregated_ipsec_p2s']
 
         # processing aggregated parameter

@@ -16,9 +16,9 @@ DOCUMENTATION = """
 module: pfsense_ipsec_proposal
 version_added: "2.10"
 author: Frederic Bor (@f-bor)
-short_description: Manage pfSense ipsec proposals
+short_description: Manage pfSense IPsec proposals
 description:
-  - Manage pfSense ipsec proposals
+  - Manage pfSense IPsec proposals
 notes:
 options:
   encryption:
@@ -49,11 +49,11 @@ options:
     choices: [ 1, 2, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 30 ]
     type: int
   descr:
-    description: The description of the ipsec tunnel on which to create/delete the proposal.
+    description: The description of the IPsec tunnel on which to create/delete the proposal.
     default: null
     type: str
   state:
-    description: State in which to leave the ipsec proposal.
+    description: State in which to leave the IPsec proposal.
     choices: [ "present", "absent" ]
     default: present
     type: str

@@ -15,7 +15,7 @@ DOCUMENTATION = """
 ---
 module: pfsense_group
 version_added: "2.10"
-short_description: Manage pfSense groups
+short_description: Manage pfSense user groups
 description:
   >
     Manage pfSense groups

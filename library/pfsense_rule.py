@@ -17,9 +17,9 @@ DOCUMENTATION = """
 module: pfsense_rule
 version_added: "2.10"
 author: Orion Poplawski (@opoplawski), Frederic Bor (@f-bor)
-short_description: Manage pfSense rules
+short_description: Manage pfSense firewall rules
 description:
-  - Manage pfSense rules
+  - Manage pfSense firewall rules
 notes:
 options:
   name:
@@ -119,7 +119,7 @@ options:
     default: default
   tracker:
     description: Rule tracking ID. Defaults to timestamp of rule creation and not modified if not set or set to 0.
-    type: int
+    type: str
   icmptype:
     description:
       - One or more of these ICMP subtypes may be specified, separated by comma, or C(any) for all of them.

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2018, Frederic Bor <frederic.bor@wanadoo.fr>
+# Copyright: (c) 2021-2022, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -14,7 +15,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = """
 ---
 module: pfsense_interface
-version_added: "2.10"
+version_added: 0.1.0
 author: Frederic Bor (@f-bor)
 short_description: Manage pfSense interfaces
 description:
@@ -38,6 +39,7 @@ options:
     type: str
   enable:
     description: Enable interface.
+    default: no
     type: bool
   ipv4_type:
     description: IPv4 Configuration Type.
