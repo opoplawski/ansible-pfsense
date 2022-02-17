@@ -63,7 +63,7 @@
                         <radius_timeout>5</radius_timeout>
                         <radius_nasip_attribute>lan</radius_nasip_attribute>
                         <refid>620c5c2a8fab5</refid>
-                        <radius_secret>item_secret</radius_secret>
+                        <radius_secret>password1</radius_secret>
                 </authserver>
                 <authserver>
                         <refid>620c5f9d00ba4</refid>
