@@ -203,6 +203,23 @@ class TestPFSenseModule(ModuleTestCase):
             self.module.main()
 
         result = exc.exception.args[0]
+
+        if 'diff' in result:
+            changes = dict()
+            after = dict(result['diff']['after'])
+            before = dict(result['diff']['before'])
+            for item in after:
+                if item in before:
+                    if after[item] != before[item]:
+                        changes[item] = str(before[item]) + ' -> ' + str(after[item])
+                    del before[item]
+                else:
+                    changes[item] = 'None -> ' + str(after[item])
+            for item in before:
+                changes[item] = str(before[item]) + ' -> None'
+            if changes:
+                result['changes'] = changes
+
         self.assertEqual(result['changed'], changed, result)
         return result
 
