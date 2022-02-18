@@ -331,7 +331,7 @@ class TestPFSenseModule(ModuleTestCase):
     def assert_xml_elt_is_none_or_empty(self, tag, elt_name):
         elt = tag.find(elt_name)
         if elt is None:
-            self.fail('Element not found: ' + elt_name)
+            return elt
         if elt.text is not None and elt.text:
             self.fail('Element <' + elt_name + '> differs. Expected: NoneType result: \'' + elt.text + '\'')
         return elt
