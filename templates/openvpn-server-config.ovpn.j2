@@ -1,0 +1,83 @@
+dev ovpns{{ openvpn_server.vpnid }}
+verb {{ openvpn_server_args.verbosity_level if openvpn_server_args.verbosity_level is defined else '1' }}
+dev-type tun
+dev-node /dev/tun{{ openvpn_server.vpnid }}
+writepid /var/run/openvpn_server{{ openvpn_server.vpnid }}.pid
+#user nobody
+#group nobody
+script-security 3
+daemon
+keepalive 10 60
+ping-timer-rem
+persist-tun
+persist-key
+proto udp4
+auth SHA256
+up /usr/local/sbin/ovpn-linkup
+down /usr/local/sbin/ovpn-linkdown
+{% if 'user' in openvpn_server_args.mode %}
+client-connect /usr/local/sbin/openvpn.attributes.sh
+client-disconnect /usr/local/sbin/openvpn.attributes.sh
+{% endif %}
+{% if openvpn_server_args.interface == 'any' %}
+multihome
+{% else %}
+local 192.168.122.227
+{% endif %}
+{% if 'tls' in openvpn_server_args.mode %}
+tls-server
+{% endif %}
+{% if 'p2p' in openvpn_server_args.mode %}
+ifconfig {{ openvpn_server_args.tunnel_network | nthhost(1) }} {{ openvpn_server_args.tunnel_network | nthhost(2) }}
+{% else %}
+server 10.100.0.0 255.255.255.0
+{% endif %}
+{% if 'user' in openvpn_server_args.mode %}
+client-config-dir /var/etc/openvpn/server{{ openvpn_server.vpnid }}/csc
+{% endif %}
+{% if openvpn_server_args.username_as_common_name is defined and openvpn_server_args.username_as_common_name %}
+username-as-common-name
+{% endif %}
+{% if 'user' in openvpn_server_args.mode %}
+plugin /usr/local/lib/openvpn/plugins/openvpn-plugin-auth-script.so /usr/local/sbin/ovpn_auth_verify_async user UkFESVVT false server{{ openvpn_server.vpnid }} {{ openvpn_server_args.local_port }}
+{% endif %}
+{% if 'tls' in openvpn_server_args.mode %}
+tls-verify "/usr/local/sbin/ovpn_auth_verify tls 'pfsense-test' 1"
+{% endif %}
+lport {{ openvpn_server_args.local_port }}
+management /var/etc/openvpn/server{{ openvpn_server.vpnid }}/sock unix
+{% if 'user' in openvpn_server_args.mode %}
+push "dhcp-option DOMAIN example.com"
+push "dhcp-option DNS 10.10.10.10"
+push "dhcp-option DNS 10.10.10.11"
+{% endif %}
+{% if openvpn_server_args.remote_network is defined %}
+route {{ openvpn_server_args.remote_network | ipaddr('network') }} {{ openvpn_server_args.remote_network | ipaddr('netmask') }}
+{% endif %}
+{% if 'shared_key' in openvpn_server_args.mode %}
+secret /var/etc/openvpn/server{{ openvpn_server.vpnid }}/secret 
+{% endif %}
+{% if openvpn_server_args.gwredir is defined and openvpn_server_args.gwredir %}
+push "redirect-gateway def1"
+{% endif %}
+{% if 'tls' in openvpn_server_args.mode %}
+capath /var/etc/openvpn/server{{ openvpn_server.vpnid }}/ca
+cert /var/etc/openvpn/server{{ openvpn_server.vpnid }}/cert 
+key /var/etc/openvpn/server{{ openvpn_server.vpnid }}/key 
+dh /etc/dh-parameters.2048
+{% if openvpn_server_args.tls is defined %}
+tls-auth /var/etc/openvpn/server{{ openvpn_server.vpnid }}/tls-auth 0
+{% endif %}
+{% endif %}
+data-ciphers {{ openvpn_server_args.data_ciphers | join(':') if openvpn_server_args.data_ciphers is defined else 'AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-256-CBC' }}
+data-ciphers-fallback {{ openvpn_server_args.data_ciphers_fallback if openvpn_server_args.data_ciphers_fallback is defined else 'AES-256-CBC' }}
+allow-compression no
+{% if openvpn_server_args.passtos %}
+passtos
+{% endif %}
+{% if 'user' in openvpn_server_args.mode %}
+topology subnet
+{% endif %}
+{% if openvpn_server_args.custom_options is defined %}
+{{ openvpn_server_args.custom_options | replace(';','\n') }}
+{% endif %}

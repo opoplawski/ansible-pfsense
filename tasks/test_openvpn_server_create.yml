@@ -1,0 +1,49 @@
+---
+    - name: "Define {{ openvpn_server_args.name }}"
+      pfsense_openvpn_server: "{{ openvpn_server_args }}"
+      register: openvpn_server
+      tags: openvpn
+
+    - fail:
+        msg: OpenVPN server vpnid {{ openvpn_server.vpnid }} does not match expected value {{ openvpn_server_vpnid }}
+      when: openvpn_server.vpnid != openvpn_server_vpnid
+
+    - wait_for:
+        path: "/var/etc/openvpn/server{{ openvpn_server.vpnid }}/config.ovpn"
+
+    - slurp:
+        src: "/var/etc/openvpn/server{{ openvpn_server.vpnid }}/config.ovpn"
+      register: openvpn_config_file
+
+    - debug: msg="{{ openvpn_config_file['content'] | b64decode }}"
+
+    - template:
+        src: openvpn-server-config.ovpn.j2
+        dest: /var/etc/openvpn/server{{ openvpn_server.vpnid }}/config.ovpn
+        owner: root
+        group: wheel
+        mode: 0600
+      check_mode: yes
+      register: config
+
+    - fail:
+        msg: OpenVPN config files differ
+      when: config.changed
+
+    # TODO - Use community.general.pids with pattern (need version 3.0.0)
+    - shell: "ps xo command | grep '/openvpn --config /var/etc/openvpn/server{{ openvpn_server.vpnid }}/config.ovpn' | grep -v grep"
+      register: openvpn_server_process
+      ignore_errors: yes
+      changed_when: no
+
+    - fail:
+        msg: OpenVPN server process is not running
+      when:
+        - openvpn_server_args.disable is not defined or not openvpn_server_args.disable
+        - openvpn_server_process.stdout_lines | length != 1
+
+    - fail:
+        msg: OpenVPN server process is running
+      when:
+        - openvpn_server_args.disable is defined and openvpn_server_args.disable
+        - openvpn_server_process.stdout_lines | length != 0

@@ -1,0 +1,200 @@
+---
+- hosts: pfsense
+  tasks:
+    - name: OpenVPN CA
+      pfsense_ca:
+        name: OpenVPN CA
+        certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCgpNSUlFQ0RDQ0F2Q2dBd0lCQWdJSUZqRk9oczFuTXpRd0RRWUpLb1pJaHZjTkFRRUxCUUF3WERFVE1CRUdBMVVFCgpBeE1LYjNCbGJuWndiaTFqWVRFTE1Ba0dBMVVFQmhNQ1ZWTXhFVEFQQmdOVkJBZ1RDRU52Ykc5eVlXUnZNUkF3CgpEZ1lEVlFRSEV3ZENiM1ZzWkdWeU1STXdFUVlEVlFRS0V3cHdabE5sYm5OcFlteGxNQjRYRFRJeU1ESXhOREExCgpNRGd6TVZvWERUTXlNREl4TWpBMU1EZ3pNVm93WERFVE1CRUdBMVVFQXhNS2IzQmxiblp3YmkxallURUxNQWtHCgpBMVVFQmhNQ1ZWTXhFVEFQQmdOVkJBZ1RDRU52Ykc5eVlXUnZNUkF3RGdZRFZRUUhFd2RDYjNWc1pHVnlNUk13CgpFUVlEVlFRS0V3cHdabE5sYm5OcFlteGxNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDCgpBUUVBbXN2aUpNRTFFVGVkNGZPdGJrSHBGM2Q5ZU0rNjQwOFhQbmE4dEpHZEJxM1VBQ3hFem9hQktSdDJ5MWN0Cgo2elFEZTVGRjRBQXZ0VjF1Y1pwc2w1bzREUy9JR1NibjZkM1lNaytqOGpBUTNFbXpSOEdPb2huZ2YxUTlBWEM2CgpvaDRyQlA1c1g0WTh1WThrSjNZclg1cVRwRlk1S0hMVTFBb1BleVE3eXlNWkhMb2t0OW5jK0ZGWnd3VTdSQ0dTCgpjTkxaaVZ4Q1FRSzVwOGs5bUE4Ymd4bHFZa2YwbUF5Qk53OU1BZlBVY1VrcUY2UDBnV1BIbElySFovdWhnN2RVCgorMjJhb2NLVUVOaXY5bXFhK0I2Y1VnTFRGVDZzMFZTRXNYL2RBZWg2MllMZ2ZtWEpnNmROSFFJK01nNlNrZWxwCgprOVZSVGVqaUVUSUVWOEpnZHYyTjdSU201d0lEQVFBQm80SE5NSUhLTUIwR0ExVWREZ1FXQkJSazVvQS8wcWEyCgpLUHdnb1hKcUtNdCtBb0tKZ1RDQmpRWURWUjBqQklHRk1JR0NnQlJrNW9BLzBxYTJLUHdnb1hKcUtNdCtBb0tKCgpnYUZncEY0d1hERVRNQkVHQTFVRUF4TUtiM0JsYm5ad2JpMWpZVEVMTUFrR0ExVUVCaE1DVlZNeEVUQVBCZ05WCgpCQWdUQ0VOdmJHOXlZV1J2TVJBd0RnWURWUVFIRXdkQ2IzVnNaR1Z5TVJNd0VRWURWUVFLRXdwd1psTmxibk5wCgpZbXhsZ2dnV01VNkd6V2N6TkRBTUJnTlZIUk1FQlRBREFRSC9NQXNHQTFVZER3UUVBd0lCQmpBTkJna3Foa2lHCgo5dzBCQVFzRkFBT0NBUUVBVUg5S0NkbUpkb0FKbFUwd0JKSFl4akxyS2xsUFk2T05ienI1SmJoQ002OUh4eFlOCgpCa2lpbXd1N09mRmFGZkZDT25NSjhvcStKVGxjMG9vREoxM2xCdHRONkdybnZrUTNQMXdZYkNFTmJuaWxPYVVCCgpUSXJpSHl0TkRRYW91TmEvS1dzN0ZhdW9iY3RCbDF3OWF0b0hac041b2VoVDNyQVR2MUNDQXRqcGFUSklmSlIzCgowSVFPWWtlNG9ZNkRrSXdIcDJ2UFBtb29HZ0l0YlR3M1UrRTQxWVplN3FDbUUvN3pMVFNaa0lNMmx4NnpENDZqCgpEZjRyZ044TVVMNnhpd09MbzlyQUp5ckRNM2JEeTJ1QjY0QkVzRFFMa2huUE92ZWtETjQ1NnV6TmpYS0E3VnE4CgpoMS9nekRaSURpK1dYQ1lBY2JnTGhaVkJxdG42MnVtRnBNUkl1dz09CgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCgo=
+        crl: |-
+          -----BEGIN X509 CRL-----
+          MIICdDCCAVwCAQEwDQYJKoZIhvcNAQEFBQAwXDETMBEGA1UEAxMKb3BlbnZwbi1j
+          YTELMAkGA1UEBhMCVVMxETAPBgNVBAgTCENvbG9yYWRvMRAwDgYDVQQHEwdCb3Vs
+          ZGVyMRMwEQYDVQQKEwpwZlNlbnNpYmxlFw0yMjAyMTkwNTUxMDZaFw00OTA3MDYw
+          NTUxMDZaMCkwJwIILvxk7112GpQXDTIyMDIxOTA1NTEwMlowDDAKBgNVHRUEAwoB
+          BaCBoDCBnTCBjQYDVR0jBIGFMIGCgBRk5oA/0qa2KPwgoXJqKMt+AoKJgaFgpF4w
+          XDETMBEGA1UEAxMKb3BlbnZwbi1jYTELMAkGA1UEBhMCVVMxETAPBgNVBAgTCENv
+          bG9yYWRvMRAwDgYDVQQHEwdCb3VsZGVyMRMwEQYDVQQKEwpwZlNlbnNpYmxlgggW
+          MU6GzWczNDALBgNVHRQEBAICJxEwDQYJKoZIhvcNAQEFBQADggEBAFmrypU1Szyt
+          MQFBEaYfOpiZjEXUj191VnXCeoKM2O7mU3anGUtYABLpmyvcvbu6fBBTKXI1DoEo
+          RdWUCMS1nNAMl2SCtfbyDsG66Gs4b6tYyq5InKTRIvWTyNoKBbPw58vXWIc6efQx
+          I6/e+xSwbxOLHYQtgxY2NvOqTegTM+LzHrcIZaOKOMlshu08j83Ju1GKmbPJ0Mcg
+          rUsbatJqDTukP2/Unb47Xp7mjPuScFy23vDiv8wor0X8ARAmbm3x7fJy9mWgu9XL
+          jMWYq7PDixpXIjMWag3vmV18/Ht22mmqKTO3zkVrKP05LHB5Yh3fYpJVtHdxCeO5
+          viomNwK07AA=
+          -----END X509 CRL-----
+        state: present
+      tags:
+        - openvpn
+        - openvpn_ca
+        
+    - name: Generate new internal certificate
+      pfsense_cert:
+        method: internal
+        name: pfsense-test
+        ca: OpenVPN CA
+        keytype: RSA
+        keylen: 2048
+        lifetime: 3650
+        dn_country: "US"
+        certtype: server
+        state: present
+
+    - name: Setup RADIUS
+      pfsense_authserver_radius:
+        name: RADIUS
+        protocol: MSCHAPv2
+        host: radius.example.com
+        secret: item_secret
+
+    - name: Setup LDAP
+      pfsense_authserver_ldap:
+        name: ASLDAP
+        host: ldap.example.com
+        transport: tcp
+        authcn: CN=Users
+        scope: one
+
+    - set_fact:
+         openvpn_psk: |-
+           #
+           # 2048 bit OpenVPN static key
+           #
+           -----BEGIN OpenVPN Static key V1-----
+           f896b014f220bcf9a3023b5b68a5cd88
+           62421f044956dad4f94264211b121bcf
+           7e2f5f82e11964575a3f39af8c196931
+           dd63f3ff13615363257bcaa4e46b60cd
+           93a2a73027575d0cc2ed83927af11b9f
+           1122b6acdab05bb7c9de36851470ee2b
+           3d160a0ee03e3f31d32ac018a602916b
+           c8db1791029a5ab1ffd7d93ff5a91b0a
+           46050a804ff7207d46f4f61d33d09e79
+           56cd4c6748e5e5f1236f7a6770954303
+           1ef9b2154f2f3b22a5eb34079f4c1872
+           4dee88ca57ff95da93642f8e59c1bc40
+           d9793cdff43848960625f3d335264f72
+           1e6c2fdd02f16e2b95b1cde182f7099b
+           c32e314105631627e15e113885240ab1
+           199fbbf0ed739df6ad3617691531de43
+           -----END OpenVPN Static key V1-----
+      tags: always
+
+    - name: Create OpenVPN Server 1
+      import_tasks: tasks/test_openvpn_server_create.yml
+      vars:
+        openvpn_server_args:
+          name: OpenVPN Server 1
+          mode: server_tls_user
+          authmode:
+            - RADIUS
+          interface: wan
+          local_port: 1194
+          tls: "{{ openvpn_psk }}"
+          tls_type: auth
+          ca: OpenVPN CA
+          cert: pfsense-test
+          data_ciphers:
+            - AES-256-GCM
+            - AES-128-GCM
+            - AES-256-CBC
+          tunnel_network: 10.100.0.0/24
+          compression: ""
+          gwredir: yes
+          passtos: yes
+          dns_domain: example.com
+          dns_server1: 10.10.10.10
+          dns_server2: 10.10.10.11
+          custom_options: |-
+            tls-version-min 1.2;
+          username_as_common_name: no
+        openvpn_server_vpnid: 1
+      tags: openvpn
+
+    - name: Create OpenVPN Server 2
+      import_tasks: tasks/test_openvpn_server_create.yml
+      vars:
+        openvpn_server_args:
+          name: OpenVPN Server 2
+          mode: server_tls_user
+          authmode:
+            - RADIUS
+          interface: any
+          local_port: 1195
+          ca: OpenVPN CA
+          cert: pfsense-test
+          crl: OpenVPN CA CRL
+          data_ciphers:
+            - AES-256-GCM
+            - AES-128-GCM
+            - AES-256-CBC
+          tunnel_network: 10.100.0.0/24
+          compression: ""
+          gwredir: no
+          passtos: no
+          dns_domain: example.com
+          dns_server1: 10.10.10.10
+          dns_server2: 10.10.10.11
+          custom_options: |-
+            server 10.100.1.0 255.255.255.0 'nopool';
+            ifconfig-pool 10.110.1.2 10.110.1.62;
+            tls-export-cert /tmp;
+            tls-version-min 1.2;
+            # Use manual vs redirect gateway above to add block-local
+            push "redirect-gateway def1 block-local";
+            push "block-outside-dns";
+            push "dhcp-option DOMAIN example.com";
+          username_as_common_name: no
+        openvpn_server_vpnid: 2
+      tags: openvpn
+
+    - name: Create OpenVPN Server 2
+      import_tasks: tasks/test_openvpn_server_create.yml
+      vars:
+        openvpn_server_args:
+          name: OpenVPN Server 3
+          mode: p2p_shared_key
+          interface: wan
+          local_port: 1196
+          shared_key: "{{ openvpn_psk }}"
+          tunnel_network: 10.1.0.1/28
+          remote_network: 10.20.0.0/24
+          compression: ""
+          passtos: yes
+          custom_options: ping-restart 0
+          verbosity_level: 3
+        openvpn_server_vpnid: 3
+      tags:
+        - openvpn
+        - openvpn_psk
+
+    - pfsense_openvpn_override:
+        name: vpnuser
+        server_list:
+          - OpenVPN Server 1
+        custom_options: ifconfig-push 10.100.0.100 255.255.255.0
+        state: present
+      tags: openvpn
+
+    - name: Delete OpenVPN Server 1
+      import_tasks: tasks/test_openvpn_server_delete.yml
+      vars:
+        openvpn_server_args:
+          name: OpenVPN Server 1
+        openvpn_server_vpnid: 1
+      tags: openvpn
+
+    - name: Delete OpenVPN Server 2
+      import_tasks: tasks/test_openvpn_server_delete.yml
+      vars:
+        openvpn_server_args:
+          name: OpenVPN Server 2
+        openvpn_server_vpnid: 2
+      tags: openvpn
+
+    - name: Delete OpenVPN Server 3
+      import_tasks: tasks/test_openvpn_server_delete.yml
+      vars:
+        openvpn_server_args:
+          name: OpenVPN Server 3
+        openvpn_server_vpnid: 3
+      tags: openvpn
