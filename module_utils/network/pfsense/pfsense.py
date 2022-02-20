@@ -577,9 +577,9 @@ class PFSenseModule(object):
     def uniqid(prefix='', more_entropy=False):
         """ return an identifier based on time """
         if more_entropy:
-            return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7] + "%.8F" % (random.random() * 10)
+            return prefix + '{0:x}{1:05x}{2:.8F}'.format(int(time.time()),int(time.time() * 1000000) % 0x100000,random.random() * 10)
 
-        return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7]
+        return prefix + '{0:x}{1:05x}'.format(int(time.time()),int(time.time() * 1000000) % 0x100000)
 
     def phpshell(self, command):
         """ Run a command in the php developer shell """
