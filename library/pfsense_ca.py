@@ -301,11 +301,15 @@ class PFSenseCAModule(PFSenseModuleBase):
             crl_stdout = ''
             crl_stderr = ''
             if self.refresh_crls:
+                if self.is_at_least_2_5_0():
+                    ipsec_configure = 'ipsec_configure'
+                else:
+                    ipsec_configure = 'vpn_ipsec_configure'
                 (dummy, crl_stdout, crl_stderr) = self.pfsense.phpshell("""
                     require_once("openvpn.inc");
                     openvpn_refresh_crls();
                     require_once("vpn.inc");
-                    vpn_ipsec_configure();""")
+                    {0}();""".format(ipsec_configure))
                 return (dummy, stdout + crl_stdout, stderr + crl_stderr)
 
             return (dummy, stdout + crl_stdout, stderr + crl_stderr)
