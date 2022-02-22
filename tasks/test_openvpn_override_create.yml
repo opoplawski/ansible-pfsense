@@ -1,0 +1,35 @@
+---
+    - name: "Define {{ openvpn_override_args.name }}"
+      pfsense_openvpn_override: "{{ openvpn_override_args }}"
+      register: openvpn_override
+      tags: openvpn
+
+    - fail:
+        msg: OpenVPN override vpnids {{ openvpn_override.vpnids|join(',') }} does not match expected value {{ openvpn_override_vpnids|join(',') }}
+      when: openvpn_override.vpnids | difference(openvpn_override_vpnids) | length > 1
+
+    - include_tasks: tasks/test_openvpn_override_file_exists.yml
+      loop_control:
+        loop_var: vpnid 
+      loop: "{{ openvpn_override.vpnids }}"
+
+    - set_fact:
+        expected_csc_files: "{{ openvpn_override.vpnids | map('regex_replace', '(.+)', '/var/etc/openvpn/server\\1/csc/' + openvpn_override_args.name) | list }}"
+
+    - find:
+        paths: /var/etc/openvpn
+        patterns: csc
+        recurse: yes
+        depth: 2
+        file_type: directory
+      register: csc_dirs
+
+    - find:
+        paths: "{{ csc_dirs.files | map(attribute='path') | list }}"
+        patterns: "{{ openvpn_override_args.name }}"
+        file_type: file
+      register: csc_files
+
+    - fail: 
+        msg: "Unexpected override files found: {{ csc_files.files | map(attribute='path') | difference(expected_csc_files) | join(',') }}"
+      when: "csc_files.files | map(attribute='path') | difference(expected_csc_files) | length > 0"

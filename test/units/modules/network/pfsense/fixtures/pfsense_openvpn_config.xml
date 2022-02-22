@@ -425,9 +425,10 @@
                         <inactive_seconds>300</inactive_seconds>
                 </openvpn-server>
                 <openvpn-csc>
-                        <common_name>vpnuser</common_name>
                         <server_list>1</server_list>
                         <custom_options>ifconfig-push 10.8.0.1 255.255.255.0</custom_options>
+                        <common_name><![CDATA[delvpnuser]]></common_name>
+                        <block></block>
                         <description></description>
                         <tunnel_network></tunnel_network>
                         <tunnel_networkv6></tunnel_networkv6>
@@ -435,6 +436,12 @@
                         <local_networkv6></local_networkv6>
                         <remote_network></remote_network>
                         <remote_networkv6></remote_networkv6>
+                        <gwredir>yes</gwredir>
+                        <push_reset></push_reset>
+                        <remove_route></remove_route>
+                        <netbios_enable></netbios_enable>
+                        <netbios_ntype>0</netbios_ntype>
+                        <netbios_scope></netbios_scope>
                 </openvpn-csc>
         </openvpn>
 </pfsense>

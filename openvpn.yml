@@ -147,7 +147,7 @@
         openvpn_server_vpnid: 2
       tags: openvpn
 
-    - name: Create OpenVPN Server 2
+    - name: Create OpenVPN Server 3
       import_tasks: tasks/test_openvpn_server_create.yml
       vars:
         openvpn_server_args:
@@ -167,13 +167,29 @@
         - openvpn
         - openvpn_psk
 
-    - pfsense_openvpn_override:
-        name: vpnuser
-        server_list:
-          - OpenVPN Server 1
-        custom_options: ifconfig-push 10.100.0.100 255.255.255.0
-        state: present
-      tags: openvpn
+    - name: Create OpenVPN override vpnuser
+      import_tasks: tasks/test_openvpn_override_create.yml
+      vars:
+        openvpn_override_args:
+          name: vpnuser
+          server_list:
+            - OpenVPN Server 1
+          custom_options: ifconfig-push 10.100.0.100 255.255.255.0
+          state: present
+        openvpn_override_vpnids:
+          - 1
+      tags:
+        - openvpn
+        - openvpn_override
+
+    - name: Delete OpenVPN override vpnuser
+      import_tasks: tasks/test_openvpn_override_delete.yml
+      vars:
+        openvpn_override_args:
+          name: vpnuser
+      tags:
+        - openvpn
+        - openvpn_override
 
     - name: Delete OpenVPN Server 1
       import_tasks: tasks/test_openvpn_server_delete.yml
@@ -181,7 +197,9 @@
         openvpn_server_args:
           name: OpenVPN Server 1
         openvpn_server_vpnid: 1
-      tags: openvpn
+      tags:
+        - openvpn
+        - openvpn_delete
 
     - name: Delete OpenVPN Server 2
       import_tasks: tasks/test_openvpn_server_delete.yml
@@ -189,7 +207,9 @@
         openvpn_server_args:
           name: OpenVPN Server 2
         openvpn_server_vpnid: 2
-      tags: openvpn
+      tags:
+        - openvpn
+        - openvpn_delete
 
     - name: Delete OpenVPN Server 3
       import_tasks: tasks/test_openvpn_server_delete.yml
@@ -197,4 +217,6 @@
         openvpn_server_args:
           name: OpenVPN Server 3
         openvpn_server_vpnid: 3
-      tags: openvpn
+      tags:
+        - openvpn
+        - openvpn_delete
