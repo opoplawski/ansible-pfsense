@@ -313,6 +313,17 @@ class PFSenseModule(object):
         return changed
 
     @staticmethod
+    def dict_to_php(src, php_name):
+        """ Generate PHP commands to initialiaze a variable with contents of a dict """
+        cmd = "${0} = array();\n".format(php_name)
+        for key, value in src.items():
+            if value is not None:
+                cmd += "${0}['{1}'] = '{2}';\n".format(php_name, key, value)
+            else:
+                cmd += "${0}['{1}'] = '';\n".format(php_name, key)
+        return cmd
+
+    @staticmethod
     def element_to_dict(src_elt):
         """ Create dict from XML src_elt """
         res = {}
