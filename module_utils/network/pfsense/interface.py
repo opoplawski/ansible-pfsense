@@ -142,6 +142,8 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         else:
             self.target_elt = self._get_interface_elt_by_display_name(self.obj['descr'])
 
+        self.result['ifname'] = self.target_elt.tag
+
         return obj
 
     def _validate_params(self):

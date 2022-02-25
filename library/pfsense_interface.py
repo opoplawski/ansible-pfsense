@@ -120,13 +120,18 @@ EXAMPLES = """
 
 RETURN = """
 commands:
-    description: the set of commands that would be pushed to the remote device (if pfSense had a CLI)
+    description: The set of commands that would be pushed to the remote device (if pfSense had a CLI).
     returned: always
     type: list
     sample: [
         "create interface 'voice', port='mvneta0.100', speed_duplex='autoselect', enable='True'",
         "delete interface 'voice'"
     ]
+ifname:
+    description: The pseudo-device name of the interface.
+    returned: always
+    type: str
+    sample: opt1
 """
 
 from ansible.module_utils.basic import AnsibleModule
