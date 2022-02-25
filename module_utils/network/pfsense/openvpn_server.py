@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2020-2022, Orion Poplawski <orion@nwra.com>
@@ -35,8 +34,10 @@ OPENVPN_SERVER_ARGUMENT_SPEC = dict(
     dh_length=dict(default=2048, required=False, type='int'),
     ecdh_curve=dict(default='none', required=False, choices=['none', 'prime256v1', 'secp384r1', 'secp521r1']),
     ncp_enable=dict(default=True, required=False, type='bool'),
-    #ncp_ciphers=dict(default=list('AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'), required=False, choices=['AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'], type='list', elements='str'),
-    data_ciphers=dict(default=['AES-256-GCM','AES-128-GCM','CHACHA20-POLY1305'], required=False, choices=['AES-256-CBC', 'AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'], type='list', elements='str'),
+    # ncp_ciphers=dict(default=list('AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'), required=False,
+    #                  choices=['AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'], type='list', elements='str'),
+    data_ciphers=dict(default=['AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'], required=False,
+                      choices=['AES-256-CBC', 'AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'], type='list', elements='str'),
     data_ciphers_fallback=dict(default='AES-256-CBC', required=False, choices=['AES-256-CBC', 'AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305']),
     digest=dict(default='SHA256', required=False, choices=['SHA256', 'SHA1']),
     tunnel_network=dict(default='', required=False, type='str'),
@@ -205,28 +206,29 @@ class PFSenseOpenVPNServerModule(PFSenseModuleBase):
         if len(params['authmode']) > 0:
             system = self.pfsense.get_element('system')
             for authsrv in params['authmode']:
-                if len(system.findall("authserver[name='{0}']".format(authsrv))) == 0: 
+                if len(system.findall("authserver[name='{0}']".format(authsrv))) == 0:
                     self.module.fail_json(msg='Cannot find authentication server {0}.'.format(authsrv))
 
         # validate key
         for param in ['shared_key', 'tls']:
             if params[param] is not None:
                 key = params[param]
-                if re.search('^-----BEGIN OpenVPN Static key V1-----.*-----END OpenVPN Static key V1-----$', key, flags=re.MULTILINE|re.DOTALL):
+                if re.search('^-----BEGIN OpenVPN Static key V1-----.*-----END OpenVPN Static key V1-----$', key, flags=re.MULTILINE | re.DOTALL):
                     params[param] = base64.b64encode(key.encode()).decode()
                 else:
                     key_decoded = base64.b64decode(params[param].encode()).decode()
-                    if not re.search('^-----BEGIN OpenVPN Static key V1-----.*-----END OpenVPN Static key V1-----$', key_decoded, flags=re.MULTILINE|re.DOTALL):
+                    if not re.search('^-----BEGIN OpenVPN Static key V1-----.*-----END OpenVPN Static key V1-----$',
+                                     key_decoded, flags=re.MULTILINE | re.DOTALL):
                         self.module.fail_json(msg='Could not recognize {0} key format: {1}'.format(param, key_decoded))
 
     def _openvpn_port_used(self, protocol, interface, port, vpnid=0):
         for elt in self.root_elt.findall('*[local_port]'):
             if (elt.find('disable')):
                 continue
-       
-            this_vpnid = int(elt.find('vpnid').text) 
+
+            this_vpnid = int(elt.find('vpnid').text)
             if (this_vpnid == int(vpnid)):
-                continue;
+                continue
 
             this_interface = elt.find('interface').text
             this_protocol = elt.find('protocol').text
@@ -238,17 +240,17 @@ class PFSenseOpenVPNServerModule(PFSenseModuleBase):
             this_port_text = elt.find('local_port').text
             if this_port_text is None:
                 continue
- 
+
             this_port = int(this_port_text)
             if (this_port == port and (this_protocol[0:3] == protocol[0:3]) and
                 (this_interface == interface or this_interface == "any" or interface == "any")):
-                self.module.fail_json(msg='The specified local_port ({0}) is in use by vpn ID {1}'.format(port,this_vpnid))
+                self.module.fail_json(msg='The specified local_port ({0}) is in use by vpn ID {1}'.format(port, this_vpnid))
 
     def _nextvpnid(self):
         """ find next available vpnid """
         vpnid = 1
-        while len(self.root_elt.findall("*[vpnid='{0}']".format(vpnid))) != 0: 
-           vpnid += 1
+        while len(self.root_elt.findall("*[vpnid='{0}']".format(vpnid))) != 0:
+            vpnid += 1
         return str(vpnid)
 
     ##############################
