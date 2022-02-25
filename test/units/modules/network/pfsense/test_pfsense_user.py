@@ -15,18 +15,6 @@ from units.compat.mock import patch
 from ansible.modules.network.pfsense import pfsense_user
 from .pfsense_module import TestPFSenseModule, load_fixture
 
-#def args_from_var(var, state='present', **kwargs):
-#    """ return arguments for pfsense_user module from var """
-#    args = {}
-#    for field in ['name', 'descr', 'scope', 'uid', 'groups', ]:
-#        if field in var and (state == 'present' or field == 'name'):
-#            args[field] = var[field]
-#
-#    args['state'] = state
-#    for key, value in kwargs.items():
-#        args[key] = value
-#
-#    return args
 
 class TestPFSenseUserModule(TestPFSenseModule):
 
@@ -61,7 +49,7 @@ class TestPFSenseUserModule(TestPFSenseModule):
         self.check_param_equal(params, target_elt, 'scope', default='user')
         self.check_param_equal(params, target_elt, 'uid', default='2001')
         # TODO - need to load groups
-        #self.check_param_equal(params, target_elt, 'groups')
+        # self.check_param_equal(params, target_elt, 'groups')
         self.check_param_equal(params, target_elt, 'password', xml_field='bcrypt-hash')
         self.check_list_param_equal_or_not_find(params, target_elt, 'priv')
         self.check_param_equal_or_not_find(params, target_elt, 'authorizedkeys')
@@ -86,7 +74,8 @@ class TestPFSenseUserModule(TestPFSenseModule):
 
     def test_user_update_descr(self):
         """ test updating descr of a user """
-        obj = dict(name='testdel', descr='Keep Me', uid='2000', password='$2b$12$D2jkq4Iut3ODUBN0BCrDk.bV3J5N.MrY5YEnGvTXwxeNBkyxjbbtW', priv=['page-dashboard-all'])
+        obj = dict(name='testdel', descr='Keep Me', uid='2000', password='$2b$12$D2jkq4Iut3ODUBN0BCrDk.bV3J5N.MrY5YEnGvTXwxeNBkyxjbbtW',
+                   priv=['page-dashboard-all'])
         self.do_module_test(obj, command="update user 'testdel' set descr='Keep Me'")
 
     ##############
