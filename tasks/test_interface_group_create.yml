@@ -1,0 +1,15 @@
+---
+    - name: "Define {{ interface_group_args.name }}"
+      pfsense_interface_group: "{{ interface_group_args }}"
+      register: interface_group
+
+    - fail:
+        msg: Interface group member ifnames {{ interface_group.member_ifnames|join(',') }} does not match expected value {{ interface_groug_member_ifnames|join(',') }}
+      when: interface_group.member_ifnames | difference(interface_group_member_ifnames) | length > 1
+
+    - include_tasks: tasks/test_interface_group_ifconfig_groups.yml
+      vars:
+        name: "{{ interface_group_args.name }}"
+      loop_control:
+        loop_var: ifname
+      loop: "{{ interface_group.member_ifnames }}"

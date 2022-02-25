@@ -1,0 +1,14 @@
+---
+    - command: /sbin/ifconfig {{ ifname_map[ifname] }}
+      changed_when: no
+      register: ifconfig
+
+    - set_fact:
+        if_groups_line: "{{ ifconfig.stdout_lines | select('search', 'groups:') | map('regex_replace', '^\\s*groups:\\s*', '') | first }}"
+
+    - set_fact:
+        if_groups: "{{ if_groups_line.split(' ') }}"
+
+    - fail: 
+        msg: "Group name {{ name }} not found in {{ ifname_map[ifname] }} groups: {{ if_groups | join(' ') }}"
+      when: name is not in if_groups

@@ -1,0 +1,19 @@
+---
+    - name: "Define {{ interface_args.name }}"
+      pfsense_interface: "{{ interface_args }}"
+      register: interface
+
+    - fail:
+        msg: Interface ifname {{ interface.ifname }} does not match expected value {{ interface_ifname }}
+      when: interface.ifname != interface_ifname
+
+    - command: /sbin/ifconfig {{ interface_args.interface }}
+      changed_when: no
+      register: ifconfig
+
+    - set_fact:
+        if_description: "{{ ifconfig.stdout_lines | select('search', 'description:') | map('regex_replace', '^\\s*description:\\s*', '') | first }}"
+
+    - fail: 
+        msg: "Unexpected interface description found: {{ if_description }} != {{ interface_args.descr }}"
+      when: if_description != interface_args.descr

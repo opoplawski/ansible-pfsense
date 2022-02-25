@@ -182,6 +182,69 @@
         - openvpn
         - openvpn_override
 
+    - name: Create VPN1 interface
+      import_tasks: tasks/test_interface_create.yml
+      vars:
+        interface_args:
+          interface: ovpns1
+          descr: VPN1
+          enable: yes
+        interface_ifname: opt1
+      tags:
+        - openvpn
+        - openvpn_interface
+
+    - name: Create VPN2 interface
+      import_tasks: tasks/test_interface_create.yml
+      vars:
+        interface_args:
+          interface: ovpns2
+          descr: VPN2
+          enable: yes
+        interface_ifname: opt2
+      tags:
+        - openvpn
+        - openvpn_interface
+
+    - name: Create VPN3 interface
+      import_tasks: tasks/test_interface_create.yml
+      vars:
+        interface_args:
+          interface: ovpns3
+          descr: VPN3
+          enable: yes
+        interface_ifname: opt3
+      tags:
+        - openvpn
+        - openvpn_interface
+
+    - set_fact:
+        ifname_map:
+          opt1: ovpns1
+          opt2: ovpns2
+          opt3: ovpns3
+      tags:
+        - openvpn
+        - openvpn_interface
+        - openvpn_interface_group
+
+    - name: Create VPN interface group
+      import_tasks: tasks/test_interface_group_create.yml
+      vars:
+        interface_group_args:
+          name: VPN
+          members:
+            - VPN1
+            - VPN2
+            - VPN3
+        interface_group_member_ifnames:
+            - opt1
+            - opt2
+            - opt3
+      tags:
+        - openvpn
+        - openvpn_interface
+
     - name: Delete OpenVPN override vpnuser
       import_tasks: tasks/test_openvpn_override_delete.yml
       vars:
