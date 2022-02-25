@@ -114,7 +114,7 @@ class PFSenseModule(object):
             root_elt = self.root
         elt = root_elt.find(node)
         if elt is None and create_node:
-            elt = new_element(node)
+            elt = self.new_element(node)
             root_elt.append(elt)
         return elt
 
@@ -144,7 +144,7 @@ class PFSenseModule(object):
             return result[0]
         elif len(result) > 1:
             if multiple_ok:
-                return results
+                return result
             else:
                 self.module.fail_json(msg='Found multiple groups for name {0}.'.format(self.obj['name']))
         return None
@@ -577,9 +577,9 @@ class PFSenseModule(object):
     def uniqid(prefix='', more_entropy=False):
         """ return an identifier based on time """
         if more_entropy:
-            return prefix + '{0:x}{1:05x}{2:.8F}'.format(int(time.time()),int(time.time() * 1000000) % 0x100000,random.random() * 10)
+            return prefix + '{0:x}{1:05x}{2:.8F}'.format(int(time.time()), int(time.time() * 1000000) % 0x100000, random.random() * 10)
 
-        return prefix + '{0:x}{1:05x}'.format(int(time.time()),int(time.time() * 1000000) % 0x100000)
+        return prefix + '{0:x}{1:05x}'.format(int(time.time()), int(time.time() * 1000000) % 0x100000)
 
     def phpshell(self, command):
         """ Run a command in the php developer shell """
