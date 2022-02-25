@@ -142,7 +142,8 @@ class PFSenseInterfaceModule(PFSenseModuleBase):
         else:
             self.target_elt = self._get_interface_elt_by_display_name(self.obj['descr'])
 
-        self.result['ifname'] = self.target_elt.tag
+        if self.target_elt is not None:
+            self.result['ifname'] = self.target_elt.tag
 
         return obj
 
