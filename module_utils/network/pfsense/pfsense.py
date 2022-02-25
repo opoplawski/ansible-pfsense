@@ -203,7 +203,7 @@ class PFSenseModule(object):
             return floating
         elif floating:
             return False
-        return interface_elt is not None and interface_elt.text == interface
+        return interface_elt is not None and interface_elt.text.lower() == interface.lower()
 
     def get_interface_rules_count(self, interface, floating):
         """ get rules count in interface/floating """
