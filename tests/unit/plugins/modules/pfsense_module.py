@@ -1,5 +1,6 @@
 # Copyright: (c) 2018 Red Hat Inc.
 # Copyright: (c) 2018, Frederic Bor <frederic.bor@wanadoo.fr>
+# Copyright: (c) 2022, Orion Poplawski <orion@nwra.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import (absolute_import, division, print_function)
@@ -8,6 +9,7 @@ __metaclass__ = type
 import os
 import errno
 import json
+import re
 
 from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import patch
 from ansible_collections.community.internal_test_tools.tests.unit.plugins.modules.utils import AnsibleExitJson, AnsibleFailJson, ModuleTestCase
@@ -201,6 +203,23 @@ class TestPFSenseModule(ModuleTestCase):
             self.module.main()
 
         result = exc.exception.args[0]
+
+        if 'diff' in result:
+            changes = dict()
+            after = dict(result['diff']['after'])
+            before = dict(result['diff']['before'])
+            for item in after:
+                if item in before:
+                    if after[item] != before[item]:
+                        changes[item] = str(before[item]) + ' -> ' + str(after[item])
+                    del before[item]
+                else:
+                    changes[item] = 'None -> ' + str(after[item])
+            for item in before:
+                changes[item] = str(before[item]) + ' -> None'
+            if changes:
+                result['changes'] = changes
+
         self.assertEqual(result['changed'], changed, result)
         return result
 
@@ -314,10 +333,22 @@ class TestPFSenseModule(ModuleTestCase):
                 self.fail('Element <' + elt_name + '> differs. Expected: \'' + value + '\' result: \'' + elt.text + '\'')
         return elt
 
-    def assert_xml_elt_is_none_or_empty(self, tag, elt_name):
+    def assert_xml_elt_match(self, tag, elt_name, elt_regex):
         elt = tag.find(elt_name)
         if elt is None:
             self.fail('Element not found: ' + elt_name)
+
+        if re.fullmatch(elt_regex, elt.text) is None:
+            if elt.text is None:
+                self.fail('Element <' + elt_name + '> does not match \'' + elt_regex + '\' result: None')
+            else:
+                self.fail('Element <' + elt_name + '> does not match \'' + elt_regex + '\' result: \'' + elt.text + '\'')
+        return elt
+
+    def assert_xml_elt_is_none_or_empty(self, tag, elt_name):
+        elt = tag.find(elt_name)
+        if elt is None:
+            return elt
         if elt.text is not None and elt.text:
             self.fail('Element <' + elt_name + '> differs. Expected: NoneType result: \'' + elt.text + '\'')
         return elt
@@ -377,18 +408,22 @@ class TestPFSenseModule(ModuleTestCase):
         else:
             self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
 
-    def check_param_bool(self, params, target_elt, param, default=None, xml_field=None):
-        """ if param is defined, check the elt exist, otherwise that it does not exist in XML """
+    def check_param_bool(self, params, target_elt, param, default=False, value_true=None, xml_field=None):
+        """ if param is defined, check the elt exist and text equals value_true, otherwise that it does not exist in XML or
+            is empty if value_true is not None """
         if xml_field is None:
             xml_field = param
 
-        if params.get(param):
-            if default is None:
+        if (param in params and params[param]) or default:
+            if value_true is None:
                 self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
             else:
-                self.assert_xml_elt_equal(target_elt, xml_field, default)
+                self.assert_xml_elt_equal(target_elt, xml_field, value_true)
         else:
-            self.assert_not_find_xml_elt(target_elt, xml_field)
+            if value_true is None:
+                self.assert_not_find_xml_elt(target_elt, xml_field)
+            else:
+                self.assert_xml_elt_is_none_or_empty(target_elt, xml_field)
 
     def check_value_equal(self, target_elt, xml_field, value, empty=True):
         """ if value is defined, check if target_elt has the right value, otherwise that it does not exist in XML """
@@ -413,6 +448,15 @@ class TestPFSenseModule(ModuleTestCase):
                 self.assert_xml_elt_equal(target_elt, xml_field, params[param])
         else:
             self.assert_not_find_xml_elt(target_elt, xml_field)
+
+    def check_param_equal_or_present(self, params, target_elt, param, xml_field=None):
+        """ if param is defined, check if target_elt has the right value, otherwise that it is present in XML """
+        if xml_field is None:
+            xml_field = param
+        if param in params:
+            self.assert_xml_elt_equal(target_elt, xml_field, params[param])
+        else:
+            self.assert_find_xml_elt(target_elt, xml_field)
 
     def check_list_param_equal(self, params, target_elt, param, default=None, xml_field=None, not_find_val=None):
         """ if param is defined, check if target_elt has the right value, otherwise that it does not exist in XML """

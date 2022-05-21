@@ -1,0 +1,22 @@
+---
+    - wait_for:
+        path: "/var/etc/openvpn/server{{ vpnid }}/csc/{{ openvpn_override_args.name }}"
+
+    - slurp:
+        src: "/var/etc/openvpn/server{{ vpnid }}/csc/{{ openvpn_override_args.name }}"
+      register: openvpn_config_file
+
+    - debug: msg="{{ openvpn_config_file['content'] | b64decode }}"
+
+    - template:
+        src: openvpn-override.j2
+        dest: /var/etc/openvpn/server{{ vpnid }}/csc/{{ openvpn_override_args.name }}
+        owner: nobody
+        group: nobody
+        mode: 0644
+      check_mode: yes
+      register: config
+
+    - fail:
+        msg: OpenVPN config files differ
+      when: config.changed

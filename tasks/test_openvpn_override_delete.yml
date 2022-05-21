@@ -1,0 +1,25 @@
+---
+    - name: "Remove {{ openvpn_override_args.name }}"
+      pfsense_openvpn_override:
+        name: "{{ openvpn_override_args.name }}"
+        state: absent
+      register: openvpn_override
+      tags: openvpn
+
+    - find:
+        paths: /var/etc/openvpn
+        patterns: csc
+        recurse: yes
+        depth: 2
+        file_type: directory
+      register: csc_dirs
+
+    - find:
+        paths: "{{ csc_dirs.files | map(attribute='path') | list }}"
+        patterns: "{{ openvpn_override_args.name }}"
+        file_type: file
+      register: csc_files
+
+    - fail: 
+        msg: "Unexpected override files found: {{ csc_files.files | map(attribute='path') | join(',') }}"
+      when: "(csc_files.files | map(attribute='path') | list | length) > 0"

@@ -1,0 +1,24 @@
+---
+    - name: "Remove {{ openvpn_server_args.name }}"
+      pfsense_openvpn_server:
+        name: "{{ openvpn_server_args.name }}"
+        state: absent
+      register: openvpn_server
+
+    - fail:
+        msg: OpenVPN server vpnid {{ openvpn_server.vpnid }} does not match expected value {{ openvpn_server_vpnid }}
+      when: openvpn_server.vpnid != openvpn_server_vpnid
+
+    - wait_for:
+        path: "/var/etc/openvpn/server{{ openvpn_server.vpnid }}/config.ovpn"
+        state: absent
+
+    # TODO - Use community.general.pids with pattern (need version 3.0.0)
+    - shell: "ps xo command | grep '/openvpn --config /var/etc/openvpn/server{{ openvpn_server.vpnid }}/config.ovpn' | grep -v grep"
+      ignore_errors: yes
+      register: openvpn_server_process
+      changed_when: no
+
+    - fail:
+        msg: OpenVPN server process is still running
+      when: openvpn_server_process.stdout_lines | length != 0

@@ -210,7 +210,7 @@ class PFSenseModule(object):
             return floating
         elif floating:
             return False
-        return interface_elt is not None and interface_elt.text == interface
+        return interface_elt is not None and interface_elt.text.lower() == interface.lower()
 
     def get_interface_rules_count(self, interface, floating):
         """ get rules count in interface/floating """
@@ -309,6 +309,17 @@ class PFSenseModule(object):
 
         self.debug.flush()
         return changed
+
+    @staticmethod
+    def dict_to_php(src, php_name):
+        """ Generate PHP commands to initialiaze a variable with contents of a dict """
+        cmd = "${0} = array();\n".format(php_name)
+        for key, value in src.items():
+            if value is not None:
+                cmd += "${0}['{1}'] = '{2}';\n".format(php_name, key, value)
+            else:
+                cmd += "${0}['{1}'] = '';\n".format(php_name, key)
+        return cmd
 
     @staticmethod
     def element_to_dict(src_elt):
@@ -575,9 +586,9 @@ class PFSenseModule(object):
     def uniqid(prefix='', more_entropy=False):
         """ return an identifier based on time """
         if more_entropy:
-            return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7] + "%.8F" % (random.random() * 10)
+            return prefix + '{0:x}{1:05x}{2:.8F}'.format(int(time.time()), int(time.time() * 1000000) % 0x100000, random.random() * 10)
 
-        return prefix + hex(int(time.time()))[2:10] + hex(int(time.time() * 1000000) % 0x100000)[2:7]
+        return prefix + '{0:x}{1:05x}'.format(int(time.time()), int(time.time() * 1000000) % 0x100000)
 
     def phpshell(self, command):
         """ Run a command in the php developer shell """

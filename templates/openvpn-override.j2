@@ -1,0 +1,12 @@
+{% if openvpn_override_args.tunnel_network is defined %}
+ifconfig {{ openvpn_override_args.tunnel_network | nthhost(1) }} {{ openvpn_override_args.tunnel_network | nthhost(2) }}
+{% endif %}
+{% if openvpn_override_args.remote_network is defined %}
+route {{ openvpn_override_args.remote_network | ipaddr('network') }} {{ openvpn_override_args.remote_network | ipaddr('netmask') }}
+{% endif %}
+{% if openvpn_override_args.gwredir is defined and openvpn_override_args.gwredir %}
+push "redirect-gateway def1"
+{% endif %}
+{% if openvpn_override_args.custom_options is defined %}
+{{ openvpn_override_args.custom_options | replace(';','\n') }}
+{% endif %}

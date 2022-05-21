@@ -67,8 +67,8 @@ class PFSenseRuleSeparatorModule(PFSenseModuleBase):
             self._interface_name = 'floating'
             obj['if'] = 'floatingrules'
         else:
-            self._interface_name = params['interface']
-            obj['if'] = self.pfsense.parse_interface(params['interface'])
+            self._interface_name = params['interface'].lower()
+            obj['if'] = self.pfsense.parse_interface(params['interface']).lower()
 
         if params['state'] == 'present':
             obj['color'] = 'bg-' + params['color']
