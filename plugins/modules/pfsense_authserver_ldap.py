@@ -98,26 +98,21 @@ options:
     type: str
   ldap_rfc2307:
     description: LDAP Server uses RFC 2307 style group membership (RFC 2307bis when False)
-    default: false
     type: bool
   ldap_rfc2307_userdn:
     description: Use DN for username search (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
-    default: false
     type: bool
   ldap_utf8:
     description: UTF8 encode LDAP parameters before sending them to the server.
-    default: false
     type: bool
   ldap_nostrip_at:
     description: Do not strip away parts of the username after the @ symbol
-    default: false
     type: bool
   ldap_pam_groupdn:
     description: Shell Authentication Group DN (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
     type: str
   ldap_allow_unauthenticated:
     description: Allow unauthenticated bind (pfsense-CE >=2.5.0, pfsense-PLUS >=21.2)
-    default: false
     type: bool
 """
 

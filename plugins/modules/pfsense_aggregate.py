@@ -81,6 +81,7 @@ options:
         type: str
       enable:
         description: Enable interface.
+        default: no
         type: bool
       ipv4_type:
         description: IPv4 Configuration Type.
