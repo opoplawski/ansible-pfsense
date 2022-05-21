@@ -131,7 +131,7 @@ vpnids:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.openvpn_override import PFSenseOpenVPNOverrideModule, OPENVPN_OVERRIDE_ARGUMENT_SPEC, OPENVPN_OVERRIDE_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.openvpn_override import PFSenseOpenVPNOverrideModule, OPENVPN_OVERRIDE_ARGUMENT_SPEC, OPENVPN_OVERRIDE_REQUIRED_IF
 
 
 def main():

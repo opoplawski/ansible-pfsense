@@ -10,7 +10,7 @@ __metaclass__ = type
 import base64
 import re
 
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
 
 OPENVPN_SERVER_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),

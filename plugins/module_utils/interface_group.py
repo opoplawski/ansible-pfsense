@@ -6,8 +6,8 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 import re
-from ansible.module_utils.network.pfsense.module_base import PFSenseModuleBase
-from ansible.module_utils.network.pfsense.rule import PFSenseRuleModule
+from ansible_collections.pfsensible.core.plugins.module_utils.module_base import PFSenseModuleBase
+from ansible_collections.pfsensible.core.plugins.module_utils.rule import PFSenseRuleModule
 
 INTERFACE_GROUP_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),

@@ -11,8 +11,8 @@ if sys.version_info < (2, 7):
     pytestmark = pytest.mark.skip("pfSense Ansible modules require Python >= 2.7")
 
 from xml.etree.ElementTree import fromstring, ElementTree
-from units.compat.mock import patch
-from ansible.modules.network.pfsense import pfsense_authserver_ldap
+from ansible_collections.community.internal_test_tools.tests.unit.compat.mock import patch
+from ansible_collections.pfsensible.core.plugins.modules import pfsense_authserver_ldap
 from .pfsense_module import TestPFSenseModule, load_fixture
 
 

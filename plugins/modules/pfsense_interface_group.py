@@ -74,7 +74,7 @@ member_ifnames:
 """
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.network.pfsense.interface_group import PFSenseInterfaceGroupModule, INTERFACE_GROUP_ARGUMENT_SPEC
+from ansible_collections.pfsensible.core.plugins.module_utils.interface_group import PFSenseInterfaceGroupModule, INTERFACE_GROUP_ARGUMENT_SPEC
 
 
 def main():
