@@ -229,6 +229,7 @@ options:
   push_register_dns:
     description: Push DNS.
     type: bool
+    default: no
   create_gw:
     description: Which gateway types to create.
     default: both
