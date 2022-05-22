@@ -234,7 +234,7 @@ class PFSenseOpenVPNServerModule(PFSenseModuleBase):
             this_protocol = elt.find('protocol').text
             # (TCP|UDP)(4|6) does not conflict unless interface is any
             if ((this_interface != "any" and interface != "any") and (len(protocol) == 4) and
-                (len(this_protocol) == 4) and (this_protocol[0:3] == protocol[0:3]) and (this_protocol[3] != protocol[3])):
+                    (len(this_protocol) == 4) and (this_protocol[0:3] == protocol[0:3]) and (this_protocol[3] != protocol[3])):
                 continue
 
             this_port_text = elt.find('local_port').text
@@ -243,7 +243,7 @@ class PFSenseOpenVPNServerModule(PFSenseModuleBase):
 
             this_port = int(this_port_text)
             if (this_port == port and (this_protocol[0:3] == protocol[0:3]) and
-                (this_interface == interface or this_interface == "any" or interface == "any")):
+                    (this_interface == interface or this_interface == "any" or interface == "any")):
                 self.module.fail_json(msg='The specified local_port ({0}) is in use by vpn ID {1}'.format(port, this_vpnid))
 
     def _nextvpnid(self):

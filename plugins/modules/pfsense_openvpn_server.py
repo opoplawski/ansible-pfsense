@@ -265,7 +265,11 @@ vpnid:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.pfsensible.core.plugins.module_utils.openvpn_server import PFSenseOpenVPNServerModule, OPENVPN_SERVER_ARGUMENT_SPEC, OPENVPN_SERVER_REQUIRED_IF
+from ansible_collections.pfsensible.core.plugins.module_utils.openvpn_server import (
+    PFSenseOpenVPNServerModule,
+    OPENVPN_SERVER_ARGUMENT_SPEC,
+    OPENVPN_SERVER_REQUIRED_IF
+)
 
 
 def main():
