@@ -18,11 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # ansible 2.9 does not support python 3.9 for testing
-        python-version: [3.6, 3.7, 3.8]
-        # Build against 2.9 for now.  2.10 fails due to removal of ipaddress to ansible.network
-        # ansible 2.11 requires collection format
-        ansible-version: ['2.9']
+        python-version: ['3.8']
+        ansible-version: ['2.11', '2.12', '2.13']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
