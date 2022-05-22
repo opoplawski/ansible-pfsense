@@ -99,6 +99,7 @@ options:
   wins_server_enable:
     description: Provide a WINS server list to clients,
     type: bool
+    default: no
   custom_options:
     description: Additional options to add for this client specific override, separated by a semicolon.
     type: str

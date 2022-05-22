@@ -12,7 +12,7 @@ from ansible_collections.pfsensible.core.plugins.module_utils.module_base import
 OPENVPN_OVERRIDE_ARGUMENT_SPEC = dict(
     name=dict(required=True, type='str'),
     state=dict(default='present', choices=['present', 'absent']),
-    server_list=dict(default=None, type='list'),
+    server_list=dict(default=None, type='list', elements='str'),
     disable=dict(default=False, required=False, type='bool'),
     descr=dict(default=None, required=False, type='str'),
     block=dict(default=False, required=False, type='bool'),
