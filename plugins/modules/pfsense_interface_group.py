@@ -30,12 +30,14 @@ options:
   name:
     description: The name of the interface group.
     type: str
+    required: yes
   descr:
     description: Description of the interface group.
     type: str
   members:
     description: The members of the interface group.
     type: list
+    required: yes
     elements: str
 """
 

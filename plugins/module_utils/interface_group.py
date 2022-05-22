@@ -13,7 +13,7 @@ INTERFACE_GROUP_ARGUMENT_SPEC = dict(
     state=dict(default='present', choices=['present', 'absent']),
     name=dict(required=True, type='str'),
     descr=dict(type='str'),
-    members=dict(required=True, type='list', element='str'),
+    members=dict(required=True, type='list', elements='str'),
 )
 
 INTERFACE_GROUP_PHP_COMMAND = '''
