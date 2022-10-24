@@ -517,6 +517,14 @@ options:
     description: only apply rules and rules separators on those interfaces (separated by space)
     required: False
     type: str
+  ignored_aliases:
+    description: aliases that will be ignored (won't be auto deleted)
+    required: False
+    type: list
+  ignored_rules:
+    description: rules that will be ignored (won't be auto deleted)
+    required: False
+    type: list
 """
 
 EXAMPLES = """
@@ -663,6 +671,9 @@ class PFSenseModuleAggregate(object):
         if descr is None or interface is None:
             return True
 
+        if descr.text in self.module.params['ignored_rules']:
+            return True
+
         for rule in rules:
             if rule['state'] == 'absent':
                 continue
@@ -696,14 +707,16 @@ class PFSenseModuleAggregate(object):
                 return True
         return False
 
-    @staticmethod
-    def want_alias(alias_elt, aliases):
+    def want_alias(self, alias_elt, aliases):
         """ return True if we want to keep alias_elt """
         name = alias_elt.find('name')
         alias_type = alias_elt.find('type')
 
         # probably not an alias
         if name is None or type is None:
+            return True
+
+        if name.text in self.module.params['ignored_aliases']:
             return True
 
         for alias in aliases:
@@ -1061,6 +1074,8 @@ def main():
         purge_rule_separators=dict(default=False, type='bool'),
         purge_vlans=dict(default=False, type='bool'),
         interface_filter=dict(required=False, type='str'),
+        ignored_aliases=dict(type='list', elements='str', default=[]),
+        ignored_rules=dict(type='list', elements='str', default=[]),
     )
 
     required_one_of = [[
