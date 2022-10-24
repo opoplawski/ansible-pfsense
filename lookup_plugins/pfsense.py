@@ -207,7 +207,7 @@ import os
 
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
-from ansible.module_utils.compat import ipaddress
+from ansible.module_utils.network.pfsense.compat import ipaddress
 
 OPTION_FIELDS = [
     'gateway', 'log', 'queue', 'ackqueue', 'in_queue', 'out_queue', 'icmptype', 'filter', 'efilter', 'ifilter', 'sched', 'quick', 'direction',
@@ -471,6 +471,48 @@ class PFSenseHostAlias(object):
         self.routed_interfaces = {}
 
         self._computed = False
+
+    def __deepcopy__(self, memodict={}):
+        raise AssertionError()
+
+    def copy(self):
+        copy_object = PFSenseHostAlias()
+
+        copy_object.name = self.name
+        copy_object.descr = self.descr
+        copy_object.dns = self.dns
+        copy_object.fake = self.fake
+        copy_object._computed = self._computed
+        copy_object.definition = self.definition[:]
+
+        # ips
+        for ip in self.ips:
+            new_ip = ipaddress.IPv4Address.__new__(ipaddress.IPv4Address)
+            new_ip._ip = ip._ip
+            copy_object.ips.append(new_ip)
+
+        # networks
+        for network in self.networks:
+            new_network = ipaddress.IPv4Network.__new__(ipaddress.IPv4Network)
+            new_network.network_address = ipaddress.IPv4Address.__new__(ipaddress.IPv4Address)
+            new_network.network_address._ip = network.network_address._ip
+            new_network.netmask = network.netmask
+            new_network._prefixlen = network._prefixlen
+            new_network._cache = {}
+            copy_object.networks.append(new_network)
+
+        # local_interfaces
+        for k, v in self.local_interfaces.items():
+            copy_object.local_interfaces[k] = v.copy()
+
+        # routed_interfaces
+        for k, v in self.routed_interfaces.items():
+            copy_object.routed_interfaces[k] = v.copy()
+
+        return copy_object
+
+
+
 
     def __str__(self):
         return "name={0}, descr={1}, definition={2}, ips={3}, networks={4}, local_interfaces={5}, routed_interfaces={6}, fake={7}".format(
@@ -779,6 +821,42 @@ class PFSenseRule(object):
         self.sub_rules = []
         self.interfaces = None
         self.generated_names = {}
+
+    
+    def __deepcopy__(self, memodict={}):
+        raise AssertionError()
+
+    def copy(self):
+        copy_object = PFSenseRule()
+        copy_object.name = self.name
+        copy_object.separator = self.separator
+        for alias in self.src:
+            copy_object.src.append(alias.copy())
+
+        for alias in self.dst:
+            copy_object.dst.append(alias.copy())
+
+        copy_object.src_port = self.src_port[:]
+        copy_object.dst_port = self.dst_port[:]
+        copy_object.src_nat = self.src_nat
+        copy_object.dst_nat = self.dst_nat
+        copy_object.dst_nat_port = self.dst_nat_port
+        copy_object.protocol = self.protocol
+        copy_object.action = self.action
+        copy_object.options = self.options
+        copy_object.floating = self.floating
+        copy_object.force = self.force
+        copy_object.asymmetric = self.asymmetric
+        copy_object.invert_dst = self.invert_dst
+        copy_object.invert_src = self.invert_src
+
+        for rule in self.sub_rules:
+            copy_object.sub_rules.append(rule.copy())
+
+        copy_object.interfaces = deepcopy(self.interfaces)
+        copy_object.generated_names = deepcopy(self.generated_names)
+
+        return copy_object
 
     def get_option(self, name):
         """ return option value for name """
@@ -2128,7 +2206,7 @@ class PFSenseRuleDecomposer(object):
         src_sep = function(field)
         if len(src_sep) > 1:
             for src in src_sep:
-                new_rule = deepcopy(rule)
+                new_rule = rule.copy()
                 setattr(new_rule, attr, [src])
                 sub_rules.append(new_rule)
 
@@ -2143,7 +2221,7 @@ class PFSenseRuleDecomposer(object):
         if len(rule.src) > 1 or len(rule.dst) > 1:
             for src in rule.src:
                 for dst in rule.dst:
-                    new_rule = deepcopy(rule)
+                    new_rule = rule.copy()
                     new_rule.src = [src]
                     new_rule.dst = [dst]
                     sub_rules.append(new_rule)
@@ -2729,12 +2807,12 @@ class PFSenseRuleFactory(object):
             elif (not rule.src_nat and not rule.floating and len(subrule.src[0].networks) == 1 and
                   len(subrule.src[0].ips) == 0 and
                   subrule.src[0].networks[0] == self._data.target.interfaces[interface].local_network):
-                src = deepcopy(subrule.src[0])
+                src = subrule.src[0].copy()
                 src.name = "NET:{0}".format(interface)
             elif (not rule.src_nat and not rule.floating and len(subrule.src[0].networks) == 0 and
                   len(subrule.src[0].ips) == 1 and
                   subrule.src[0].ips[0] == self._data.target.interfaces[interface].local_ip):
-                src = deepcopy(subrule.src[0])
+                src = subrule.src[0].copy()
                 src.name = "IP:{0}".format(interface)
 
             if len(dst_group_name) != 1:
@@ -2742,12 +2820,12 @@ class PFSenseRuleFactory(object):
             elif (not rule.src_nat and not rule.floating and len(subrule.dst[0].networks) == 1 and
                   len(subrule.dst[0].ips) == 0 and
                   subrule.dst[0].networks[0] == self._data.target.interfaces[interface].local_network):
-                dst = deepcopy(subrule.dst[0])
+                dst = subrule.dst[0].copy()
                 dst.name = "NET:{0}".format(interface)
             elif (not rule.src_nat and not rule.floating and len(subrule.dst[0].networks) == 0 and
                   len(subrule.dst[0].ips) == 1 and
                   subrule.dst[0].ips[0] == self._data.target.interfaces[interface].local_ip):
-                dst = deepcopy(subrule.dst[0])
+                dst = subrule.dst[0].copy()
                 dst.name = "IP:{0}".format(interface)
 
             # when aggregating, we merge rules with same src/dst
@@ -3282,4 +3360,15 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    profile = False
+    if profile:
+        import cProfile, pstats
+        profiler = cProfile.Profile()
+        profiler.enable()
+        main()
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats('tottime')
+        stats.print_stats()
+    else:
+        main()
+
