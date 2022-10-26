@@ -830,6 +830,8 @@ class PFSenseRule(object):
         self.asymmetric = False
         self.invert_dst = False
         self.invert_src = False
+        self.invert_dst_nat = False
+        self.invert_src_nat = False
 
         self.sub_rules = []
         self.interfaces = None
@@ -861,6 +863,8 @@ class PFSenseRule(object):
         copy_object.asymmetric = self.asymmetric
         copy_object.invert_dst = self.invert_dst
         copy_object.invert_src = self.invert_src
+        copy_object.invert_dst_nat = self.invert_dst_nat
+        copy_object.invert_src_nat = self.invert_src_nat
 
         for rule in self.sub_rules:
             copy_object.sub_rules.append(rule.copy())
@@ -1645,6 +1649,16 @@ class PFSenseDataParser(object):
             if not obj.force:
                 self._data.set_error('invert_dst must be used with force (for now)')
 
+        if 'invert_src_nat' in rule:
+            obj.invert_src_nat = _get_bool('invert_src_nat')
+            if not obj.force:
+                self._data.set_error('invert_src_nat must be used with force (for now)')
+
+        if 'invert_dst_nat' in rule:
+            obj.invert_dst_nat = _get_bool('invert_dst_nat')
+            if not obj.force:
+                self._data.set_error('invert_dst_nat must be used with force (for now)')
+
         return obj
 
     def parse_rules(self, parent=None, parent_separator=None):
@@ -1731,7 +1745,7 @@ class PFSenseDataParser(object):
 
             # we check that all fields are valid
             valid_fields = ['src', 'dst', 'src_port', 'dst_port', 'protocol', 'action', 'floating', 'force']
-            valid_fields.extend(['src_nat', 'dst_nat', 'dst_nat_port', 'asymmetric', 'invert_dst', 'invert_src', 'ignored'])
+            valid_fields.extend(['src_nat', 'dst_nat', 'dst_nat_port', 'asymmetric', 'invert_dst', 'invert_src', 'invert_dst_nat', 'invert_src_nat', 'ignored'])
             valid_fields.extend(OPTION_FIELDS)
             for field in rule:
                 if field not in valid_fields:
@@ -2749,6 +2763,12 @@ class PFSenseRuleFactory(object):
                 if key in definition:
                     definition[field] = '{0}:{1}'.format(definition[field], definition[key])
                     del definition[key]
+
+            if rule_obj.invert_src_nat and 'source' in definition:
+                definition['source'] = '!' + definition['source']
+
+            if rule_obj.invert_dst_nat and 'destination' in definition:
+                definition['destination'] = '!' + definition['destination']
 
             interfaces[interface].append(definition)
 
