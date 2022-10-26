@@ -427,6 +427,8 @@ if (filter_configure() == 0) { clear_subsystem_dirty('natconf'); clear_subsystem
                 if field:
                     field += ':'
                 field += rule[addr]['port']
+            if 'not' in rule[addr]:
+                field = 'not ' + field
         else:
             field = rule[addr]
         return field
