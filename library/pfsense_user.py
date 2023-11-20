@@ -49,7 +49,7 @@ options:
     type: list
     elements: str
   password:
-    description: bcrypt encrypted password of the user.
+    description: bcrypt (<2.6.0) or sha512 (>=2.6.0) encrypted password of the user.
     type: str
   priv:
     description:
@@ -153,10 +153,10 @@ class PFSenseUserModule(PFSenseModuleBase):
         params = self.params
         if 'password' in params and params['password'] is not None:
             password = params['password']
-            if re.match(r'\$2b\$', str(password)):
-                params['bcrypt-hash'] = password
+            if re.match(r'\$(2b|6)\$', str(password)):
+                params['password-hash'] = password
             else:
-                self.module.fail_json(msg='Password (%s) does not appear to be a bcrypt hash' % password)
+                self.module.fail_json(msg='Password (%s) does not appear to be a bcrypt or sha512 (pfsense >=2.6.0) hash' % password)
             del params['password']
 
     def _params_to_obj(self):
@@ -168,7 +168,7 @@ class PFSenseUserModule(PFSenseModuleBase):
 
         obj['name'] = params['name']
         if params['state'] == 'present':
-            for option in ['authorizedkeys', 'descr', 'scope', 'uid', 'bcrypt-hash', 'groups', 'priv']:
+            for option in ['authorizedkeys', 'descr', 'scope', 'uid', 'password-hash', 'groups', 'priv']:
                 if option in params and params[option] is not None:
                     obj[option] = params[option]
 
@@ -230,7 +230,7 @@ class PFSenseUserModule(PFSenseModuleBase):
     def _copy_and_add_target(self):
         """ populate the XML target_elt """
         obj = self.obj
-        if 'bcrypt-hash' not in obj:
+        if 'password-hash' not in obj:
             self.module.fail_json(msg='Password is required when adding a user')
         if 'uid' not in obj:
             obj['uid'] = self._nextuid()
